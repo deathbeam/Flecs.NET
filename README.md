@@ -171,8 +171,6 @@ Reference the project and import the native libraries. You should now be able to
         <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
 
-    <Import Project="PATH/Flecs.NET/src/Flecs.NET.Native/Flecs.NET.Native.targets" />
-
     <ItemGroup>
         <ProjectReference Include="PATH/Flecs.NET/src/Flecs.NET/Flecs.NET.csproj" />
     </ItemGroup>
