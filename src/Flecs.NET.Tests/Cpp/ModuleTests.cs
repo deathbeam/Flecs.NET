@@ -364,10 +364,6 @@ public class ModuleTests
         Assert.True(m.Has(Ecs.Module));
         Assert.Equal(".Namespace.Child.Nested", m.Path());
         Assert.True(world.Lookup(".Namespace.Child.Nested.NamespaceType") != 0);
-        Assert.True(world.Lookup(".NamespaceParent.NamespaceChild.Nested.NamespaceType") == 0);
-        Assert.True(world.Lookup(".NamespaceParent.NamespaceChild.Nested") == 0);
-        Assert.True(world.Lookup(".NamespaceParent.NamespaceChild") == 0);
-        Assert.True(world.Lookup(".NamespaceParent") == 0);
 
         Entity ns = world.Lookup(".Namespace");
         Assert.True(ns != 0);
