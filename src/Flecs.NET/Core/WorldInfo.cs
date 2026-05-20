@@ -139,12 +139,12 @@ public readonly unsafe struct WorldInfo : IEquatable<WorldInfo>
     /// <summary>
     ///     Total number of systems ran in last frame.
     /// </summary>
-    public long SystemsRanFrame => Handle->systems_ran_frame;
+    public long SystemsRanFrame => Handle->systems_ran_total;
 
     /// <summary>
     ///     Total number of times observer was invoked.
     /// </summary>
-    public long ObserversRanFrame => Handle->observers_ran_frame;
+    public long ObserversRanFrame => Handle->observers_ran_total;
 
     /// <summary>
     ///     Number of tag (No data) ids in the world.

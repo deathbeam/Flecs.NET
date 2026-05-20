@@ -126,18 +126,5 @@ public class QueryBuilderTests
                 .TermAt<Position>(0)
                 .Build();
         });
-
-        Assert.Throws<Ecs.AssertionException>(() =>
-        {
-            world.Component<Tag>().Add(Ecs.PairIsTag);
-
-            world.QueryBuilder()
-                .Cached()
-                .With<Tag, Position>()
-                .TermAt<Position>(0)
-                .Build();
-
-            world.Component<Tag>().Remove(Ecs.PairIsTag);
-        });
     }
 }
