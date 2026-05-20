@@ -2990,15 +2990,8 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         while (current != 0)
         {
             Entity next = current.Parent();
-
-            ecs_iter_t it = ecs_each_id(Handle, Pair(Ecs.ChildOf, current));
-
-            if (!ecs_iter_is_true(&it))
-            {
-                current.Destruct();
-                SetVersion(current);
-            }
-
+            current.Destruct();
+            SetVersion(current);
             current = next;
         }
 
@@ -3211,7 +3204,8 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         using NativeString nativeName = (NativeString)name;
         using NativeString nativeStr = (NativeString)str;
 
-        return ecs_script_run(Handle, nativeName, nativeStr);
+        ecs_script_eval_result_t result = default;
+        return ecs_script_run(Handle, nativeName, nativeStr, &result);
     }
 
     /// <summary>
