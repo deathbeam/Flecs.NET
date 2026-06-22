@@ -416,6 +416,9 @@ public static unsafe class Type<T>
 
         ecs_set_hooks_id(world, component, &hooks);
 
+        if (typeof(IFlecsStruct).IsAssignableFrom(typeof(T)))
+            StructReflection.Apply<T>(world, world.Entity(component));
+
         return component;
     }
 
