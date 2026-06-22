@@ -119,6 +119,64 @@ public unsafe class TypeRegistrationTests
     }
 
     [Fact]
+    private void ComponentStructAutoReflection()
+    {
+        using World world = World.Create();
+
+        Entity pos = world.Component<AutoPosition>();
+
+        Assert.True(pos.Has<EcsStruct>());
+
+        Entity e = world.Entity().Set(new AutoPosition(10, 20));
+        ref AutoPosition reference = ref e.Ensure<AutoPosition>();
+        Assert.Equal("{X: 10, Y: 20}", world.ToExpr(ref reference));
+    }
+
+    [Fact]
+    private void ComponentStructAutoReflectionPlainStruct()
+    {
+        using World world = World.Create();
+
+        Entity s = world.Component<AutoPlainStruct>();
+
+        Assert.True(s.Has<EcsStruct>());
+
+        Entity e = world.Entity().Set(new AutoPlainStruct { A = 1, B = 2 });
+        ref AutoPlainStruct reference = ref e.Ensure<AutoPlainStruct>();
+        Assert.Equal("{A: 1, B: 2}", world.ToExpr(ref reference));
+    }
+
+    [Fact]
+    private void ComponentStructAutoReflectionNested()
+    {
+        using World world = World.Create();
+
+        Entity line = world.Component<AutoLine>();
+
+        Assert.True(line.Has<EcsStruct>());
+
+        // Point is pulled in transitively as a member type and reflected too.
+        Entity point = world.Entity(Type<AutoPoint>.Id(world));
+        Assert.True(point.Has<EcsStruct>());
+
+        Entity e = world.Entity().Set(new AutoLine(new AutoPoint(1, 2), new AutoPoint(3, 4)));
+        ref AutoLine reference = ref e.Ensure<AutoLine>();
+        Assert.Equal("{Start: {X: 1, Y: 2}, Stop: {X: 3, Y: 4}}", world.ToExpr(ref reference));
+    }
+
+    [Fact]
+    private void ComponentStructAutoReflectionIsIdempotent()
+    {
+        using World world = World.Create();
+
+        Entity pos = world.Component<AutoPosition>();
+        Entity posAgain = world.Component<AutoPosition>();
+
+        Assert.Equal(pos, posAgain);
+        Assert.True(pos.Has<EcsStruct>());
+    }
+
+    [Fact]
     private void ComponentStructScoped()
     {
         using World world = World.Create();

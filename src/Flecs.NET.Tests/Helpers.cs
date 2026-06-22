@@ -11,6 +11,18 @@ namespace Test
 
 public record struct Position(float X, float Y);
 
+public record struct AutoPosition(float X, float Y) : IFlecsStruct;
+
+public record struct AutoPoint(int X, int Y) : IFlecsStruct;
+
+public record struct AutoLine(AutoPoint Start, AutoPoint Stop) : IFlecsStruct;
+
+public struct AutoPlainStruct : IFlecsStruct
+{
+    public int A;
+    public int B;
+}
+
 public record struct Velocity(float X, float Y);
 
 public record struct Mass(float Value);
