@@ -47,9 +47,10 @@
         <None Pack="true" Include="buildTransitive/Flecs.NET.Native.targets" PackagePath="buildTransitive/$(PackageId).targets"/>
         <None Pack="true" Include="$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*.lib" PackagePath="static/"/>
 
-        <Content Include="$(OutputPath)runtimes/**/**" Exclude="$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*.lib" Link="%(Filename)%(Extension)">
+        <None Pack="true" Include="$(OutputPath)runtimes/**/**" Exclude="$(OutputPath)runtimes/$(HostRuntime)/**;$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*.lib" PackagePath="runtimes/"/>
+
+        <Content Include="$(OutputPath)runtimes/$(HostRuntime)/**/**" Exclude="$(OutputPath)runtimes/$(HostRuntime)/**/*.a;$(OutputPath)runtimes/$(HostRuntime)/**/*.lib" Link="%(Filename)%(Extension)" PackagePath="runtimes/$(HostRuntime)/">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <PackagePath>runtimes/</PackagePath>
         </Content>
     </ItemGroup>
 

@@ -2,3 +2,7 @@
 	path = native/flecs
 	url = https://github.com/SanderMertens/flecs
 	branch = master
+[submodule "submodules/Bindgen.NET"]
+	path = submodules/Bindgen.NET
+	url = https://github.com/deathbeam/Bindgen.NET.git
+	branch = main
