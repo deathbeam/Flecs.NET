@@ -4,7 +4,6 @@
 <div align="center">
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](https://github.com/SanderMertens/flecs/blob/master/LICENSE)
-[![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/Flecs.NET.Release?style=for-the-badge&color=blue)](https://www.nuget.org/packages/Flecs.NET.Release)
 
 [Docs](https://www.flecs.dev/flecs/) · [Examples](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Examples) · [Discord](https://discord.gg/BEzP5Rgrrp)
 
