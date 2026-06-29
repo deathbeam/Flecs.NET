@@ -20,11 +20,13 @@ public class QueryBuilderTests
         using Query q = world.QueryBuilder()
             .With<Tag3>()
             .GroupBy<Tag3>(GroupByFirstId)
+            .QueryFlags(Ecs.QueryGroupByOrdered)
             .Build();
 
         using Query qReverse = world.QueryBuilder()
             .With<Tag3>()
-            .GroupBy<Tag3>(GroupByFirstIdNegated)
+            .GroupBy<Tag3>(GroupByFirstId)
+            .QueryFlags(Ecs.QueryGroupByOrdered | Ecs.QueryGroupByDesc)
             .Build();
 
         Entity e3 = world.Entity().Add<Tag3>().Add<Tag2>();
@@ -74,11 +76,6 @@ public class QueryBuilderTests
         {
             FlecsType type = table.Type();
             return type.Get(0);
-        }
-
-        static ulong GroupByFirstIdNegated(World world, Table table, ulong id)
-        {
-            return ~GroupByFirstId(world, table, id);
         }
     }
 

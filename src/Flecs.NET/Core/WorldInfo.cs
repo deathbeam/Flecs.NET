@@ -32,16 +32,6 @@ public readonly unsafe struct WorldInfo : IEquatable<WorldInfo>
     public ulong LastComponentId => Handle->last_component_id;
 
     /// <summary>
-    ///     First allowed entity id.
-    /// </summary>
-    public ulong MinId => Handle->min_id;
-
-    /// <summary>
-    ///     Last allowed entity id.
-    /// </summary>
-    public ulong MaxId => Handle->max_id;
-
-    /// <summary>
     ///     Raw delta time. (No time scaling)
     /// </summary>
     public float DeltaTimeRaw => Handle->delta_time_raw;
