@@ -659,6 +659,17 @@ public static partial class Ecs
     ///     Query only returns whole tables (ignores toggle/member fields).
     /// </summary>
     public const uint QueryTableOnly = EcsQueryTableOnly;
+
+    /// <summary>
+    ///     Enable ordering for query groups (ascending, lower group ids first).
+    /// </summary>
+    public const uint QueryGroupByOrdered = EcsQueryGroupByOrdered;
+
+    /// <summary>
+    ///     Enable descending ordering for query groups (higher group ids first).
+    ///     Only takes effect in combination with <see cref="QueryGroupByOrdered"/>.
+    /// </summary>
+    public const uint QueryGroupByDesc = EcsQueryGroupByDesc;
 }
 
 #pragma warning restore CA1707, CA1708
