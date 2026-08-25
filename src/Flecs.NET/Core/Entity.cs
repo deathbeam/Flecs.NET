@@ -401,8 +401,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         if (Id == EcsWildcard || Id == EcsAny)
             return;
 
-        ecs_iter_t it = ecs_each_id(World, Ecs.Pair(relation, Id));
-        while (ecs_each_next(&it))
+        ecs_iter_t it = ecs_children_w_rel(World, relation, Id);
+        while (ecs_children_next(&it))
             Invoker.Each(&it, callback);
     }
 
