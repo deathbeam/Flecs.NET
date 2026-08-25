@@ -55,6 +55,18 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     }
 
     /// <summary>
+    ///     Creates a non-fragmenting child for the provided parent.
+    /// </summary>
+    /// <param name="world"></param>
+    /// <param name="parent"></param>
+    /// <param name="name"></param>
+    public Entity(ecs_world_t* world, EcsParent parent, string? name = null)
+    {
+        using NativeString nativeName = (NativeString)name;
+        _id = new Id(world, ecs_new_w_parent(world, parent.value, nativeName));
+    }
+
+    /// <summary>
     ///     Creates an entity for the provided world.
     /// </summary>
     /// <param name="world"></param>
@@ -926,7 +938,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Parent()
     {
-        return Target(EcsChildOf);
+        return new Entity(World, ecs_get_parent(World, Id));
     }
 
     /// <summary>

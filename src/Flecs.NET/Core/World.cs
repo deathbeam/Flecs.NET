@@ -2625,6 +2625,17 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     }
 
     /// <summary>
+    ///     Creates a child using non-fragmenting Parent hierarchy storage.
+    /// </summary>
+    /// <param name="parent"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public Entity Entity(EcsParent parent, string? name = null)
+    {
+        return new Entity(Handle, parent, name);
+    }
+
+    /// <summary>
     ///     Creates an entity from type.
     /// </summary>
     /// <typeparam name="T"></typeparam>
@@ -2693,6 +2704,17 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     public Entity Prefab<T>(string name)
     {
         return new Component<T>(Handle, name).Add(EcsPrefab);
+    }
+
+    /// <summary>
+    ///     Creates a prefab using non-fragmenting Parent hierarchy storage.
+    /// </summary>
+    /// <param name="parent"></param>
+    /// <param name="name"></param>
+    /// <returns></returns>
+    public Entity Prefab(EcsParent parent, string? name = null)
+    {
+        return Entity(parent, name).Add(EcsPrefab);
     }
 
     /// <summary>

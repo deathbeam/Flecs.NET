@@ -456,6 +456,10 @@ public static partial class Ecs
     ///     Reference to <see cref="EcsOrderedChildren"/>.
     /// </summary>
     public static ref ulong OrderedChildren => ref EcsOrderedChildren;
+    /// <summary>
+    ///     Reference to <see cref="EcsParentDepth"/>.
+    /// </summary>
+    public static ref ulong ParentDepth => ref EcsParentDepth;
 
     // Built-in predicates for comparing entity ids in queries.
 
