@@ -106,24 +106,57 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
         string fullyQualifiedType = structSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         string sanitized = SanitizeIdentifier(fullyQualifiedType);
 
-        var builder = new StringBuilder();
+        var nativeBuilder = new StringBuilder();
+        var mirrorBuilder = new StringBuilder();
+        var serializeBuilder = new StringBuilder();
+        var ensureBuilder = new StringBuilder();
+
         foreach (MemberInfo member in members)
         {
-            if (builder.Length > 0)
-                builder.Append('\n');
+            if (nativeBuilder.Length > 0)
+                nativeBuilder.Append('\n');
 
-            builder.Append("                component.Member<")
+            nativeBuilder.Append("                component.Member<")
                 .Append(member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                 .Append(">(\"")
                 .Append(EscapeString(member.Name))
                 .Append("\");");
+
+            if (member.IsField && (member.IsString || member.IsUnmanaged))
+            {
+                mirrorBuilder.Append(mirrorBuilder.Length > 0 ? ",\n" : "")
+                    .Append("                    (\"").Append(EscapeString(member.Name)).Append("\", ")
+                    .Append(member.IsString ? "o.RawString()" : $"o.TypeId<{member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}>()")
+                    .Append(')');
+
+                serializeBuilder.Append("                ser.Member(\"").Append(EscapeString(member.Name)).Append("\");\n")
+                    .Append("                ser.Value(v.").Append(EscapeString(member.Name)).Append(");\n");
+
+                ensureBuilder.Append($"            case \"{EscapeString(member.Name)}\": return ref global::System.Runtime.CompilerServices.Unsafe.As<{member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)}, byte>(ref v.{EscapeString(member.Name)});\n");
+            }
         }
+        string opaqueStatement = mirrorBuilder.Length == 0
+            ? ""
+            : "else\n" +
+              "{\n" +
+              "    component.Opaque(o => o\n" +
+              "        .AsType(o.MirrorStruct(\n" +
+              mirrorBuilder + "))\n" +
+              "        .Serialize(static (ref readonly global::Flecs.NET.Core.Ecs.Serializer ser, in " + fullyQualifiedType + " v) =>\n" +
+              "        {\n" +
+              serializeBuilder +
+              "            return 0;\n" +
+              "        })\n" +
+              "        .EnsureMember(__EnsureMember));\n" +
+              "}";
 
         return new StructModel(
             fullyQualifiedType,
             $"StructReflection.{sanitized}.g.cs",
             $"__FlecsStructReflection_{sanitized}",
-            builder.ToString());
+            nativeBuilder.ToString(),
+            opaqueStatement,
+            ensureBuilder.ToString());
     }
 
     private static MemberInfo[] CollectMembers(INamedTypeSymbol structSymbol)
@@ -138,11 +171,11 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
 
             switch (member)
             {
-                case IFieldSymbol field when !field.IsStatic && !field.IsConst:
-                    fields.Add(new MemberInfo(field.Name, field.Type));
+                case IFieldSymbol field when !field.IsStatic && !field.IsConst && field.Type is not IPointerTypeSymbol:
+                    fields.Add(new MemberInfo(field.Name, field.Type, isField: true));
                     break;
                 case IPropertySymbol property when !property.IsStatic && property.Parameters.Length == 0:
-                    properties.Add(new MemberInfo(property.Name, property.Type));
+                    properties.Add(new MemberInfo(property.Name, property.Type, isField: false));
                     break;
             }
         }
@@ -173,11 +206,21 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
                 [ModuleInitializer]
                 internal static void __Register()
                 {
-                    global::Flecs.NET.Core.StructReflection.Register<{{model.FullyQualifiedTypeName}}>(
-                        static component =>
+                    global::Flecs.NET.Core.StructReflection.Register<{{model.FullyQualifiedTypeName}}>(static component =>
+                    {
+                        if (!global::System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<{{model.FullyQualifiedTypeName}}>())
                         {
             {{model.MemberStatement}}
-                        });
+                        }{{model.OpaqueStatement}}
+                    });
+                }
+
+                private static ref byte __EnsureMember(ref {{model.FullyQualifiedTypeName}} v, string member)
+                {
+                    switch (member)
+                    {
+            {{model.EnsureStatement}}            default: return ref global::System.Runtime.CompilerServices.Unsafe.NullRef<byte>();
+                    }
                 }
             }
             """;
@@ -233,13 +276,17 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
         public string GeneratedFileName { get; }
         public string GeneratedClassName { get; }
         public string MemberStatement { get; }
+        public string OpaqueStatement { get; }
+        public string EnsureStatement { get; }
 
-        public StructModel(string fullyQualifiedTypeName, string generatedFileName, string generatedClassName, string memberStatement)
+        public StructModel(string fullyQualifiedTypeName, string generatedFileName, string generatedClassName, string memberStatement, string opaqueStatement, string ensureStatement)
         {
             FullyQualifiedTypeName = fullyQualifiedTypeName;
             GeneratedFileName = generatedFileName;
             GeneratedClassName = generatedClassName;
             MemberStatement = memberStatement;
+            OpaqueStatement = opaqueStatement;
+            EnsureStatement = ensureStatement;
         }
     }
 
@@ -247,11 +294,15 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
     {
         public string Name { get; }
         public ITypeSymbol Type { get; }
+        public bool IsField { get; }
+        public bool IsString => Type.SpecialType == SpecialType.System_String;
+        public bool IsUnmanaged => Type.IsUnmanagedType;
 
-        public MemberInfo(string name, ITypeSymbol type)
+        public MemberInfo(string name, ITypeSymbol type, bool isField)
         {
             Name = name;
             Type = type;
+            IsField = isField;
         }
     }
 }
