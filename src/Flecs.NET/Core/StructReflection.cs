@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using static Flecs.NET.Bindings.flecs;
 
 namespace Flecs.NET.Core;
@@ -12,14 +13,14 @@ namespace Flecs.NET.Core;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static unsafe class StructReflection
 {
-    private static readonly ConcurrentDictionary<Type, Action<UntypedComponent>> Registry = new();
+    private static readonly ConcurrentDictionary<Type, object> Registry = new();
 
     /// <summary>
     ///     Registers the member-declaration delegate for <typeparamref name="T"/>. Called from
     ///     generated <c>[ModuleInitializer]</c> methods.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static void Register<T>(Action<UntypedComponent> registrar)
+    public static void Register<T>(Action<Component<T>> registrar)
     {
         Registry[typeof(T)] = registrar;
     }
@@ -30,10 +31,17 @@ public static unsafe class StructReflection
     /// </summary>
     internal static void Apply<T>(World world, Entity type)
     {
-        if (!Registry.TryGetValue(typeof(T), out Action<UntypedComponent>? registrar))
+        if (!Registry.TryGetValue(typeof(T), out object? registered))
             return;
 
-        if (type.Has<EcsStruct>())
+        Action<Component<T>> registrar = (Action<Component<T>>)registered;
+
+        // Managed structs are boxed behind handles, so their members are unreachable
+        // through native offsets. They register as opaque types instead; the generated
+        // registrar provides the mirror struct, serialize, and member lookup callbacks.
+        bool managed = RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+
+        if (managed ? type.Has<EcsOpaque>() : type.Has<EcsStruct>())
             return;
 
         ecs_suspend_readonly_state_t state = default;
@@ -41,9 +49,10 @@ public static unsafe class StructReflection
 
         try
         {
-            UntypedComponent component = new UntypedComponent(type.World, type.Id);
-            component.Add<EcsStruct>();
-            registrar(component);
+            UntypedComponent untyped = new UntypedComponent(type.World, type.Id);
+            if (!managed)
+                untyped.Add<EcsStruct>();
+            registrar(new Component<T>(type.World, type.Id));
         }
         finally
         {
