@@ -31,6 +31,14 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor ManagedTypeRule = new(
+        id: "FLECSREFL003",
+        title: "IFlecsStruct with managed storage or member",
+        messageFormat: "IFlecsStruct cannot reflect '{0}' because its storage or a reflected member is managed; register opaque reflection explicitly if needed",
+        category: "Flecs.NET.Reflection",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<Output> outputs = context.CompilationProvider.SelectMany(
@@ -89,6 +97,15 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                if (!symbol.IsUnmanagedType || CollectMembers(symbol).Any(member => !member.Type.IsUnmanagedType))
+                {
+                    results.Add(new Output(null, Diagnostic.Create(
+                        ManagedTypeRule,
+                        symbol.Locations.Length > 0 ? symbol.Locations[0] : null,
+                        symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))));
+                    continue;
+                }
+
                 results.Add(new Output(BuildModel(symbol), null));
             }
         }
@@ -138,7 +155,7 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
 
             switch (member)
             {
-                case IFieldSymbol field when !field.IsStatic && !field.IsConst:
+                case IFieldSymbol field when !field.IsStatic && !field.IsConst && field.Type is not IPointerTypeSymbol:
                     fields.Add(new MemberInfo(field.Name, field.Type));
                     break;
                 case IPropertySymbol property when !property.IsStatic && property.Parameters.Length == 0:
