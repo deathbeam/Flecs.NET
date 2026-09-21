@@ -30,13 +30,13 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
 
     public static string GetString(byte* data)
     {
-        return Marshal.PtrToStringAnsi((IntPtr)data) ?? string.Empty;
+        return Marshal.PtrToStringUTF8((IntPtr)data) ?? string.Empty;
     }
 
     public static string GetString(sbyte* data)
     {
         Ecs.Assert(data != null, "Pointer to string is null");
-        return Marshal.PtrToStringAnsi((IntPtr)data) ?? string.Empty;
+        return Marshal.PtrToStringUTF8((IntPtr)data) ?? string.Empty;
     }
 
     public static string GetStringAndFree(byte* data)
@@ -98,12 +98,12 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
 
     public static NativeString FromString(string? str)
     {
-        return new NativeString(Marshal.StringToHGlobalAnsi(str), false);
+        return new NativeString(Marshal.StringToCoTaskMemUTF8(str), false);
     }
 
     public static string ToString(NativeString nativeString)
     {
-        return Marshal.PtrToStringAnsi(nativeString.Data) ?? string.Empty;
+        return Marshal.PtrToStringUTF8(nativeString.Data) ?? string.Empty;
     }
 
     public bool Equals(NativeString other)
@@ -142,6 +142,6 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
             return;
         }
 
-        Marshal.FreeHGlobal(Data);
+        Marshal.FreeCoTaskMem(Data);
     }
 }
