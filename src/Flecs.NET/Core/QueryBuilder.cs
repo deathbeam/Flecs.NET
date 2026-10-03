@@ -1669,8 +1669,9 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder TermAt<T>(int termIndex)
     {
+        ref QueryBuilder @this = ref TermAt(termIndex);
         Ecs.Assert(Ecs.TypeIdIs<T>(World, CurrentTerm.id) || Ecs.TypeIdIs<T>(World, Ecs.Pair(CurrentTerm.first.id, CurrentTerm.second.id)), "Term type does not match.");
-        return ref TermAt(termIndex);
+        return ref @this;
     }
 
     /// <summary>
