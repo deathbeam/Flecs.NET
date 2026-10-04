@@ -29,8 +29,13 @@ public static unsafe partial class Ecs
 
         ulong prevScope = world.SetScope(module);
 
+        Log.Trace($"#[magenta]import#[reset] {module.DocName()}");
+        Log.Push();
+
         T moduleInstance = new T();
         moduleInstance.InitModule(world);
+
+        Log.Pop();
 
         world.SetScope(prevScope);
 
