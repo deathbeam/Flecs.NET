@@ -196,9 +196,20 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
             lib.linkSystemLibrary("ws2_32");
             lib.linkSystemLibrary("dbghelp");
 
-            // Temporary fix to get rid of undefined symbol errors when statically linking in Native AOT.
             if (options.library_type == LibraryType.Static) {
-                lib.addCSourceFile(.{ .file = b.path("../../native/windows.c"), .flags = &src_flags });
+                // The static library is linked by MSVC consumers (NativeAOT) against
+                // the static MSVC CRT, which provides none of mingw's __mingw_*
+                // replacements and no dllimport (__imp_) thunks for CRT functions.
+                // Reference the plain CRT symbols instead.
+                lib.defineCMacro("__USE_MINGW_ANSI_STDIO", "0");
+                lib.defineCMacro("_CRTIMP", "");
+                lib.defineCMacro("_SECIMP", "");
+
+                // At -O0 clang does not emit mingw's extern-inline isnan/fpclassify
+                // helpers, so Debug builds reference them externally.
+                if (options.optimize == .Debug) {
+                    lib.addCSourceFile(.{ .file = b.path("../../native/windows_compat.c"), .flags = &src_flags });
+                }
             }
         },
         .ios => {

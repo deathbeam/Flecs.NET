@@ -85,12 +85,11 @@ To include both of them in your project based on your build configuration, use t
 </Project>
 ```
 ### Static Linking
-**Flecs.NET** provides precompiled static libraries that can be used when ``PublishAOT`` is enabled. To enable static linking, add ``<FlecsStaticLink>true</FlecsStaticLink>`` to a property group. To prevent shared libraries from being copied to the output directory, add ``ExcludeAssets="native"`` to your package reference.
+**Flecs.NET** automatically statically links its precompiled static library into the application when publishing with ``PublishAOT`` enabled, so no extra configuration is needed. To prevent shared libraries from being copied to the output directory, optionally add ``ExcludeAssets="native"`` to your package reference.
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <PublishAot>true</PublishAot>
-        <FlecsStaticLink>true</FlecsStaticLink>
     </PropertyGroup>
 
     <ItemGroup>
