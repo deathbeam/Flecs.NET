@@ -84,19 +84,9 @@ To include both of them in your project based on your build configuration, use t
     </ItemGroup>
 </Project>
 ```
-### Static Linking
-**Flecs.NET** automatically statically links its precompiled static library into the application when publishing with ``PublishAOT`` enabled, so no extra configuration is needed. To prevent shared libraries from being copied to the output directory, optionally add ``ExcludeAssets="native"`` to your package reference.
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <PublishAot>true</PublishAot>
-    </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Flecs.NET.Debug" Version="*-*" ExcludeAssets="native"/>
-    </ItemGroup>
-</Project>
-```
+### Static Linking
+When `PublishAot` is enabled, **Flecs.NET** statically links its precompiled static library into the application. No extra configuration is needed.
 
 ## GitHub Package Registry
 For more up-to-date packages, development builds are available on the [GitHub package registry](https://github.com/deathbeam?tab=packages&repo_name=Flecs.NET). Packages are automatically uploaded on every commit to the main branch.
