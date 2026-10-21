@@ -198,7 +198,7 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
 
             mod.addSystemFrameworkPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/System/Library/Frameworks" }) });
             mod.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/include" }) });
-            mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/lib" }) });
+            mod.addLibraryPath(.{ .cwd_relative = "/usr/lib" });
         },
         .emscripten => {
             if (b.sysroot == null) {
@@ -230,12 +230,13 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
                 };
                 const android_api_level: []const u8 = "21";
 
-                const android_sysroot = b.pathJoin(&.{ b.sysroot.?, "/toolchains/llvm/prebuilt/", host_tuple, "/sysroot" });
+                const android_sysroot_rel = b.pathJoin(&.{ "/toolchains/llvm/prebuilt/", host_tuple, "/sysroot" });
+                const android_sysroot = b.pathJoin(&.{ b.sysroot.?, android_sysroot_rel });
                 const android_lib_path = b.pathJoin(&.{ android_sysroot, "/usr/lib/", triple, android_api_level });
                 const android_include_path = b.pathJoin(&.{ android_sysroot, "/usr/include" });
                 const android_system_include_path = b.pathJoin(&.{ android_sysroot, "/usr/include/", triple });
 
-                mod.addLibraryPath(.{ .cwd_relative = android_lib_path });
+                mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ android_sysroot_rel, "/usr/lib/", triple, android_api_level }) });
 
                 const libc_file_name = "android-libc.conf";
                 var libc_content = std.Io.Writer.Allocating.init(b.allocator);

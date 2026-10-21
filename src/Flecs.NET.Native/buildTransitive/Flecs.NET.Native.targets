@@ -13,4 +13,14 @@
     <ItemGroup Condition="'$(PublishAot)' == 'true' And $(RuntimeIdentifier.StartsWith('win-')) And Exists('$(FlecsStaticLibrary)')">
         <NativeLibrary Include="dbghelp.lib"/>
     </ItemGroup>
+
+    <!-- The static library is linked into the exe, so don't publish the unused shared one -->
+    <Target Name="FlecsNETNativeRemoveSharedLibrariesFromPublish"
+            AfterTargets="ComputeResolvedFilesToPublishList"
+            Condition="'$(PublishAot)' == 'true' And Exists('$(FlecsStaticLibrary)')">
+        <ItemGroup>
+            <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                                   Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'Flecs.NET.Native.Release' Or '%(ResolvedFileToPublish.NuGetPackageId)' == 'Flecs.NET.Native.Debug'" />
+        </ItemGroup>
+    </Target>
 </Project>
