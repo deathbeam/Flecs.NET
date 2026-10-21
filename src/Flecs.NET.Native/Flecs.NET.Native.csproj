@@ -45,7 +45,7 @@
     <ItemGroup>
         <None Pack="true" Include="buildTransitive/Flecs.NET.Native.props" PackagePath="buildTransitive/$(PackageId).props"/>
         <None Pack="true" Include="buildTransitive/Flecs.NET.Native.targets" PackagePath="buildTransitive/$(PackageId).targets"/>
-        <None Pack="true" Include="$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*.lib" PackagePath="static/"/>
+        <None Pack="true" Include="$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*_static.lib" PackagePath="static/"/>
 
         <None Pack="true" Include="$(OutputPath)runtimes/**/**" Exclude="$(OutputPath)runtimes/$(HostRuntime)/**;$(OutputPath)runtimes/**/*.a;$(OutputPath)runtimes/**/*.lib" PackagePath="runtimes/"/>
 
@@ -59,41 +59,39 @@
         <When Condition="$(RuntimeIdentifier) == 'win-x64'">
             <PropertyGroup>
                 <ZigIdentifier>x86_64-windows-gnu</ZigIdentifier>
+                <ZigArgs Condition="!$([MSBuild]::IsOSPlatform('Windows'))">-Dstatic=false</ZigArgs>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'win-x86'">
             <PropertyGroup>
                 <ZigIdentifier>x86-windows-gnu</ZigIdentifier>
-            </PropertyGroup>
-        </When>
-        <When Condition="$(RuntimeIdentifier) == 'win-arm'">
-            <PropertyGroup>
-                <ZigIdentifier>arm-windows-gnu</ZigIdentifier>
+                <ZigArgs Condition="!$([MSBuild]::IsOSPlatform('Windows'))">-Dstatic=false</ZigArgs>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'win-arm64'">
             <PropertyGroup>
                 <ZigIdentifier>aarch64-windows-gnu</ZigIdentifier>
+                <ZigArgs Condition="!$([MSBuild]::IsOSPlatform('Windows'))">-Dstatic=false</ZigArgs>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'linux-x64'">
             <PropertyGroup>
-                <ZigIdentifier>x86_64-linux-gnu</ZigIdentifier>
+                <ZigIdentifier>x86_64-linux-gnu.2.17</ZigIdentifier>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'linux-x86'">
             <PropertyGroup>
-                <ZigIdentifier>x86-linux-gnu</ZigIdentifier>
+                <ZigIdentifier>x86-linux-gnu.2.17</ZigIdentifier>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'linux-arm'">
             <PropertyGroup>
-                <ZigIdentifier>arm-linux-gnueabihf</ZigIdentifier>
+                <ZigIdentifier>arm-linux-gnueabihf.2.17</ZigIdentifier>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'linux-arm64'">
             <PropertyGroup>
-                <ZigIdentifier>aarch64-linux-gnu</ZigIdentifier>
+                <ZigIdentifier>aarch64-linux-gnu.2.17</ZigIdentifier>
             </PropertyGroup>
         </When>
         <When Condition="$(RuntimeIdentifier) == 'osx-x64'">
@@ -149,14 +147,9 @@
         </Otherwise>
     </Choose>
 
-    <!-- Path to compiler_rt.zig -->
-    <PropertyGroup>
-        <ZigArgs>$(ZigArgs) -Dcompiler-rt-path="$(ZigLibPath)/compiler_rt.zig"</ZigArgs>
-    </PropertyGroup>
-
     <!-- Here we need host not target toolset to compile/cross-compile -->
     <ItemGroup>
-        <PackageReference Include="Vezel.Zig.Toolsets.$(HostRuntime)" Version="0.13.0.1">
+        <PackageReference Include="Vezel.Zig.Toolsets.$(HostRuntime)" Version="0.16.0.2">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
@@ -170,7 +163,6 @@
         <Message Importance="High" Text="Build Target: $(RuntimeIdentifier) $(Configuration)"/>
         <Message Importance="High" Text="Build Zig Target: $(ZigIdentifier) $(ZigConfiguration)"/>
         <Message Importance="High" Text="Build Zig Args: $(ZigArgs)"/>
-        <Exec Command="$(BuildCommand) -Dlibrary-type=Shared" Condition="'$(RuntimeIdentifier)' != 'browser-wasm'"/>
-        <Exec Command="$(BuildCommand) -Dlibrary-type=Static"/>
+        <Exec Command="$(BuildCommand)"/>
     </Target>
 </Project>

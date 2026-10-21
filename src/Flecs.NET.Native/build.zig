@@ -2,13 +2,10 @@ const std = @import("std");
 const builtin = @import("builtin");
 const Build = std.Build;
 
-pub const LibraryType = enum { Shared, Static };
-
 const BuildOptions = struct {
     optimize: std.builtin.OptimizeMode,
     target: Build.ResolvedTarget,
-    library_type: LibraryType,
-    compiler_rt_path: ?[]const u8,
+    linkage: std.builtin.LinkMode,
 };
 
 const src_flags = [_][]const u8{
@@ -131,12 +128,12 @@ const src_files = [_][]const u8{
     "../../native/flecs/src/query/util.c",
     "../../native/flecs/src/query/validator.c",
     "../../native/flecs/src/query/compiler/compiler_term.c",
-        "../../native/flecs/src/query/compiler/compiler.c",
+    "../../native/flecs/src/query/compiler/compiler.c",
     "../../native/flecs/src/query/cache/cache.c",
     "../../native/flecs/src/query/cache/cache_iter.c",
     "../../native/flecs/src/query/cache/group.c",
     "../../native/flecs/src/query/cache/match.c",
-        "../../native/flecs/src/query/cache/order_by.c",
+    "../../native/flecs/src/query/cache/order_by.c",
     "../../native/flecs/src/query/cache/change_detection.c",
     "../../native/flecs/src/query/engine/eval_iter.c",
     "../../native/flecs/src/query/engine/eval_member.c",
@@ -163,63 +160,45 @@ const src_files = [_][]const u8{
 };
 
 pub fn compileFlecs(b: *Build, options: BuildOptions) void {
-    const lib = switch (options.library_type) {
-        .Shared => b.addSharedLibrary(.{
-            .name = "flecs",
-            .target = options.target,
-            .optimize = options.optimize,
-            .strip = options.optimize != .Debug,
-            .link_libc = true,
-        }),
-        .Static => b.addStaticLibrary(.{
-            .name = "flecs",
-            .target = options.target,
-            .optimize = options.optimize,
-            .strip = options.optimize != .Debug,
-            .link_libc = true,
-            .root_source_file = if (options.compiler_rt_path) |path| .{ .cwd_relative = path } else null,
-        }),
-    };
+    const os = options.target.result.os.tag;
 
-    lib.defineCMacro(if (options.optimize == .Debug) "FLECS_DEBUG" else "FLECS_NDEBUG", null);
-    lib.defineCMacro(if (options.library_type == LibraryType.Shared) "flecs_EXPORTS" else "flecs_STATIC", null);
-    lib.defineCMacro("FLECS_SCRIPT_MATH", null);
+    const mod = b.createModule(.{
+        .target = options.target,
+        .optimize = options.optimize,
+        .strip = options.optimize != .Debug,
+        .link_libc = true,
+    });
 
-    lib.addIncludePath(b.path("../../native/flecs/include"));
+    const lib = b.addLibrary(.{
+        // windows: the dll import lib and the static archive would both be flecs.lib and overwrite each other
+        .name = if (options.linkage == .static and os == .windows) "flecs_static" else "flecs",
+        .linkage = options.linkage,
+        .root_module = mod,
+    });
+
+    mod.addCMacro(if (options.optimize == .Debug) "FLECS_DEBUG" else "FLECS_NDEBUG", "");
+    mod.addCMacro(if (options.linkage == .dynamic) "flecs_EXPORTS" else "flecs_STATIC", "");
+    mod.addCMacro("FLECS_SCRIPT_MATH", "");
+
+    mod.addIncludePath(b.path("../../native/flecs/include"));
 
     for (src_files) |file| {
-        lib.addCSourceFile(.{ .file = b.path(file), .flags = &src_flags });
+        mod.addCSourceFile(.{ .file = b.path(file), .flags = &src_flags });
     }
 
-    switch (options.target.result.os.tag) {
+    switch (os) {
         .windows => {
-            lib.linkSystemLibrary("ws2_32");
-            lib.linkSystemLibrary("dbghelp");
-
-            if (options.library_type == LibraryType.Static) {
-                // The static library is linked by MSVC consumers (NativeAOT) against
-                // the static MSVC CRT, which provides none of mingw's __mingw_*
-                // replacements and no dllimport (__imp_) thunks for CRT functions.
-                // Reference the plain CRT symbols instead.
-                lib.defineCMacro("__USE_MINGW_ANSI_STDIO", "0");
-                lib.defineCMacro("_CRTIMP", "");
-                lib.defineCMacro("_SECIMP", "");
-
-                // At -O0 clang does not emit mingw's extern-inline isnan/fpclassify
-                // helpers, so Debug builds reference them externally.
-                if (options.optimize == .Debug) {
-                    lib.addCSourceFile(.{ .file = b.path("../../native/windows_compat.c"), .flags = &src_flags });
-                }
-            }
+            mod.linkSystemLibrary("ws2_32", .{});
+            mod.linkSystemLibrary("dbghelp", .{});
         },
         .ios => {
             if (b.sysroot == null) {
                 @panic("A --sysroot path to an IOS SDK needs to be provided when compiling for IOS.");
             }
 
-            lib.addSystemFrameworkPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/System/Library/Frameworks" }) });
-            lib.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/include" }) });
-            lib.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/lib" }) });
+            mod.addSystemFrameworkPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/System/Library/Frameworks" }) });
+            mod.addSystemIncludePath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/include" }) });
+            mod.addLibraryPath(.{ .cwd_relative = b.pathJoin(&.{ b.sysroot.?, "/usr/lib" }) });
         },
         .emscripten => {
             if (b.sysroot == null) {
@@ -227,9 +206,9 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
             }
 
             const cache_include = b.pathJoin(&.{ b.sysroot.?, "cache", "sysroot", "include" });
-            var dir = std.fs.openDirAbsolute(cache_include, std.fs.Dir.OpenDirOptions{ .access_sub_paths = true, .no_follow = true }) catch @panic("No emscripten cache. Generate it!");
-            dir.close();
-            lib.addIncludePath(.{ .cwd_relative = cache_include });
+            var dir = std.Io.Dir.openDirAbsolute(b.graph.io, cache_include, .{ .access_sub_paths = true, .follow_symlinks = false }) catch @panic("No emscripten cache. Generate it!");
+            dir.close(b.graph.io);
+            mod.addIncludePath(.{ .cwd_relative = cache_include });
         },
         .linux => {
             if (options.target.result.abi == .android) {
@@ -256,23 +235,21 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
                 const android_include_path = b.pathJoin(&.{ android_sysroot, "/usr/include" });
                 const android_system_include_path = b.pathJoin(&.{ android_sysroot, "/usr/include/", triple });
 
-                lib.addLibraryPath(.{ .cwd_relative = android_lib_path });
+                mod.addLibraryPath(.{ .cwd_relative = android_lib_path });
 
                 const libc_file_name = "android-libc.conf";
-                var libc_content = std.ArrayList(u8).init(b.allocator);
-                errdefer libc_content.deinit();
+                var libc_content = std.Io.Writer.Allocating.init(b.allocator);
+                defer libc_content.deinit();
 
-                const writer = libc_content.writer();
                 const libc_installation = std.zig.LibCInstallation{
                     .include_dir = android_include_path,
                     .sys_include_dir = android_system_include_path,
                     .crt_dir = android_lib_path,
                 };
-                libc_installation.render(writer) catch @panic("Failed to render libc");
-                const libc_path = b.addWriteFiles().add(libc_file_name, libc_content.items);
+                libc_installation.render(&libc_content.writer) catch @panic("Failed to render libc");
+                const libc_path = b.addWriteFiles().add(libc_file_name, libc_content.written());
 
                 lib.setLibCFile(libc_path);
-                lib.libc_file.?.addStepDependencies(&lib.step);
             }
         },
         else => {},
@@ -282,13 +259,25 @@ pub fn compileFlecs(b: *Build, options: BuildOptions) void {
 }
 
 pub fn build(b: *Build) void {
-    compileFlecs(b, .{
-        .optimize = b.standardOptimizeOption(.{}),
-        .target = b.standardTargetOptions(.{}),
-        .library_type = b.option(LibraryType, "library-type", "Compile as a static or shared library.") orelse LibraryType.Shared,
-        // When building static libraries for Windows, zig's compiler-rt needs to be bundled.
-        // For some reason, setting "bundle_compiler_rt" to true doesn't produce a static library that works with NativeAOT.
-        // As a work-around, we manually build the compiler_rt.zig file alongside flecs.
-        .compiler_rt_path = b.option([]const u8, "compiler-rt-path", "Path to the compiler_rt file.") orelse null,
-    });
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+    const static = b.option(bool, "static", "Build the static library in addition to the shared one") orelse true;
+
+    const linkages: []const std.builtin.LinkMode = if (target.result.os.tag == .emscripten)
+        &.{.static}
+    else if (static)
+        &.{ .dynamic, .static }
+    else
+        &.{.dynamic};
+
+    for (linkages) |linkage| {
+        // the static lib is linked by MSVC link.exe (NativeAOT), so build it with the msvc abi
+        var lib_target = target;
+        if (linkage == .static and target.result.os.tag == .windows) {
+            var query = target.query;
+            query.abi = .msvc;
+            lib_target = b.resolveTargetQuery(query);
+        }
+        compileFlecs(b, .{ .optimize = optimize, .target = lib_target, .linkage = linkage });
+    }
 }

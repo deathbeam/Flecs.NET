@@ -27,7 +27,41 @@ on:
           - NuGet
 
 jobs:
+  windows-natives:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      # only present on Windows hosts (zig auto-detects it).
+      - name: Build Windows Natives
+        working-directory: src/Flecs.NET.Native
+        run: |
+          dotnet build -c Debug -r win-x64
+          dotnet build -c Debug -r win-arm64
+          dotnet build -c Release -r win-x64
+          dotnet build -c Release -r win-arm64
+
+      - name: Upload Windows Natives
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-natives
+          path: |
+            src/Flecs.NET.Native/bin/Debug/runtimes/win-x64
+            src/Flecs.NET.Native/bin/Debug/runtimes/win-arm64
+            src/Flecs.NET.Native/bin/Release/runtimes/win-x64
+            src/Flecs.NET.Native/bin/Release/runtimes/win-arm64
+          if-no-files-found: error
+
   build:
+    needs: windows-natives
     runs-on: ${{ matrix.os }}
 
     permissions:
@@ -109,8 +143,6 @@ jobs:
           dotnet build -c Debug -r linux-arm64
           dotnet build -c Debug -r osx-x64
           dotnet build -c Debug -r osx-arm64
-          dotnet build -c Debug -r win-x64
-          dotnet build -c Debug -r win-arm64
           dotnet build -c Debug -r browser-wasm
           dotnet build -c Debug -r iossimulator-x64
           dotnet build -c Debug -r iossimulator-arm64
@@ -122,14 +154,19 @@ jobs:
           dotnet build -c Release -r linux-arm64
           dotnet build -c Release -r osx-x64
           dotnet build -c Release -r osx-arm64
-          dotnet build -c Release -r win-x64
-          dotnet build -c Release -r win-arm64
           dotnet build -c Release -r browser-wasm
           dotnet build -c Release -r iossimulator-x64
           dotnet build -c Release -r iossimulator-arm64
           dotnet build -c Release -r ios-arm64
           dotnet build -c Release -r android-arm64
           dotnet build -c Release -r android-x64
+
+      - name: Download Windows Natives
+        if: matrix.os == 'macos-14'
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-natives
+          path: src/Flecs.NET.Native/bin
 
       - name: Run Tests
         shell: bash

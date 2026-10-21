@@ -1,9 +1,8 @@
 <Project>
     <PropertyGroup>
-        <IsWindowsRuntime Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('win-'))">true</IsWindowsRuntime>
         <FlecsStaticPath>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)../static/$(RuntimeIdentifier)/native/'))</FlecsStaticPath>
-        <FlecsStaticLibrary Condition="'$(IsWindowsRuntime)' == 'true'">$(FlecsStaticPath)flecs.lib</FlecsStaticLibrary>
-        <FlecsStaticLibrary Condition="'$(IsWindowsRuntime)' != 'true'">$(FlecsStaticPath)libflecs.a</FlecsStaticLibrary>
+        <FlecsStaticLibrary Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(FlecsStaticPath)flecs_static.lib</FlecsStaticLibrary>
+        <FlecsStaticLibrary Condition="!$(RuntimeIdentifier.StartsWith('win-'))">$(FlecsStaticPath)libflecs.a</FlecsStaticLibrary>
     </PropertyGroup>
 
     <ItemGroup Condition="'$(PublishAot)' == 'true' And Exists('$(FlecsStaticLibrary)')">
@@ -11,10 +10,7 @@
         <NativeLibrary Include="$(FlecsStaticLibrary)"/>
     </ItemGroup>
 
-    <!-- Symbols the static library references that are not linked by default under PublishAot:
-         dbghelp (flecs_dump_backtrace) and legacy_stdio_definitions (printf/vsnprintf). -->
-    <ItemGroup Condition="'$(PublishAot)' == 'true' And '$(IsWindowsRuntime)' == 'true' And Exists('$(FlecsStaticLibrary)')">
+    <ItemGroup Condition="'$(PublishAot)' == 'true' And $(RuntimeIdentifier.StartsWith('win-')) And Exists('$(FlecsStaticLibrary)')">
         <NativeLibrary Include="dbghelp.lib"/>
-        <NativeLibrary Include="legacy_stdio_definitions.lib"/>
     </ItemGroup>
 </Project>

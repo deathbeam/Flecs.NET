@@ -24,7 +24,7 @@ BindingOptions bindingOptions = new()
 };
 
 if (OperatingSystem.IsMacOS())
-    bindingOptions.SystemIncludeDirectories.Add(Path.Combine(BuildConstants.ZigLibPath, "libc", "include", "any-macos-any"));
+    bindingOptions.SystemIncludeDirectories.Add(Path.Combine(BuildConstants.ZigLibPath, "libc", "include", "any-darwin-any"));
 
 BindingGenerator.Generate(bindingOptions);
 
