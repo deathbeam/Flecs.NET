@@ -20,7 +20,10 @@ BindingOptions bindingOptions = new()
     GenerateExternVariables = true,
     GenerateDisableRuntimeMarshallingAttribute = true,
 
-    Ignored = {"FLECS_IDEcsPipelineQueryID_"}
+    Ignored = {"FLECS_IDEcsPipelineQueryID_"},
+
+    ConditionalSymbol = "DEBUG",
+    ConditionalDefines = { "FLECS_NDEBUG" }
 };
 
 if (OperatingSystem.IsMacOS())

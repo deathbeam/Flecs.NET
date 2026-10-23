@@ -14,6 +14,9 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     private ecs_world_t* _world;
     private ecs_ref_t _ref;
 
+    // _ref.id only exists in debug builds
+    private ulong _id;
+
     /// <summary>
     ///     A reference to the world.
     /// </summary>
@@ -35,6 +38,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
 
         _ref = ecs_ref_init_id(world, entity, id);
+        _id = id;
     }
 
     /// <summary>
@@ -49,7 +53,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
 
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            return (T*)ecs_ref_get_id(World, refPtr, _ref.id);
+            return (T*)ecs_ref_get_id(World, refPtr, _id);
         }
     }
 
@@ -61,7 +65,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     {
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            void* data = ecs_ref_get_id(World, refPtr, _ref.id);
+            void* data = ecs_ref_get_id(World, refPtr, _id);
             return ref Managed.GetTypeRef<T>(data);
         }
     }
@@ -101,7 +105,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
 
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            return ecs_ref_get_id(World, refPtr, _ref.id) != null;
+            return ecs_ref_get_id(World, refPtr, _id) != null;
         }
     }
 
