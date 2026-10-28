@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-15, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -86,7 +86,7 @@ jobs:
           fi
 
       - name: Setup IOS SDK
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         shell: bash
         run: |
           IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
@@ -96,21 +96,21 @@ jobs:
           echo "IOS_SIMULATOR_SDK=$IOS_SIMULATOR_SDK" >> $GITHUB_ENV
 
       - name: Setup Emscripten SDK
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         uses: mymindstorm/setup-emsdk@v14
         with:
           version: '5.0.6'
           actions-cache-folder: 'emsdk-cache'
 
       - name: Setup Android NDK
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25c
           link-to-sdk: true
 
       - name: Set Android NDK variables
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         shell: bash
         run: |
           echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
@@ -131,7 +131,7 @@ jobs:
 
       - name: Build Natives
         shell: bash
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         working-directory: src/Flecs.NET.Native
         run: |
           dotnet build -c Debug -r linux-x64
@@ -157,7 +157,7 @@ jobs:
           dotnet build -c Release -r android-x64
 
       - name: Download Windows Natives
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         uses: actions/download-artifact@v4
         with:
           name: windows-natives
@@ -173,7 +173,7 @@ jobs:
           dotnet pack -p:VersionSuffix=$FlecsVersionSuffix -p:FlecsPackPdb=true -p:SkipNatives=true -c Debug -o artifacts/nuget
           dotnet pack -p:VersionSuffix=$FlecsVersionSuffix -p:FlecsPackPdb=true -p:SkipNatives=true -c Release -o artifacts/nuget
       - name: Upload Artifacts
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-15'
         uses: actions/upload-artifact@v4
         with:
           name: Nuget Packages
@@ -183,7 +183,7 @@ jobs:
 
       - name: Push GitHub Packages
         if: >
-          matrix.os == 'macos-latest' &&
+          matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
             (github.event_name == 'push' && github.ref == 'refs/heads/main')
@@ -193,7 +193,7 @@ jobs:
 
       - name: NuGet login
         if: >
-          matrix.os == 'macos-latest' &&
+          matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
             (github.event_name == 'push' && github.ref == 'refs/heads/main')
@@ -205,7 +205,7 @@ jobs:
 
       - name: Push NuGet Packages
         if: >
-          matrix.os == 'macos-latest' &&
+          matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
             (github.event_name == 'push' && github.ref == 'refs/heads/main')
