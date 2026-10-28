@@ -17,14 +17,6 @@ on:
         default: true
         type: boolean
 
-      nuget-registry:
-        description: 'NuGet registry'
-        required: true
-        default: 'GitHub'
-        type: choice
-        options:
-          - GitHub
-          - NuGet
 
 jobs:
   windows-natives:
@@ -180,13 +172,8 @@ jobs:
         run: |
           dotnet pack --property:VersionSuffix=$FlecsVersionSuffix -p:SkipNatives=true -p:BuildSelectorPackage=true
 
-          if [ '${{ github.event.inputs.nuget-registry }}' == 'NuGet' ]; then
-            dotnet pack --property:VersionSuffix=$FlecsVersionSuffix -p:SkipNatives=true -c Debug
-            dotnet pack --property:VersionSuffix=$FlecsVersionSuffix -p:SkipNatives=true -c Release
-          else
-            dotnet pack --property:VersionSuffix=$FlecsVersionSuffix --property:FlecsPackPdb=true -p:SkipNatives=true -c Debug
-            dotnet pack --property:VersionSuffix=$FlecsVersionSuffix --property:FlecsPackPdb=true -p:SkipNatives=true -c Release
-          fi
+          dotnet pack --property:VersionSuffix=$FlecsVersionSuffix --property:FlecsPackPdb=true -p:SkipNatives=true -c Debug
+          dotnet pack --property:VersionSuffix=$FlecsVersionSuffix --property:FlecsPackPdb=true -p:SkipNatives=true -c Release
 
       - name: Upload Artifacts
         if: matrix.os == 'macos-14'
@@ -205,13 +192,4 @@ jobs:
             (github.event_name == 'push' && github.ref == 'refs/heads/main')
           )
         shell: bash
-        run: |
-          if [ '${{ github.event_name }}' == 'workflow_dispatch' ]; then
-            if [ '${{ github.event.inputs.nuget-registry }}' == 'NuGet' ]; then
-              dotnet nuget push src/**/Flecs.NET.*.nupkg --skip-duplicate --api-key '${{ secrets.NUGET_ACCESS_TOKEN }}' --source 'https://api.nuget.org/v3/index.json'
-            elif [ '${{ github.event.inputs.nuget-registry }}' == 'GitHub' ]; then
-              dotnet nuget push src/**/Flecs.NET.*.nupkg --skip-duplicate --api-key '${{ secrets.GITHUB_TOKEN }}' --source 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'
-            fi
-          elif [ '${{ github.ref }}' == 'refs/heads/main' ]; then
-            dotnet nuget push src/**/Flecs.NET.*.nupkg --skip-duplicate --api-key '${{ secrets.GITHUB_TOKEN }}' --source 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'
-          fi
+        run: dotnet nuget push src/**/Flecs.NET.*.nupkg --skip-duplicate --api-key '${{ secrets.GITHUB_TOKEN }}' --source 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'

@@ -4,7 +4,7 @@
 <div align="center">
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](https://github.com/SanderMertens/flecs/blob/master/LICENSE)
-[![Nuget (with prereleases)](https://img.shields.io/nuget/vpre/Flecs.NET.Release?style=for-the-badge&color=blue)](https://www.nuget.org/packages/Flecs.NET.Release)
+[![GitHub packages](https://img.shields.io/badge/packages-GitHub-blue?style=for-the-badge&logo=github)](https://github.com/deathbeam/Flecs.NET/packages)
 
 [Docs](https://www.flecs.dev/flecs/) · [Examples](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Examples) · [Discord](https://discord.gg/BEzP5Rgrrp)
 
@@ -51,58 +51,31 @@ public record struct Velocity(float X, float Y);
 - Provides both shared and static libraries for Windows, MacOS, Linux, iOS, and WASM
 - Packaged with Zig for dependency free cross-compilation everywhere
 
-## NuGet
-You can download the nuget package and use **Flecs.NET** right away!
+## Installation
+CI publishes packages to the [GitHub package registry](https://github.com/deathbeam/Flecs.NET/packages), not to nuget.org. Every commit to the main branch becomes an `X.Y.Z-build.N` prerelease.
 
-**Flecs.NET (Wrapper + Bindings + Native Libraries): [Release](https://www.nuget.org/packages/Flecs.NET.Release/) | [Debug](https://www.nuget.org/packages/Flecs.NET.Debug/)**
-```console
-dotnet add PROJECT package Flecs.NET.Release --version *-*
-```
+Each package exists as a `Debug` and a `Release` version. `Debug` has assertions enabled, `Release` is optimized for performance.
 
-**Flecs.NET.Bindings (Bindings + Native Libraries): [Release](https://www.nuget.org/packages/Flecs.NET.Bindings.Release/) | [Debug](https://www.nuget.org/packages/Flecs.NET.Bindings.Debug/)**
-```console
-dotnet add PROJECT package Flecs.NET.Bindings.Release --version *-*
-```
+### Authenticate the feed
+GitHub Packages rejects anonymous downloads even for public packages, so NuGet always needs a token. Create a [classic personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) with only the `read:packages` scope.
 
-**Flecs.NET.Native (Native Libraries): [Release](https://www.nuget.org/packages/Flecs.NET.Native.Release/) | [Debug](https://www.nuget.org/packages/Flecs.NET.Native.Debug/)**
-```console
-dotnet add PROJECT package Flecs.NET.Native.Release --version *-*
-```
+Run this command in your project, replacing `YOUR_GITHUB_USERNAME` and `YOUR_GITHUB_TOKEN` with data used above.
 
-**Flecs.NET** provides both [release](https://www.nuget.org/packages/Flecs.NET.Release) and [debug](https://www.nuget.org/packages/Flecs.NET.Debug) packages for nuget. It is recommended that the debug packages be used when developing as they include checks for incorrect usage of the API.
-To include both of them in your project based on your build configuration, use the package references below. The latest stable or prerelease versions will be added to your project.
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Flecs.NET.Debug" Version="*-*" Condition="'$(Configuration)' == 'Debug'" />
-        <PackageReference Include="Flecs.NET.Release" Version="*-*" Condition="'$(Configuration)' == 'Release'" />
-    </ItemGroup>
-</Project>
-```
-
-### Static Linking
-When `PublishAot` is enabled, **Flecs.NET** statically links its precompiled static library into the application. No extra configuration is needed.
-
-## GitHub Package Registry
-For more up-to-date packages, development builds are available on the [GitHub package registry](https://github.com/deathbeam?tab=packages&repo_name=Flecs.NET). Packages are automatically uploaded on every commit to the main branch.
-
-To access development builds from your project, you first need to create a GitHub personal access token with the ``read:packages`` permission. (See [Creating a personal access token (classic)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic))
-
-Once you have created a personal access token, run the following command to add the GitHub feed as a new package source. Replace ``YOUR_GITHUB_USERNAME`` with your GitHub username and ``YOUR_GITHUB_TOKEN`` with your personal access token.
 ```bash
 dotnet nuget add source --name "flecs.net" --username "YOUR_GITHUB_USERNAME" --password "YOUR_GITHUB_TOKEN" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
 ```
 
-You can now reference any package from the [GitHub feed](https://github.com/deathbeam?tab=packages&repo_name=Flecs.NET)!
+To remove the feed, run `dotnet nuget remove source "flecs.net"`.
 
-```console
-dotnet add PROJECT package Flecs.NET.Release --version *-build.*
+A workflow can use its built-in `GITHUB_TOKEN` when the job has the `packages: read` permission:
+
+```yaml
+- name: Add GitHub source
+  run: dotnet nuget add source --name "flecs.net" --username "$GITHUB_ACTOR" --password "${{ secrets.GITHUB_TOKEN }}" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
 ```
+
+### Install the package
+Simple way to conditionally include correct version is this:
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -112,51 +85,44 @@ dotnet add PROJECT package Flecs.NET.Release --version *-build.*
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Flecs.NET.Debug" Version="*-build.*"/>
+        <PackageReference Include="Flecs.NET.Debug" Version="*-build.*" Condition="'$(Configuration)' == 'Debug'" />
+        <PackageReference Include="Flecs.NET.Release" Version="*-build.*" Condition="'$(Configuration)' == 'Release'" />
     </ItemGroup>
 </Project>
 ```
-___
-By default, the GitHub feed will be added to your global ``nuget.config`` file and can be referenced by any project on your machine. If wish to add the feed to a single project/solution, create a ``nuget.config`` file at the root of your project/solution directory and run the following command with the ``--configfile`` option.
-```bash
-dotnet nuget add source --configfile "./nuget.config" --name "flecs.net" --username "YOUR_GITHUB_USERNAME" --password "YOUR_GITHUB_TOKEN" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
+
+
+Or via command line:
+
+```console
+dotnet add PROJECT package Flecs.NET.Release --version "*-build.*"
 ```
-To remove the GitHub feed from your NuGet package sources, run the following command.
-```bash
-dotnet nuget remove source "flecs.net"
-```
-GitHub Actions workflows can be authenticated using the ``GITHUB_TOKEN`` secret.
-```yaml
-- name: Add GitHub source
-  run: dotnet nuget add source --name "flecs.net" --username "USERNAME" --password "${{ secrets.GITHUB_TOKEN }}" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
-```
-> [!WARNING]
-> Development feed packages may be deleted without warning to free up space.
 
 ## Running examples
-
-To run any of the example programs, use ``dotnet run``and set the "Example" property to the example's path relative to the ``Flecs.NET.Examples`` project. Each level of the path must be separated by an underscore.
+To run any of the example programs, use `dotnet run` and set the "Example" property to the example's path relative to the `Flecs.NET.Examples` project. Each level of the path must be separated by an underscore.
 
 **Example**:
-```console
+```bash
 dotnet run --project src/Flecs.NET.Examples --property:Example=Entities_Basics
 ```
 
 ## Building from source
 ### Clone the repo
 Clone the repo and it's submodules.
-```console
+```bash
 git clone --recursive https://github.com/deathbeam/Flecs.NET.git
 cd Flecs.NET
 ```
+
 ### Restore dependencies
 Run the following command on the solution to restore all project dependencies.
-```console
+```bash
 dotnet restore
 ```
+
 ### Build Flecs.NET
 Compile the wrapper and native libraries. The [zig](https://ziglang.org/learn/overview/#cross-compiling-is-a-first-class-use-case) compiler will automatically be downloaded and cached in your local nuget package folder. Native libraries will be cross-compiled for linux, macos, and windows.
-```console
+```bash
 dotnet build
 ```
 
@@ -178,13 +144,13 @@ Reference the project and import the native libraries. You should now be able to
 
 ### Running the bindings generator
 Low-level bindings to the flecs C API are pre-generated and included in the [Flecs.NET.Bindings](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Bindings) project by default. If needed, you can run the following command to regenerate the bindings file.
-```console
+```bash
 dotnet run --project src/Flecs.NET.Bindgen
 
 ```
 ### Running the code generator
 **Flecs.NET** relies on code generation to avoid manual code duplication. If any changes are made to the [Flecs.NET.Codegen](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Codegen) project, you can run the following command to rerun the code generators. The generated files will be output to this [folder](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET/Generated).
-```console
+```bash
 dotnet run --project src/Flecs.NET.Codegen
 ```
 
