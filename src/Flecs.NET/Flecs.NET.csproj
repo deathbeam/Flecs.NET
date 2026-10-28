@@ -21,36 +21,15 @@
         <IncludeContentInPack>true</IncludeContentInPack>
         <Description>High-level C# wrapper for flecs</Description>
     </PropertyGroup>
-    
-    <Choose>
-        <!-- 
-            Build the Flecs.NET package. It contains a single msbuild .targets file that automatically references the
-            debug or release builds based on the consuming project's $(Optimize) property.
-        -->
-        <When Condition="'$(BuildSelectorPackage)' == 'True'">
-            <PropertyGroup>
-                <PackageId>Flecs.NET</PackageId>
-                <IncludeSymbols>false</IncludeSymbols>
-                <IncludeBuildOutput>false</IncludeBuildOutput>
-                <NoBuild>true</NoBuild>
-            </PropertyGroup>
 
-            <ItemGroup>
-                <None Pack="true" Include="buildTransitive/Flecs.NET.targets" PackagePath="buildTransitive/Flecs.NET.targets" />
-            </ItemGroup>
-        </When>
-        <!-- Build the Flecs.NET.Debug or Flecs.NET.Release package. This package contains the actual compiled dll. -->
-        <Otherwise>
-            <PropertyGroup>
-                <PackageId Condition="'$(Configuration)' == 'Debug'">Deathbeam.Flecs.NET.Debug</PackageId>
-                <PackageId Condition="'$(Configuration)' == 'Release'">Deathbeam.Flecs.NET.Release</PackageId>
-            </PropertyGroup>
-            
-            <ItemGroup>
-                <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
-                <ProjectReference Include="..\Flecs.NET.Bindings\Flecs.NET.Bindings.csproj"/>
-            </ItemGroup>
-        </Otherwise>
-    </Choose>
+    <PropertyGroup>
+        <PackageId Condition="'$(Configuration)' == 'Debug'">Deathbeam.Flecs.NET.Debug</PackageId>
+        <PackageId Condition="'$(Configuration)' == 'Release'">Deathbeam.Flecs.NET.Release</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
+        <ProjectReference Include="..\Flecs.NET.Bindings\Flecs.NET.Bindings.csproj"/>
+    </ItemGroup>
 
 </Project>
