@@ -4,7 +4,7 @@
 <div align="center">
 
 [![MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](https://github.com/SanderMertens/flecs/blob/master/LICENSE)
-[![GitHub packages](https://img.shields.io/badge/packages-GitHub-blue?style=for-the-badge&logo=github)](https://github.com/deathbeam/Flecs.NET/packages)
+[![NuGet](https://img.shields.io/badge/packages-nuget.org-blue?style=for-the-badge&logo=nuget)](https://www.nuget.org/packages?q=Deathbeam.Flecs.NET)
 
 [Docs](https://www.flecs.dev/flecs/) · [Examples](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Examples) · [Discord](https://discord.gg/BEzP5Rgrrp)
 
@@ -52,50 +52,19 @@ public record struct Velocity(float X, float Y);
 - Packaged with Zig for dependency free cross-compilation everywhere
 
 ## Installation
-CI publishes packages to the [GitHub package registry](https://github.com/deathbeam/Flecs.NET/packages), not to nuget.org. Every commit to the main branch becomes an `X.Y.Z-build.N` prerelease.
-
-Each package exists as a `Debug` and a `Release` version. `Debug` has assertions enabled, `Release` is optimized for performance.
-
-### Authenticate the feed
-GitHub Packages rejects anonymous downloads even for public packages, so NuGet always needs a token. Create a [classic personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) with only the `read:packages` scope.
-
-Run this command in your project, replacing `YOUR_GITHUB_USERNAME` and `YOUR_GITHUB_TOKEN` with data used above.
-
-```bash
-dotnet nuget add source --name "flecs.net" --username "YOUR_GITHUB_USERNAME" --password "YOUR_GITHUB_TOKEN" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
-```
-
-To remove the feed, run `dotnet nuget remove source "flecs.net"`.
-
-A workflow can use its built-in `GITHUB_TOKEN` when the job has the `packages: read` permission:
-
-```yaml
-- name: Add GitHub source
-  run: dotnet nuget add source --name "flecs.net" --username "$GITHUB_ACTOR" --password "${{ secrets.GITHUB_TOKEN }}" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
-```
-
-### Install the package
-Simple way to conditionally include correct version is this:
+You can use the latest builds from NuGet:
 
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <TargetFramework>net9.0</TargetFramework>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="Flecs.NET.Debug" Version="*-build.*" Condition="'$(Configuration)' == 'Debug'" />
-        <PackageReference Include="Flecs.NET.Release" Version="*-build.*" Condition="'$(Configuration)' == 'Release'" />
-    </ItemGroup>
-</Project>
+<ItemGroup>
+    <PackageReference Include="Deathbeam.Flecs.NET.Debug" Version="*-build.*" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="Deathbeam.Flecs.NET.Release" Version="*-build.*" Condition="'$(Configuration)' == 'Release'" />
+</ItemGroup>
 ```
 
+Or from GitHub Packages (replace `YOUR_GITHUB_USERNAME` and `YOUR_GITHUB_TOKEN` with your GitHub username and [classic personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) with `read:packages` scope):
 
-Or via command line:
-
-```console
-dotnet add PROJECT package Flecs.NET.Release --version "*-build.*"
+```sh
+dotnet nuget add source --name "deathbeam" --username "YOUR_GITHUB_USERNAME" --password "YOUR_GITHUB_TOKEN" --store-password-in-clear-text "https://nuget.pkg.github.com/deathbeam/index.json"
 ```
 
 ## Running examples

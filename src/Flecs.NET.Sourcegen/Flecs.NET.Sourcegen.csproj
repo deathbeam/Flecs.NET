@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <RootNamespace>Flecs.NET.Sourcegen</RootNamespace>
         <AssemblyName>Flecs.NET.Sourcegen</AssemblyName>
-        <PackageId>Flecs.NET.Sourcegen</PackageId>
+        <PackageId>Deathbeam.Flecs.NET.Sourcegen</PackageId>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>

@@ -20,7 +20,7 @@
             Condition="'$(PublishAot)' == 'true' And Exists('$(FlecsStaticLibrary)')">
         <ItemGroup>
             <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                                   Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == 'Flecs.NET.Native.Release' Or '%(ResolvedFileToPublish.NuGetPackageId)' == 'Flecs.NET.Native.Debug'" />
+                                   Condition="'%(ResolvedFileToPublish.NuGetPackageId)' == '$(MSBuildThisFileName)'" />
         </ItemGroup>
     </Target>
 </Project>

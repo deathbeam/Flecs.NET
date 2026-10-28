@@ -1,15 +1,15 @@
 <Project>
     <PropertyGroup>
         <VersionPrefix>4.1.6</VersionPrefix>
-        <Authors>BeanCheeseBurrito</Authors>
-        <Copyright>BeanCheeseBurrito</Copyright>
-        <PackageProjectUrl>https://github.com/BeanCheeseBurrito/Flecs.NET</PackageProjectUrl>
+        <Authors>BeanCheeseBurrito, deathbeam</Authors>
+        <Copyright>BeanCheeseBurrito, deathbeam</Copyright>
+        <PackageProjectUrl>https://github.com/deathbeam/Flecs.NET</PackageProjectUrl>
         <PackageIconUrl>https://raw.githubusercontent.com/SanderMertens/flecs/master/docs/img/logo_small.png</PackageIconUrl>
         <PackageIcon>icon.png</PackageIcon>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-        <RepositoryUrl>https://github.com/BeanCheeseBurrito/Flecs.NET</RepositoryUrl>
+        <RepositoryUrl>https://github.com/deathbeam/Flecs.NET</RepositoryUrl>
         <RepositoryType>Github</RepositoryType>
 
         <DebugType>portable</DebugType>

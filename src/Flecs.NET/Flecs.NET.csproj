@@ -42,8 +42,8 @@
         <!-- Build the Flecs.NET.Debug or Flecs.NET.Release package. This package contains the actual compiled dll. -->
         <Otherwise>
             <PropertyGroup>
-                <PackageId Condition="'$(Configuration)' == 'Debug'">Flecs.NET.Debug</PackageId>
-                <PackageId Condition="'$(Configuration)' == 'Release'">Flecs.NET.Release</PackageId>
+                <PackageId Condition="'$(Configuration)' == 'Debug'">Deathbeam.Flecs.NET.Debug</PackageId>
+                <PackageId Condition="'$(Configuration)' == 'Release'">Deathbeam.Flecs.NET.Release</PackageId>
             </PropertyGroup>
             
             <ItemGroup>

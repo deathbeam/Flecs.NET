@@ -24,13 +24,13 @@
     <Choose>
         <When Condition="'$(Configuration)' == 'Debug'">
             <PropertyGroup>
-                <PackageId>Flecs.NET.Native.Debug</PackageId>
+                <PackageId>Deathbeam.Flecs.NET.Native.Debug</PackageId>
                 <ZigConfiguration>Debug</ZigConfiguration>
             </PropertyGroup>
         </When>
         <When Condition="'$(Configuration)' == 'Release'">
             <PropertyGroup>
-                <PackageId>Flecs.NET.Native.Release</PackageId>
+                <PackageId>Deathbeam.Flecs.NET.Native.Release</PackageId>
                 <ZigConfiguration>ReleaseFast</ZigConfiguration>
             </PropertyGroup>
         </When>

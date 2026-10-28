@@ -10,8 +10,8 @@
         <IsPackable>true</IsPackable>
         <IncludeContentInPack>true</IncludeContentInPack>
 
-        <PackageId Condition="'$(Configuration)' == 'Debug'">Flecs.NET.Bindings.Debug</PackageId>
-        <PackageId Condition="'$(Configuration)' == 'Release'">Flecs.NET.Bindings.Release</PackageId>
+        <PackageId Condition="'$(Configuration)' == 'Debug'">Deathbeam.Flecs.NET.Bindings.Debug</PackageId>
+        <PackageId Condition="'$(Configuration)' == 'Release'">Deathbeam.Flecs.NET.Bindings.Release</PackageId>
         <Description>Raw C# bindings for flecs</Description>
     </PropertyGroup>
 
