@@ -115,12 +115,6 @@ Reference the project and import the native libraries. You should now be able to
 Low-level bindings to the flecs C API are pre-generated and included in the [Flecs.NET.Bindings](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Bindings) project by default. If needed, you can run the following command to regenerate the bindings file.
 ```bash
 dotnet run --project src/Flecs.NET.Bindgen
-
-```
-### Running the code generator
-**Flecs.NET** relies on code generation to avoid manual code duplication. If any changes are made to the [Flecs.NET.Codegen](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET.Codegen) project, you can run the following command to rerun the code generators. The generated files will be output to this [folder](https://github.com/deathbeam/Flecs.NET/tree/main/src/Flecs.NET/Generated).
-```bash
-dotnet run --project src/Flecs.NET.Codegen
 ```
 
 ## Contributing
