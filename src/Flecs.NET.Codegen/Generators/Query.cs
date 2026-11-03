@@ -206,10 +206,10 @@ public class Query : GeneratorBase
                     return Underlying.World();
                 }
             
-                /// <inheritdoc cref="Query.RealWorld()"/>
-                public World RealWorld()
+                /// <inheritdoc cref="Query.Stage()"/>
+                public World Stage()
                 {
-                    return Underlying.RealWorld();
+                    return Underlying.Stage();
                 }
             }
             
@@ -223,7 +223,7 @@ public class Query : GeneratorBase
             public unsafe partial struct {{Generator.GetTypeName(Type.Query, i)}} : IIterableBase
             {
                 /// <inheritdoc cref="IIterableBase.World"/>
-                ecs_world_t* IIterableBase.World => Handle->world;
+                ecs_world_t* IIterableBase.World => Handle->stage;
                 
                 /// <inheritdoc cref="IIterableBase.GetIter"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

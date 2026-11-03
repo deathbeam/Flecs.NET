@@ -11,6 +11,8 @@ internal unsafe struct TypeHooksContext : IDisposable
     public Callback Dtor;
     public Callback Move;
     public Callback Copy;
+    public Callback OnCompare;
+    public Callback OnEquals;
     public Callback OnAdd;
     public Callback OnSet;
     public Callback OnRemove;
@@ -24,6 +26,8 @@ internal unsafe struct TypeHooksContext : IDisposable
         Dtor.Dispose();
         Move.Dispose();
         Copy.Dispose();
+        OnCompare.Dispose();
+        OnEquals.Dispose();
         OnAdd.Dispose();
         OnSet.Dispose();
         OnRemove.Dispose();

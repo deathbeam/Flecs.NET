@@ -691,16 +691,16 @@ public unsafe class EventTests
                 count++;
             });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        world.Event(evt)
+        stage.Event(evt)
             .Id(idA)
             .Entity(e1)
             .Enqueue();
 
         Assert.Equal(0, count);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }
@@ -718,13 +718,13 @@ public unsafe class EventTests
 
         e1.Observe(evt, () => { count++; });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        e1.Enqueue(evt);
+        e1.Stage(stage).Enqueue(evt);
 
         Assert.Equal(0, count);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }
@@ -750,11 +750,11 @@ public unsafe class EventTests
                 count++;
             });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
         Position position = new Position { X = 10, Y = 20 };
 
-        world.Event<Position>()
+        stage.Event<Position>()
             .Id(idA)
             .Entity(e1)
             .Ctx(&position)
@@ -762,7 +762,7 @@ public unsafe class EventTests
 
         Assert.Equal(0, count);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }
@@ -784,13 +784,13 @@ public unsafe class EventTests
             count++;
         });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        e1.Enqueue(new Position { X = 10, Y = 20 });
+        e1.Stage(stage).Enqueue(new Position { X = 10, Y = 20 });
 
         Assert.Equal(0, count);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }
@@ -810,7 +810,7 @@ public unsafe class EventTests
 
         world.ReadonlyBegin();
 
-        e1.Enqueue(evt);
+        e1.Stage(world.GetStage(0)).Enqueue(evt);
 
         Assert.Equal(0, count);
 
@@ -838,7 +838,7 @@ public unsafe class EventTests
 
         world.ReadonlyBegin();
 
-        e1.Enqueue(new Position(10, 20));
+        e1.Stage(world.GetStage(0)).Enqueue(new Position(10, 20));
 
         Assert.Equal(0, count);
 

@@ -550,4 +550,50 @@ public class SystemBuilderTests
         Entity ns = world.Entity(".ns");
         Assert.True(ns == sys.Parent());
     }
+
+    [Fact]
+    private void ReuseSystemBuilder()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position(10, 20));
+        Entity e2 = world.Entity().Set(new Position(10, 20)).Set(new Velocity(1, 2));
+
+        SystemBuilder<Position> sb = world.System<Position>();
+
+        int count1 = 0;
+        System<Position> s1 = sb.Each((ref Position p) => { count1++; });
+
+        int count2 = 0;
+        System<Position> s2 = sb.With<Velocity>().Each((ref Position p) => { count2++; });
+
+        Assert.True(s1 != s2);
+
+        world.Progress();
+
+        Assert.Equal(2, count1);
+        Assert.Equal(1, count2);
+    }
+
+    [Fact]
+    private void KindOnSharedBuilder()
+    {
+        using World world = World.Create();
+
+        SystemBuilder<Position> sb = world.System<Position>();
+
+        System<Position> s1 = sb.Each((ref Position p) => { });
+
+        System<Position> s2 = sb.Kind(Ecs.PostUpdate).Each((ref Position p) => { });
+
+        Assert.True(s1 != s2);
+
+        Assert.True(s1.Has(Ecs.DependsOn, Ecs.OnUpdate));
+        Assert.True(s1.Has(Ecs.OnUpdate));
+
+        Assert.True(s2.Has(Ecs.DependsOn, Ecs.PostUpdate));
+        Assert.True(s2.Has(Ecs.PostUpdate));
+        Assert.False(s2.Has(Ecs.DependsOn, Ecs.OnUpdate));
+        Assert.False(s2.Has(Ecs.OnUpdate));
+    }
 }

@@ -890,7 +890,7 @@ namespace Flecs.NET.Tests.Cpp
             Entity e3 = world.Entity().Set(new EntityWrapper(world.Entity()));
 
             world.System<EntityWrapper>()
-                .Each((Entity e, ref EntityWrapper c) => { c.Value.Mut(e).Add<Position>(); });
+                .Each((Entity e, ref EntityWrapper c) => { c.Value.Stage(e).Add<Position>(); });
 
             world.Progress();
 
@@ -1006,7 +1006,7 @@ namespace Flecs.NET.Tests.Cpp
                         Field<EntityWrapper> c = it.Field<EntityWrapper>(0);
 
                         foreach (int i in it)
-                            c[i].Value.Mut(it).Add<Position>();
+                            c[i].Value.Stage(it).Add<Position>();
                     }
                 });
 
@@ -1036,7 +1036,7 @@ namespace Flecs.NET.Tests.Cpp
                         foreach (int i in it)
                         {
                             it.Entity(i).Set(new EntityWrapper(
-                                it.World().Entity().Add<Velocity>()
+                                it.Stage().Entity().Add<Velocity>()
                             ));
                         }
                     }
@@ -2034,7 +2034,7 @@ namespace Flecs.NET.Tests.Cpp
                 .MultiThreaded()
                 .Each((Iter it, int i, Position* p) =>
                 {
-                    q.Iter(it.World()).Each((Velocity* v) =>
+                    q.Iter(it.Stage()).Each((Velocity* v) =>
                     {
                         p->X += v->X;
                         p->Y += v->Y;
@@ -2143,7 +2143,7 @@ namespace Flecs.NET.Tests.Cpp
                 .MultiThreaded()
                 .Each((Iter it, int i, Position* p) =>
                 {
-                    q.Iter(it.World()).Run((Iter it) =>
+                    q.Iter(it.Stage()).Run((Iter it) =>
                     {
                         while (it.Next())
                         {
@@ -2583,6 +2583,90 @@ namespace Flecs.NET.Tests.Cpp
 
             world.Progress();
             Assert.Equal(1, count);
+        }
+
+        [Fact]
+        private void CustomPipelineWName()
+        {
+            using World world = World.Create();
+
+            Entity tag = world.Entity();
+
+            Entity pip = world.Pipeline("MyPipeline")
+                .With(Ecs.System)
+                .With(tag)
+                .Build();
+
+            Assert.Equal("MyPipeline", pip.Name());
+            Assert.True(pip == world.Lookup("MyPipeline"));
+
+            int count = 0;
+
+            world.System()
+                .Kind(tag)
+                .Run((Iter it) =>
+                {
+                    while (it.Next())
+                        count++;
+                });
+
+            Assert.Equal(0, count);
+
+            world.SetPipeline(pip);
+
+            world.Progress();
+
+            Assert.Equal(1, count);
+        }
+
+        [Fact]
+        private void MultithreadSystemFrameOffset()
+        {
+            using World world = World.Create();
+
+            world.SetThreads(4);
+
+            for (int i = 0; i < 100; i++)
+            {
+                Entity e = world.Entity().Set(new Position(i, 0));
+                if (i % 3 == 0)
+                    e.Set(new Velocity(0, 0));
+                if (i % 5 == 0)
+                    e.Set(new Mass(0));
+            }
+
+            using Query<Position> q = world.Query<Position>();
+            Assert.Equal(100, q.Count());
+
+            Entity[] expect = new Entity[100];
+            q.Run((Iter it) =>
+            {
+                while (it.Next())
+                {
+                    for (int i = 0; i < it.Count(); i++)
+                        expect[it.FrameOffset() + i] = it.Entity(i);
+                }
+            });
+
+            Entity[] actual = new Entity[100];
+            world.System<Position>()
+                .MultiThreaded()
+                .Run((Iter it) =>
+                {
+                    while (it.Next())
+                    {
+                        for (int i = 0; i < it.Count(); i++)
+                            actual[it.FrameOffset() + i] = it.Entity(i);
+                    }
+                });
+
+            world.Progress();
+
+            for (int i = 0; i < 100; i++)
+            {
+                Assert.True(expect[i] != 0);
+                Assert.True(actual[i] == expect[i]);
+            }
         }
     }
 }

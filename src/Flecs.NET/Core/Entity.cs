@@ -72,7 +72,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="world"></param>
     public Entity(ecs_world_t* world)
     {
-        if (ecs_get_scope(world) == 0 && ecs_get_with(world) == 0)
+        if (ecs_get_scope(world) == 0)
         {
             _id = new Id(world, ecs_new(world));
         }
@@ -316,7 +316,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Table Range()
     {
-        ecs_record_t* r = ecs_record_find(World, Id);
+        ecs_record_t* r = flecs_entities_get(ecs_get_world(World), Id);
         return r != null ? new Table(World, r->table, Ecs.RecordToRow(r->row), 1) : new Table();
     }
 
@@ -326,16 +326,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="func"></param>
     public void Each(Ecs.EachIdCallback func)
     {
-        ecs_type_t* type = ecs_get_type(World, Id);
-
-        if (type == null)
-            return;
-
-        ulong* ids = type->array;
-        int count = type->count;
-
-        for (int i = 0; i < count; i++)
-            func(new Id(World, ids[i]));
+        EachId(0, false, func);
     }
 
     /// <summary>
@@ -346,29 +337,55 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="func"></param>
     public void Each(ulong first, ulong second, Ecs.EachIdCallback func)
     {
+        EachId(second != 0 ? Ecs.Pair(first, second) : first, true, func);
+    }
+
+    private void EachId(ulong pattern, bool match, Ecs.EachIdCallback func)
+    {
         ecs_world_t* realWorld = ecs_get_world(World);
         ecs_table_t* table = ecs_get_table(World, Id);
+        ecs_type_t* type = table != null ? ecs_table_get_type(table) : null;
 
-        if (table == null)
-            return;
-
-        ecs_type_t* type = ecs_table_get_type(table);
-
-        if (type == null)
-            return;
-
-        ulong pattern = first;
-
-        if (second != 0)
-            pattern = Ecs.Pair(first, second);
-
-        int cur = 0;
-        ulong* ids = type->array;
-
-        while (-1 != (cur = ecs_search_offset(realWorld, table, cur, pattern, null)))
+        if (type != null)
         {
-            func(new Id(World, ids[cur]));
-            cur++;
+            ulong* ids = type->array;
+
+            if (match)
+            {
+                int cur = 0;
+
+                while (-1 != (cur = ecs_search_offset(realWorld, table, cur, pattern, null)))
+                {
+                    func(new Id(World, ids[cur]));
+                    cur++;
+                }
+            }
+            else
+            {
+                int count = type->count;
+
+                for (int i = 0; i < count; i++)
+                    func(new Id(World, ids[i]));
+            }
+        }
+
+        ecs_record_t* record = flecs_entities_get(realWorld, Id);
+
+        if (record == null || (record->row & EcsEntityHasDontFragment) == 0)
+            return;
+
+        for (ecs_component_record_t* cr = flecs_component_dont_fragment_first(realWorld); cr != null;
+             cr = flecs_component_dont_fragment_next(cr))
+        {
+            ulong id = flecs_component_get_id(cr);
+
+            if (ecs_id_is_wildcard(id) || (match && !ecs_id_match(id, pattern)))
+                continue;
+
+            ecs_sparse_t* sparse = flecs_component_get_sparse(cr);
+
+            if (sparse != null && flecs_sparse_has(sparse, Id))
+                func(new Id(World, id));
         }
     }
 
@@ -1221,7 +1238,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="stage"></param>
     /// <returns></returns>
-    public Entity Mut(ref World stage)
+    public Entity Stage(ref World stage)
     {
         Ecs.Assert(!stage.IsReadOnly(), "Cannot use readonly world/stage to create mutable handle");
         return new Entity(Id).SetStage(stage);
@@ -1232,11 +1249,11 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="it"></param>
     /// <returns></returns>
-    public Entity Mut(ref Iter it)
+    public Entity Stage(ref Iter it)
     {
-        Ecs.Assert(!it.World().IsReadOnly(),
+        Ecs.Assert(!it.Stage().IsReadOnly(),
             "Cannot use iterator created for readonly world/stage to create mutable handle");
-        return new Entity(Id).SetStage(it.World());
+        return new Entity(Id).SetStage(it.Stage());
     }
 
     /// <summary>
@@ -1244,7 +1261,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
-    public Entity Mut(ref Entity entity)
+    public Entity Stage(ref Entity entity)
     {
         Ecs.Assert(!entity.CsWorld().IsReadOnly(),
             "Cannot use entity created for readonly world/stage to create mutable handle");
@@ -1256,9 +1273,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="stage"></param>
     /// <returns></returns>
-    public Entity Mut(World stage)
+    public Entity Stage(World stage)
     {
-        return Mut(ref stage);
+        return Stage(ref stage);
     }
 
     /// <summary>
@@ -1266,9 +1283,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="it"></param>
     /// <returns></returns>
-    public Entity Mut(Iter it)
+    public Entity Stage(Iter it)
     {
-        return Mut(ref it);
+        return Stage(ref it);
     }
 
     /// <summary>
@@ -1276,9 +1293,23 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     /// <param name="entity"></param>
     /// <returns></returns>
-    public Entity Mut(Entity entity)
+    public Entity Stage(Entity entity)
     {
-        return Mut(ref entity);
+        return Stage(ref entity);
+    }
+
+    /// <summary>
+    ///     Return mutable entity handle for the default stage. If the entity handle already uses a
+    ///     stage, the returned handle uses the same stage. Otherwise the returned handle uses the
+    ///     default stage (stage 0) of the world.
+    /// </summary>
+    /// <returns></returns>
+    public Entity Stage()
+    {
+        if (ecs_is_stage(World))
+            return new Entity(Id).SetStage(World);
+
+        return new Entity(Id).SetStage(ecs_get_stage(World, 0));
     }
 
     private Entity SetStage(ecs_world_t* stage)
@@ -1873,47 +1904,6 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity DependsOn<T>(T value) where T : Enum
     {
         return ref DependsOn(Type<T>.Id(World, value));
-    }
-
-    /// <summary>
-    ///     Shortcut for Add(EcsSlotOf, entity).
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    public ref Entity SlotOf(ulong id)
-    {
-        return ref Add(EcsSlotOf, id);
-    }
-
-    /// <summary>
-    ///     Shortcut for Add(EcsSlotOf, entity).
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    public ref Entity SlotOf<T>()
-    {
-        return ref Add(EcsSlotOf, Type<T>.Id(World));
-    }
-
-    /// <summary>
-    ///     Shortcut for Add(EcsSlotOf, entity).
-    /// </summary>
-    /// <param name="value"></param>
-    /// <typeparam name="T"></typeparam>
-    /// <returns></returns>
-    public ref Entity SlotOf<T>(T value) where T : Enum
-    {
-        return ref SlotOf(Type<T>.Id(World, value));
-    }
-
-    /// <summary>
-    ///     Shortcut for Add(EcsSlotOf, Target(EcsChildOf)).
-    /// </summary>
-    /// <returns></returns>
-    public ref Entity Slot()
-    {
-        Ecs.Assert(ecs_get_target(World, Id, EcsChildOf, 0) != 0, "Add ChildOf pair before using slot()");
-        return ref SlotOf(Target(EcsChildOf));
     }
 
     /// <summary>
@@ -2632,82 +2622,6 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetSecond<TSecond>(ulong first, in TSecond data)
     {
         return ref SetInternal(Ecs.PairSecond<TSecond>(first, World), in data);
-    }
-
-    /// <summary>
-    ///     Entities created in function will have the current entity.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With(Action callback)
-    {
-        ulong prev = ecs_set_with(World, Id);
-        callback();
-        ecs_set_with(World, prev);
-        return ref this;
-    }
-
-    /// <summary>
-    ///     Entities created in function will have (first, this).
-    /// </summary>
-    /// <param name="first">The id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With(ulong first, Action callback)
-    {
-        ulong prev = ecs_set_with(World, Ecs.Pair(first, Id));
-        callback();
-        ecs_set_with(World, prev);
-        return ref this;
-    }
-
-    /// <summary>
-    ///     Entities created in function will have (TFirst, this).
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The component id.</typeparam>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With<TFirst>(Action callback)
-    {
-        return ref With(Type<TFirst>.Id(World), callback);
-    }
-
-    /// <summary>
-    ///     Entities created in function will have the current entity.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With(Ecs.WorldCallback callback)
-    {
-        ulong prev = ecs_set_with(World, Id);
-        callback(World);
-        ecs_set_with(World, prev);
-        return ref this;
-    }
-
-    /// <summary>
-    ///     Entities created in function will have (first, this).
-    /// </summary>
-    /// <param name="first">The id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With(ulong first, Ecs.WorldCallback callback)
-    {
-        ulong prev = ecs_set_with(World, Ecs.Pair(first, Id));
-        callback(World);
-        ecs_set_with(World, prev);
-        return ref this;
-    }
-
-    /// <summary>
-    ///     Entities created in function will have (TFirst, this).
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The component id.</typeparam>
-    /// <returns>Reference to self.</returns>
-    public ref Entity With<TFirst>(Ecs.WorldCallback callback)
-    {
-        return ref With(Type<TFirst>.Id(World), callback);
     }
 
     /// <summary>
@@ -3509,6 +3423,17 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public void Destruct()
     {
         ecs_delete(World, Id);
+    }
+
+    /// <summary>
+    ///     Set child order. Changes the order of children as returned by <see cref="Children(Ecs.EachEntityCallback)"/>.
+    ///     Only applicable to entities with the <see cref="Ecs.OrderedChildren"/> trait.
+    /// </summary>
+    /// <param name="children">Array of child entity ids in the desired order.</param>
+    /// <param name="childCount">Number of children in the array.</param>
+    public void SetChildOrder(ulong* children, int childCount)
+    {
+        ecs_set_child_order(World, Id, children, childCount);
     }
 
     /// <summary>

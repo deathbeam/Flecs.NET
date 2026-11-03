@@ -45,15 +45,15 @@ public class EventTests
             count++;
         });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
         string str = "Test";
 
-        entity.Enqueue(ref str);
+        entity.Stage(stage).Enqueue(ref str);
 
         Assert.Equal(0, count);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }

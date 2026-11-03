@@ -421,14 +421,37 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
 
     internal Observer Build()
     {
+        QueryBuilder.AssertReusable();
+
         Desc.query = QueryBuilder.Desc;
+
+        ulong observer;
+        Observer result;
 
         fixed (ecs_observer_desc_t* ptr = &Desc)
         {
             Ecs.Assert(_eventCount != 0, "Observer cannot have zero events. Use ObserverBuilder.Event() to add events.");
-            Ecs.Assert(ptr->query.terms[0] != default || ptr->query.expr != null, "Observers require at least 1 term.");
-            return new Observer(World, ecs_observer_init(World, ptr));
+            observer = ecs_observer_init(World, ptr);
         }
+
+        result = new Observer(World, observer);
+
+        // The observer owns the contexts after initialization, so clear them for reuse.
+        Desc.ctx = null;
+        Desc.ctx_free = null;
+        Desc.callback_ctx = null;
+        Desc.callback_ctx_free = null;
+        Desc.run_ctx = null;
+        Desc.run_ctx_free = null;
+        Desc.query.binding_ctx = null;
+        Desc.query.binding_ctx_free = null;
+        Desc.query.group_by_ctx = null;
+        Desc.query.group_by_ctx_free = null;
+
+        if (observer != 0)
+            QueryBuilder.MarkBuilt();
+
+        return result;
     }
 
     Observer IQueryBuilder<ObserverBuilder, Observer>.Build()

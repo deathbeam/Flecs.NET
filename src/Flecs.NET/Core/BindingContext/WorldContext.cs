@@ -18,12 +18,15 @@ internal unsafe struct WorldContext : IDisposable
     public NativeList<nint> RunPostFrameContexts; // Stores PostFrameContext*
     public NativeList<nint> WorldFinishContexts; // Stores WorldFinishContext*
 
+    public NativeString ExclusiveAccessThreadName;
+
     public void Dispose()
     {
         UserContext.Dispose();
         UserContextFree.Dispose();
         AppInit.Dispose();
         TypeCache.Dispose();
+        ExclusiveAccessThreadName.Dispose();
 
         foreach (nint handle in OpaqueContexts)
             GCHandle.FromIntPtr(handle).Free();

@@ -25,7 +25,7 @@ public static class Systems_MutateEntity
                     // queue and executed when it's safe to do so.
 
                     // When the entity to be mutated is not the same as the entity
-                    // provided by the system, an additional Mut() call is required.
+                    // provided by the system, an additional Stage() call is required.
                     // See the MutateEntityHandle example.
                     Entity e = it.Entity(i);
                     e.Destruct();

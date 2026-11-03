@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Flecs.NET.Core;
 using Xunit;
 
@@ -10,6 +11,19 @@ namespace Test
 }
 
 public record struct Position(float X, float Y);
+
+[StructLayout(LayoutKind.Explicit)]
+public struct UnionT
+{
+    public enum Type
+    {
+        Type1,
+        Type2
+    }
+
+    [FieldOffset(0)] public uint Type1;
+    [FieldOffset(0)] public float Type2;
+}
 
 public record struct AutoPosition(float X, float Y) : IFlecsStruct;
 
@@ -62,6 +76,55 @@ public record struct UnmanagedComponent(int Value);
 public record struct SharedComponent(int Value);
 
 public record struct SparseComponent(int Value);
+
+public record struct PositionDf(float X, float Y);
+
+public record struct PositionDfOr(float X, float Y);
+
+public record struct VelocityDfOr(float X, float Y);
+
+public record struct PositionDfIh(float X, float Y);
+
+public record struct PositionDfDi(float X, float Y);
+
+public record struct PositionSpecializedDf(float X, float Y);
+
+public struct InheritUnit
+{
+    public int Hp;
+}
+
+public struct InheritWarrior
+{
+    public InheritUnit Base;
+    public int Dmg;
+}
+
+public struct InheritMage
+{
+    public InheritUnit Base;
+    public int Mana;
+}
+
+public record struct EachDontFragment(float X, float Y);
+
+public record struct OtherDontFragment(float X, float Y);
+
+public record struct TraitSparse(float X, float Y);
+
+public record struct TraitDontFragment(float X, float Y);
+
+public record struct TraitOnInstantiateOverride(float X, float Y);
+
+public record struct TraitOnInstantiateInherit(float X, float Y);
+
+public record struct TraitOnInstantiateDontInherit(float X, float Y);
+
+public record struct TraitNone(float X, float Y);
+
+public record struct TraitSparseInherit(float X, float Y);
+
+public record struct TraitDontFragmentInherit(float X, float Y);
 
 public record struct UnmanagedStruct(int Value);
 
@@ -463,4 +526,86 @@ namespace RenamedRootModule
             }
         }
     };
+}
+
+namespace RenameNs
+{
+    public struct RenamedModule : IFlecsModule
+    {
+        public void InitModule(World world)
+        {
+            world.Module<RenamedModule>(".RenamedModule");
+        }
+    }
+
+    public struct ComponentInOldParent
+    {
+        public int Value;
+    }
+}
+
+namespace RenameNsOuter
+{
+    namespace RenameNsInner
+    {
+        public struct RenamedModule : IFlecsModule
+        {
+            public void InitModule(World world)
+            {
+                world.Module<RenamedModule>(".RenameNsOuter.RenamedModule");
+            }
+        }
+    }
+}
+
+namespace ScopeChangeNs
+{
+    public struct ScopeChangeModule : IFlecsModule
+    {
+        public void InitModule(World world)
+        {
+            world.Module<ScopeChangeModule>(".scope_change.inner");
+            world.SetScope(world.Entity(".scope_change"));
+        }
+    }
+
+    public struct ImportBeforeRename : IFlecsModule
+    {
+        public void InitModule(World world)
+        {
+            world.Import<ScopeChangeModule>();
+            world.Module<ImportBeforeRename>(".import_before_rename");
+            Assert.Equal(".import_before_rename", world.GetScope().Path());
+        }
+    }
+
+    public struct ImportAfterRename : IFlecsModule
+    {
+        public void InitModule(World world)
+        {
+            world.Module<ImportAfterRename>(".import_after_rename");
+            world.Import<ScopeChangeModule>();
+            Assert.Equal(".import_after_rename", world.GetScope().Path());
+        }
+    }
+
+    public struct ImportNoRename : IFlecsModule
+    {
+        public void InitModule(World world)
+        {
+            world.Import<ScopeChangeModule>();
+            Assert.Equal(".ScopeChangeNs.ImportNoRename", world.GetScope().Path());
+        }
+    }
+}
+
+namespace Outer
+{
+    public struct ScopedComponent
+    {
+        public float X;
+        public float Y;
+    }
+
+    public struct ScopedTag;
 }

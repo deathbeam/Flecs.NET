@@ -904,6 +904,7 @@ public unsafe class ObserverTests
 
         Observer<Position> observer = world.Observer<Position>()
             .Event(Ecs.OnSet)
+            .InOut(Ecs.In)
             .Each((Entity _, ref Position _) => { });
 
         Query<Position> query = observer.Query();
@@ -957,11 +958,11 @@ public unsafe class ObserverTests
         Entity e = world.Entity();
         Assert.Equal(0, count);
 
-        world.DeferBegin();
-        e.Set(new Position { X = 10, Y = 20 });
+        World stage = world.GetStage(0);
+        e.Stage(stage).Set(new Position { X = 10, Y = 20 });
 
         Assert.Equal(0, count);
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, count);
     }
@@ -1193,9 +1194,9 @@ public unsafe class ObserverTests
             e2.Set(new Position(10, 20));
         });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
         e1.Emit(new MyEvent(10));
-        world.DeferEnd();
+        stage.Merge();
     }
 
     [Fact]
@@ -1214,9 +1215,9 @@ public unsafe class ObserverTests
             e2.Set(new Position(10, 20));
         });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
         e1.Emit(new MyEvent(10));
-        world.DeferEnd();
+        stage.Merge();
     }
 
     [Fact]
@@ -1615,5 +1616,317 @@ public unsafe class ObserverTests
         world.Entity().Add<Tag>();
 
         Assert.True(matched == 0);
+    }
+
+    [Fact]
+    private void ReuseObserverBuilder()
+    {
+        using World world = World.Create();
+
+        ObserverBuilder<Position> ob = world.Observer<Position>().Event(Ecs.OnSet);
+
+        int count1 = 0;
+        Observer<Position> o1 = ob.Each((ref Position p) => { count1++; });
+
+        int count2 = 0;
+        Observer<Position> o2 = ob.With<Velocity>().Each((ref Position p) => { count2++; });
+
+        Assert.True(o1 != o2);
+
+        world.Entity().Set(new Position(10, 20));
+        world.Entity().Set(new Position(10, 20)).Set(new Velocity(1, 2));
+
+        Assert.Equal(2, count1);
+        Assert.Equal(1, count2);
+    }
+
+    [Fact]
+    private void SingleTermObserverWVarGetVarPairSecond()
+    {
+        using World world = World.Create();
+
+        world.Component<Rel>();
+
+        Entity source = world.Entity("SourceEntity");
+        Entity instance = default;
+        int invoked = 0;
+
+        world.Observer().Event(Ecs.OnAdd).With<Rel>("$Source")
+            .Each((Iter it, int row) =>
+            {
+                Assert.True(it.Entity(row) == instance);
+                Assert.True(it.GetVar("this") == instance);
+                Assert.True(it.GetVar("Source") == source);
+                invoked++;
+            });
+
+        instance = world.Entity("Instance");
+        instance.Add<Rel>(source);
+        Assert.Equal(1, invoked);
+
+        int queryInvoked = 0;
+        using Query q = world.QueryBuilder().With<Rel>("$Source").Build();
+        q.Each((Iter it, int row) =>
+        {
+            Assert.True(it.Entity(row) == instance);
+            Assert.True(it.GetVar("Source") == source);
+            queryInvoked++;
+        });
+        Assert.Equal(1, queryInvoked);
+    }
+
+    [Fact]
+    private void SingleTermObserverWVarGetVarPairFirst()
+    {
+        using World world = World.Create();
+
+        Entity tgt = world.Entity("Tgt");
+        Entity rel = world.Entity("Rel");
+        Entity instance = default;
+        int invoked = 0;
+
+        world.Observer().Event(Ecs.OnRemove).With("$Rel", tgt)
+            .Each((Iter it, int row) =>
+            {
+                Assert.True(it.Entity(row) == instance);
+                Assert.True(it.GetVar("this") == instance);
+                Assert.True(it.GetVar("Rel") == rel);
+                invoked++;
+            });
+
+        instance = world.Entity("Instance").Add(rel, tgt);
+        Assert.Equal(0, invoked);
+        instance.Remove(rel, tgt);
+        Assert.Equal(1, invoked);
+    }
+
+    [Fact]
+    private void ComponentInheritanceEachMultiEntity()
+    {
+        using World world = World.Create();
+
+        world.Component<InheritUnit>();
+        world.Component<InheritWarrior>().Entity.IsA<InheritUnit>();
+
+        Entity tag = world.Entity();
+
+        int count = 0, sum = 0;
+        world.Observer<InheritUnit>()
+            .With(tag)
+            .Event(Ecs.OnRemove)
+            .Run((Iter it) =>
+            {
+                while (it.Next())
+                {
+                    BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+
+                    for (int i = 0; i < it.Count(); i++)
+                    {
+                        sum += f[i].Hp;
+                        count++;
+                    }
+                }
+            });
+
+        world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 10 }, Dmg = 1 }).Add(tag);
+        world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 20 }, Dmg = 2 }).Add(tag);
+        world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 30 }, Dmg = 3 }).Add(tag);
+
+        Assert.Equal(0, count);
+
+        world.RemoveAll(tag);
+
+        Assert.Equal(3, count);
+        Assert.Equal(60, sum);
+    }
+
+    [Fact]
+    private void DeleteWOnRemoveRemovingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity e = world.Entity().Add<Position>().Add<Velocity>();
+
+        e.Destruct();
+
+        Assert.False(e.IsAlive());
+    }
+
+    [Fact]
+    private void ClearWOnRemoveRemovingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity e = world.Entity().Add<Position>().Add<Velocity>();
+
+        e.Clear();
+
+        Assert.True(e.IsAlive());
+        Assert.False(e.Has<Position>());
+        Assert.False(e.Has<Velocity>());
+    }
+
+    [Fact]
+    private void DeleteWithWOnRemoveRemovingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity e1 = world.Entity().Add<Tag>().Add<Position>().Add<Velocity>();
+        Entity e2 = world.Entity().Add<Tag>().Add<Position>().Add<Velocity>();
+        Entity e3 = world.Entity().Add<Tag>().Add<Position>().Add<Velocity>();
+        Entity e4 = world.Entity().Add<Position>().Add<Velocity>();
+
+        world.DeleteWith<Tag>();
+
+        Assert.False(e1.IsAlive());
+        Assert.False(e2.IsAlive());
+        Assert.False(e3.IsAlive());
+        Assert.True(e4.IsAlive());
+        Assert.True(e4.Has<Position>());
+        Assert.True(e4.Has<Velocity>());
+    }
+
+    [Fact]
+    private void RemoveAllWOnRemoveRemovingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity e1 = world.Entity().Add<Position>().Add<Velocity>();
+        Entity e2 = world.Entity().Add<Position>().Add<Velocity>();
+        Entity e3 = world.Entity().Add<Position>().Add<Velocity>();
+
+        world.RemoveAll<Position>();
+
+        Assert.True(e1.IsAlive());
+        Assert.False(e1.Has<Position>());
+        Assert.False(e1.Has<Velocity>());
+        Assert.True(e2.IsAlive());
+        Assert.False(e2.Has<Position>());
+        Assert.False(e2.Has<Velocity>());
+        Assert.True(e3.IsAlive());
+        Assert.False(e3.Has<Position>());
+        Assert.False(e3.Has<Velocity>());
+    }
+
+    [Fact]
+    private void DeleteParentWOnRemoveRemovingOtherFromChildWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity parent = world.Entity();
+        Entity child = world.Entity().ChildOf(parent).Add<Position>().Add<Velocity>();
+
+        parent.Destruct();
+
+        Assert.False(parent.IsAlive());
+        Assert.False(child.IsAlive());
+    }
+
+    [Fact]
+    private void RemoveWOnRemoveRemovingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnRemove)
+            .Each((Entity e, ref Position p) => { e.Remove<Velocity>(); });
+
+        Entity e = world.Entity().Add<Position>().Add<Velocity>();
+
+        e.Remove<Position>();
+
+        Assert.True(e.IsAlive());
+        Assert.False(e.Has<Position>());
+        Assert.False(e.Has<Velocity>());
+    }
+
+    [Fact]
+    private void SetWOnAddAddingOtherWStage()
+    {
+        using World world = World.Create();
+
+        world.Observer<Position>()
+            .Event(Ecs.OnAdd)
+            .Each((Entity e, ref Position p) => { e.Add<Velocity>(); });
+
+        Entity e = world.Entity();
+
+        e.Set(new Position(10, 20));
+
+        Assert.True(e.Has<Velocity>());
+        ref readonly Position p = ref e.Get<Position>();
+        Assert.Equal(10, p.X);
+        Assert.Equal(20, p.Y);
+    }
+
+    [Fact]
+    private void NoTermsCustomEvent()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity();
+
+        int count = 0;
+        Entity last = default;
+
+        world.Observer()
+            .Event<Evt>()
+            .Each((Entity src) =>
+            {
+                last = src;
+                count++;
+            });
+
+        Assert.Equal(0, count);
+
+        world.Event<Evt>().Entity(e).Emit();
+
+        Assert.Equal(1, count);
+        Assert.True(last == e);
+    }
+
+    [Fact]
+    private void NoTermsOnAdd()
+    {
+        using World world = World.Create();
+
+        world.Component<Position>();
+
+        int count = 0;
+        Entity last = default;
+
+        world.Observer()
+            .Event(Ecs.OnAdd)
+            .Each((Entity src) =>
+            {
+                last = src;
+                count++;
+            });
+
+        Entity e = world.Entity();
+        e.Add<Position>();
+
+        Assert.Equal(1, count);
+        Assert.True(last == e);
     }
 }

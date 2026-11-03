@@ -192,15 +192,17 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
     {
         fixed (ecs_iter_t* it = &Iterator)
         {
-            Entity result = default;
-
-            if (this.GetNext(it) && it->count != 0)
+            while (GetNext(it))
             {
-                result = new Entity(it->world, it->entities[0]);
+                if (it->count == 0)
+                    continue;
+
+                Entity result = new Entity(it->stage, it->entities[0]);
                 ecs_iter_fini(it);
+                return result;
             }
 
-            return result;
+            return default;
         }
     }
 
@@ -227,7 +229,7 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
     {
         fixed (ecs_iter_t* it = &Iterator)
         {
-            ecs_iter_set_group(it, Type<T>.Id(it->real_world));
+            ecs_iter_set_group(it, Type<T>.Id(it->world));
             return ref this;
         }
     }
@@ -305,9 +307,7 @@ public unsafe partial struct IterIterable : IIterableBase
         if (world == null)
             return Iterator;
 
-        return world == null
-            ? Iterator
-            : Iterator with { world = world };
+        return Iterator with { stage = world };
     }
 
     /// <inheritdoc cref="IIterableBase.GetNext"/>
@@ -396,7 +396,7 @@ public unsafe partial struct IterIterable : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Iter)"/>
     public IterIterable Iter(Iter it)
     {
-        return Iter(it.World());
+        return Iter(it.Stage());
     }
 
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>

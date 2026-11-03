@@ -17,6 +17,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     private ecs_query_desc_t _desc;
     private int _termIndex;
     private int _termCount;
+    private bool _built;
     private TermIdType _termIdType;
     private ref ecs_term_t CurrentTerm => ref Desc.terms[_termIndex];
     private ref ecs_term_ref_t CurrentTermId
@@ -64,6 +65,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
         _termIndex = default;
         _termCount = default;
         _termIdType = TermIdType.Src;
+        _built = default;
         QueryContext = default;
     }
 
@@ -113,8 +115,65 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public Query Build()
     {
+        AssertReusable();
+
+        Query result;
+
         fixed (ecs_query_desc_t* ptr = &Desc)
-            return new Query(ecs_query_init(World, ptr));
+            result = new Query(ecs_query_init(World, ptr));
+
+        // The query owns the contexts after a successful initialization; on failure Dispose frees them.
+        if (result.Handle != null)
+            MarkBuilt();
+
+        return result;
+    }
+
+    /// <summary>
+    ///     Releases the contexts that were transferred to a query or system.
+    /// </summary>
+    internal void ClearContexts()
+    {
+        // ecs_query_init always takes ownership of the binding context.
+        Desc.binding_ctx = null;
+        Desc.binding_ctx_free = null;
+
+        // ecs_query_init only takes the group by context when a group by callback or id is set.
+        if (Desc.group_by_callback == null && Desc.group_by == 0)
+            return;
+
+        Desc.group_by_ctx = null;
+        Desc.group_by_ctx_free = null;
+    }
+
+    /// <summary>
+    ///     Releases the contexts that were transferred to a built object and marks the builder as built.
+    /// </summary>
+    internal void MarkBuilt()
+    {
+        ClearContexts();
+        _built = true;
+    }
+
+    /// <summary>
+    ///     Asserts that a built builder is only reused when it doesn't reference data that was
+    ///     transferred to the built object.
+    /// </summary>
+    internal void AssertReusable()
+    {
+        if (!_built)
+            return;
+
+        bool transferred = Desc.expr != null || Desc.group_by_callback != null || Desc.order_by_callback != null;
+
+        for (int i = 0; !transferred && i < _termCount; i++)
+        {
+            ref ecs_term_t term = ref Desc.terms[i];
+            transferred = term.first.name != null || term.second.name != null || term.src.name != null;
+        }
+
+        Ecs.Assert(!transferred,
+            "QueryBuilder cannot be reused after Build() when Expr, Var, a term name, GroupBy or OrderBy is set. Create a new builder instead.");
     }
 
     /// <summary>

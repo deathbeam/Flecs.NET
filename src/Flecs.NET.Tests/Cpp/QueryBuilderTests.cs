@@ -3272,7 +3272,7 @@ public unsafe class QueryBuilderTests
         int count = 0;
         q.Iter(stage).Each((Iter it, int i, ref Position _) =>
         {
-            Assert.True(it.World() == stage);
+            Assert.True(it.Stage() == stage);
             Assert.True(it.Entity(i) == e1);
             count++;
         });
@@ -5389,12 +5389,21 @@ public unsafe class QueryBuilderTests
         using Query<Position> q1 = world.Query<Position>();
         Assert.True(q1);
 
+        int previousLevel = Ecs.Log.GetLevel();
         Ecs.Log.SetLevel(-4);
-        using Query q2 = world.QueryBuilder()
-            .Expr("foo")
-            .CacheKind(cacheKind)
-            .Build();
-        Assert.True(!q2);
+
+        try
+        {
+            using Query q2 = world.QueryBuilder()
+                .Expr("foo")
+                .CacheKind(cacheKind)
+                .Build();
+            Assert.True(!q2);
+        }
+        finally
+        {
+            Ecs.Log.SetLevel(previousLevel);
+        }
     }
 
     [Theory]
@@ -5681,5 +5690,73 @@ public unsafe class QueryBuilderTests
         });
 
         Assert.Equal(1, count);
+    }
+
+    [Theory]
+    [MemberData(nameof(CacheKinds))]
+    private void ValuePairW0Value(ecs_query_cache_kind_t cacheKind)
+    {
+        using World world = World.Create();
+
+        world.Component<UnionT>()
+            .Add(Ecs.Relationship)
+            .Add(Ecs.Exclusive);
+
+        using Query<UnionT> q1 = world.QueryBuilder<UnionT>()
+            .Second((ulong)UnionT.Type.Type1).Flags(ECS_VALUE_PAIR)
+            .CacheKind(cacheKind)
+            .Build();
+
+        using Query<UnionT> q2 = world.QueryBuilder<UnionT>()
+            .Second((ulong)UnionT.Type.Type2).Flags(ECS_VALUE_PAIR)
+            .CacheKind(cacheKind)
+            .Build();
+
+        UnionT val1 = new() { Type1 = 3 };
+        UnionT val2 = new() { Type2 = 2.5f };
+
+        Entity e1 = world.Entity();
+        Entity e2 = world.Entity();
+
+        e1.SetUntyped(Ecs.ValuePair(world.Component<UnionT>(), (ulong)UnionT.Type.Type1), sizeof(UnionT), &val1);
+        e2.SetUntyped(Ecs.ValuePair(world.Component<UnionT>(), (ulong)UnionT.Type.Type2), sizeof(UnionT), &val2);
+
+        int count1 = 0, count2 = 0;
+
+        q1.Each((Entity e, ref UnionT data) =>
+        {
+            Assert.True(e == e1);
+            Assert.Equal(3u, data.Type1);
+            count1++;
+        });
+
+        q2.Each((Entity e, ref UnionT data) =>
+        {
+            Assert.True(e == e2);
+            Assert.Equal(2.5f, data.Type2);
+            count2++;
+        });
+
+        Assert.Equal(1, count1);
+        Assert.Equal(1, count2);
+    }
+
+    [Fact]
+    private void TermRefFlagsPreserveId()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity();
+
+        using Query q = world.QueryBuilder()
+            .With<Tag>().Src().Entity(e.Id)
+            .Build();
+
+        Assert.Equal(e.Id.Value, Ecs.TermRefId(ref q.Handle->terms[0].src));
+        Assert.True((q.Handle->terms[0].src.id & Ecs.IsEntity) != 0);
+
+        Assert.False(q.IsTrue());
+        e.Add<Tag>();
+        Assert.True(q.IsTrue());
     }
 }

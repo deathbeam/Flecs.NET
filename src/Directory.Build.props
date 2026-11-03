@@ -1,6 +1,6 @@
 <Project>
     <PropertyGroup>
-        <VersionPrefix>4.1.6</VersionPrefix>
+        <VersionPrefix>4.2.0</VersionPrefix>
         <Authors>BeanCheeseBurrito, deathbeam</Authors>
         <Copyright>BeanCheeseBurrito, deathbeam</Copyright>
         <PackageProjectUrl>https://github.com/deathbeam/Flecs.NET</PackageProjectUrl>

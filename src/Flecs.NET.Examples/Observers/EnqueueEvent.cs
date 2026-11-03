@@ -31,11 +31,11 @@ public static class Observers_EnqueueEvent
         Entity e = world.Entity("e")
             .Set(new Position(10, 20));
 
-        // We can only call enqueue events while the world is deferred mode.
-        world.DeferBegin();
+        // Events can only be enqueued on a stage.
+        World stage = world.GetStage(0);
 
         // Emit the custom event
-        world.Event<MyEvent>()
+        stage.Event<MyEvent>()
             .Id<Position>()
             .Entity(e)
             .Enqueue();
@@ -43,7 +43,7 @@ public static class Observers_EnqueueEvent
         Console.WriteLine("Event enqueued!");
 
         // Flushes the queue, and invokes the observer
-        world.DeferEnd();
+        stage.Merge();
     }
 }
 

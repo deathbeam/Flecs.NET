@@ -25,5 +25,6 @@ public enum Type
     TimerEntity,
     TypeHelper,
     UntypedComponent,
-    WorkerIterable
+    WorkerIterable,
+    SparseQuery
 }

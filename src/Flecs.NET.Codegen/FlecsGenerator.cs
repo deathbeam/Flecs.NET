@@ -33,6 +33,7 @@ public class FlecsGenerator : IIncrementalGenerator
             Generate<TypeHelper>(context);
             Generate<UntypedComponent>(context);
             Generate<WorkerIterable>(context);
+            Generate<SparseQuery>(context);
             Generate<World>(context);
         });
     }

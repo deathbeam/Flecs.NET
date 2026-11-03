@@ -177,14 +177,26 @@ public static unsafe partial class Ecs
     }
 
     /// <summary>
-    ///     Tests whether an id is a pair.
+    ///     Creates a value pair out of a relationship and a value.
+    /// </summary>
+    /// <param name="relation"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong ValuePair(ulong relation, ulong value)
+    {
+        return ECS_VALUE_PAIR | EntityCombine(value, relation);
+    }
+
+    /// <summary>
+    ///     Tests whether an id is a pair or a value pair.
     /// </summary>
     /// <param name="pair"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPair(ulong pair)
     {
-        return (pair & ECS_ID_FLAGS_MASK) == ECS_PAIR;
+        return (pair & ECS_PAIR) != 0;
     }
 
     /// <summary>
@@ -252,7 +264,7 @@ public static unsafe partial class Ecs
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TableLock(ecs_iter_t* iter)
     {
-        ecs_table_lock(iter->real_world, iter->table);
+        ecs_table_lock(iter->stage, iter->table);
     }
 
     /// <summary>
@@ -274,7 +286,7 @@ public static unsafe partial class Ecs
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TableUnlock(ecs_iter_t* iter)
     {
-        ecs_table_unlock(iter->real_world, iter->table);
+        ecs_table_unlock(iter->stage, iter->table);
     }
 
     /// <summary>

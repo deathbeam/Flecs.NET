@@ -476,8 +476,8 @@ public static class Generator
         {
             CallbackParameters.EachRef => $"{GetEachRefArguments(iterationTechnique, i)}",
             CallbackParameters.EachPointer => $"{GetEachPointerArguments(iterationTechnique, i)}",
-            CallbackParameters.EachEntityRef => $"new Entity(it.Handle->world, it.Handle->entities[i]), {GetEachRefArguments(iterationTechnique, i)}",
-            CallbackParameters.EachEntityPointer => $"new Entity(it.Handle->world, it.Handle->entities[i]), {GetEachPointerArguments(iterationTechnique, i)}",
+            CallbackParameters.EachEntityRef => $"new Entity(it.Handle->stage, it.Handle->entities[i]), {GetEachRefArguments(iterationTechnique, i)}",
+            CallbackParameters.EachEntityPointer => $"new Entity(it.Handle->stage, it.Handle->entities[i]), {GetEachPointerArguments(iterationTechnique, i)}",
             CallbackParameters.EachIterRef => $"it, i, {GetEachRefArguments(iterationTechnique, i)}",
             CallbackParameters.EachIterPointer => $"it, i, {GetEachPointerArguments(iterationTechnique, i)}",
             _ => throw new ArgumentOutOfRangeException(nameof(parameters), parameters, null)

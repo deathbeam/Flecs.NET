@@ -58,18 +58,14 @@ public static class GameMechanics_InventorySystem
             .SetAutoOverride(new Health(20));
 
         // Create a loot box with items
-        Entity lootBox = ecs.Entity("Chest").Add<Container>().With<ContainedBy>(() =>
-        {
-            ecs.Entity().IsA<IronSword>();
-            ecs.Entity().IsA<WoodenArmor>();
-            ecs.Entity().Add<Coin>().Set(new Amount(30));
-        });
+        Entity lootBox = ecs.Entity("Chest").Add<Container>();
+        ecs.Entity().IsA<IronSword>().Add<ContainedBy>(lootBox);
+        ecs.Entity().IsA<WoodenArmor>().Add<ContainedBy>(lootBox);
+        ecs.Entity().Add<Coin>().Set(new Amount(30)).Add<ContainedBy>(lootBox);
 
         // Create a player entity with an inventory
-        Entity inventory = ecs.Entity().Add<Container>().With<ContainedBy>(() =>
-        {
-            ecs.Entity().Add<Coin>().Set(new Amount(20));
-        });
+        Entity inventory = ecs.Entity().Add<Container>();
+        ecs.Entity().Add<Coin>().Set(new Amount(20)).Add<ContainedBy>(inventory);
 
         Entity player = ecs.Entity("Player")
             .Set(new Health(10))
@@ -238,17 +234,17 @@ public static class GameMechanics_InventorySystem
     {
         Console.WriteLine($">> Transfer items from {src} to {dst}\n");
 
-        // Defer, because we're adding/removing components while we're iterating
-        dst.CsWorld().Defer(() =>
-        {
-            dst = GetContainer(dst); // Make sure to replace players with container
-            src = GetContainer(src);
+        // Use a stage, because we're adding/removing components while we're iterating
+        World stage = dst.CsWorld().GetStage(0);
+        dst = GetContainer(dst); // Make sure to replace players with container
+        src = GetContainer(src);
 
-            ForEachItem(src, (Entity item) =>
-            {
-                TransferItem(dst, item);
-            });
+        ForEachItem(src, (Entity item) =>
+        {
+            TransferItem(dst.Stage(stage), item.Stage(stage));
         });
+
+        stage.Merge();
     }
 
     // Attack player

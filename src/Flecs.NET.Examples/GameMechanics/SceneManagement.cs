@@ -45,7 +45,6 @@ public static class GameMechanics_SceneManagement
 
     // Removes all entities who are children of
     // the current scene root.
-    // (NOTE: should use DeferBegin() / DeferEnd())
     static void ResetScene(World world)
     {
         world.DeleteWith(Ecs.ChildOf, world.Entity<SceneRoot>());
@@ -55,39 +54,41 @@ public static class GameMechanics_SceneManagement
     {
         Console.WriteLine("\n>> ActiveScene has changed to `MenuScene`\n");
 
-        World world = it.World();
-        Component<SceneRoot> scene = world.Component<SceneRoot>();
+        World stage = it.Stage();
+        Component<SceneRoot> scene = stage.Component<SceneRoot>();
 
-        ResetScene(world);
+        ResetScene(stage);
 
         // Creates a start menu button
         // when we enter the menu scene.
-        world.Entity("Start Button")
+        stage.Entity("Start Button")
             .Set(new Button("Play the Game!"))
             .Set(new Position(50, 50))
             .ChildOf(scene);
 
-        world.SetPipeline(world.Get<MenuScene>().Pipeline);
+        // Pipelines can only be set on the actual world.
+        it.World().SetPipeline(stage.Get<MenuScene>().Pipeline);
     }
 
     static void GameScene(Iter it, int i)
     {
         Console.WriteLine("\n>> ActiveScene has changed to `GameScene`\n");
 
-        World world = it.World();
-        Component<SceneRoot> scene = world.Component<SceneRoot>();
+        World stage = it.Stage();
+        Component<SceneRoot> scene = stage.Component<SceneRoot>();
 
-        ResetScene(world);
+        ResetScene(stage);
 
         // Creates a player character
         // when we enter the game scene.
-        world.Entity("Player")
+        stage.Entity("Player")
             .Set(default(Character))
             .Set(default(Position))
             .Set(new Health(2))
             .ChildOf(scene);
 
-        world.SetPipeline(world.Get<GameScene>().Pipeline);
+        // Pipelines can only be set on the actual world.
+        it.World().SetPipeline(stage.Get<GameScene>().Pipeline);
     }
 
     static void InitScenes(World world)

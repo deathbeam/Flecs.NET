@@ -175,7 +175,7 @@ public class Ecs : GeneratorBase
                             continue;
                         }
                 
-                        ptrs[i] = ecs_record_get_by_column(r, columns[i], 0);
+                        ptrs[i] = flecs_entity_get_column(r, columns[i], 0);
                     }
                 
                     return true;

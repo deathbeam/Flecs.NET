@@ -6,6 +6,11 @@ using static Flecs.NET.Bindings.flecs;
 
 namespace Flecs.NET.Tests.Cpp;
 
+// Flecs addon module ids (units, stats, ...) are process-global, so addon imports must not run in parallel.
+[CollectionDefinition("Addons", DisableParallelization = true)]
+public class AddonsCollection;
+
+[Collection("Addons")]
 public class ModuleTests
 {
     [Fact]
@@ -260,7 +265,7 @@ public class ModuleTests
     }
 
     [Fact]
-    private void ImplicitlyAddModuleToScopesComponent()
+    private void ComponentScopesDoNotBecomeModules()
     {
         using World world = World.Create();
 
@@ -272,17 +277,17 @@ public class ModuleTests
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1.NamespaceLvl2.StructLvl1");
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1.NamespaceLvl2");
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1");
 
         current = current.Parent();
@@ -290,7 +295,7 @@ public class ModuleTests
     }
 
     [Fact]
-    private void ImplicitlyAddModuleToScopesEntity()
+    private void EntityScopesDoNotBecomeModules()
     {
         using World world = World.Create();
 
@@ -302,17 +307,17 @@ public class ModuleTests
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1.NamespaceLvl2.StructLvl1");
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1.NamespaceLvl2");
 
         current = current.Parent();
         Assert.True(current != 0);
-        Assert.True(current.Has(Ecs.Module));
+        Assert.True(!current.Has(Ecs.Module));
         Assert.True(current.Path() == ".NamespaceLvl1");
 
         current = current.Parent();
@@ -420,5 +425,143 @@ public class ModuleTests
             Assert.True(m.Lookup("Position") == world.Component<Position>().Entity);
             Assert.True(m == world.Entity<Module>());
         }
+    }
+
+    [Fact]
+    private void RenameWExistingEntityInOldParent()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity(".RenameNs.e");
+        Assert.True(e.IsAlive());
+
+        Entity m = world.Import<RenameNs.RenamedModule>();
+        Assert.Equal(".RenamedModule", m.Path());
+
+        Assert.True(e.IsAlive());
+        Assert.Equal(".RenamedModule.e", e.Path());
+        Assert.True(e.Parent() == m);
+        Assert.True(world.Lookup(".RenameNs") == 0);
+        Assert.True(world.Lookup(".RenamedModule.e") == e);
+    }
+
+    [Fact]
+    private void RenameToAncestorWExistingEntityInOldParent()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity(".RenameNsOuter.RenameNsInner.e");
+        Entity o = world.Entity(".RenameNsOuter.o");
+        Assert.True(e.IsAlive());
+        Assert.True(o.IsAlive());
+
+        Entity m = world.Import<RenameNsOuter.RenameNsInner.RenamedModule>();
+        Assert.Equal(".RenameNsOuter.RenamedModule", m.Path());
+        Assert.True(m.IsAlive());
+
+        Assert.True(e.IsAlive());
+        Assert.Equal(".RenameNsOuter.RenamedModule.e", e.Path());
+        Assert.True(e.Parent() == m);
+        Assert.True(o.IsAlive());
+        Assert.Equal(".RenameNsOuter.o", o.Path());
+        Assert.True(world.Lookup(".RenameNsOuter.RenameNsInner") == 0);
+        Assert.True(world.Lookup(".RenameNsOuter") == m.Parent());
+    }
+
+    [Fact]
+    private void NestedImportChangesScopeBeforeModuleRename()
+    {
+        using World world = World.Create();
+
+        Entity m = world.Import<ScopeChangeNs.ImportBeforeRename>();
+        Assert.True(m.IsAlive());
+        Assert.True(m.Has(Ecs.Module));
+        Assert.Equal(".import_before_rename", m.Path());
+
+        Entity inner = world.Lookup(".scope_change.inner");
+        Assert.True(inner != 0);
+        Assert.True(inner.IsAlive());
+        Assert.True(inner.Has(Ecs.Module));
+        Assert.True(inner == world.Import<ScopeChangeNs.ScopeChangeModule>());
+
+        Assert.True(world.Lookup(".ScopeChangeNs") == 0);
+        Assert.True(world.GetScope() == 0);
+    }
+
+    [Fact]
+    private void NestedImportChangesScopeAfterModuleRename()
+    {
+        using World world = World.Create();
+
+        Entity m = world.Import<ScopeChangeNs.ImportAfterRename>();
+        Assert.True(m.IsAlive());
+        Assert.True(m.Has(Ecs.Module));
+        Assert.Equal(".import_after_rename", m.Path());
+
+        Entity inner = world.Lookup(".scope_change.inner");
+        Assert.True(inner != 0);
+        Assert.True(inner.IsAlive());
+        Assert.True(inner.Has(Ecs.Module));
+        Assert.True(inner == world.Import<ScopeChangeNs.ScopeChangeModule>());
+
+        Assert.True(world.Lookup(".ScopeChangeNs") == 0);
+        Assert.True(world.GetScope() == 0);
+    }
+
+    [Fact]
+    private void ScopeRestoredAfterImportWNestedScopeChange()
+    {
+        using World world = World.Create();
+
+        Entity parent = world.Entity("parent");
+        world.SetScope(parent);
+
+        Entity m = world.Import<ScopeChangeNs.ImportBeforeRename>();
+        Assert.True(m.IsAlive());
+        Assert.Equal(".import_before_rename", m.Path());
+        Assert.True(world.GetScope() == parent);
+
+        world.SetScope(0);
+        Assert.True(world.GetScope() == 0);
+    }
+
+    [Fact]
+    private void NestedImportChangesScopeNoRename()
+    {
+        using World world = World.Create();
+
+        Entity m = world.Import<ScopeChangeNs.ImportNoRename>();
+        Assert.True(m.IsAlive());
+        Assert.True(m.Has(Ecs.Module));
+        Assert.Equal(".ScopeChangeNs.ImportNoRename", m.Path());
+
+        Entity inner = world.Lookup(".scope_change.inner");
+        Assert.True(inner != 0);
+        Assert.True(inner.IsAlive());
+        Assert.True(inner.Has(Ecs.Module));
+
+        Assert.True(world.GetScope() == 0);
+    }
+
+    [Fact]
+    private void RenameWExistingComponentInOldParent()
+    {
+        using World world = World.Create();
+
+        Entity c = world.Component<RenameNs.ComponentInOldParent>();
+        Assert.Equal(".RenameNs.ComponentInOldParent", c.Path());
+
+        Entity m = world.Import<RenameNs.RenamedModule>();
+        Assert.Equal(".RenamedModule", m.Path());
+
+        Assert.True(c.IsAlive());
+        Assert.True(c.Parent() == m);
+        Assert.Equal(".RenamedModule.ComponentInOldParent", c.Path());
+        Assert.True(world.Lookup(".RenameNs") == 0);
+        Assert.True(world.Lookup(".RenamedModule.ComponentInOldParent") == c);
+
+        Entity e = world.Entity().Set(new RenameNs.ComponentInOldParent { Value = 10 });
+        Assert.True(e.Has<RenameNs.ComponentInOldParent>());
+        Assert.Equal(10, e.Get<RenameNs.ComponentInOldParent>().Value);
     }
 }

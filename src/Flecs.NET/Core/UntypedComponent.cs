@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using Flecs.NET.Core.BindingContext;
 using Flecs.NET.Utilities;
 using static Flecs.NET.Bindings.flecs;
 
@@ -343,6 +344,86 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
         world.Metric(metricEntity).Member(me).Kind<T>().Brief(brief);
 
         return ref this;
+    }
+
+    /// <summary>
+    ///     Get the type hooks for this component.
+    /// </summary>
+    /// <returns>The type hooks, or empty hooks if none are set.</returns>
+    public ecs_type_hooks_t GetHooks()
+    {
+        ecs_type_hooks_t* hooks = ecs_get_hooks_id(World, Id);
+        return hooks == null ? default : *hooks;
+    }
+
+    /// <summary>
+    ///     Set the type hooks for this component.
+    /// </summary>
+    /// <param name="hooks">The type hooks to set.</param>
+    public void SetHooks(ref ecs_type_hooks_t hooks)
+    {
+        hooks.flags &= ECS_TYPE_HOOKS_ILLEGAL;
+
+        // Hook thunks read the binding context, so flecs must not free a caller's pointer with our free function.
+        Ecs.Assert(hooks.binding_ctx == null || hooks.binding_ctx_free != null,
+            "Cannot set a type hook binding context without a binding context free function.");
+
+        fixed (ecs_type_hooks_t* ptr = &hooks)
+            ecs_set_hooks_id(World, Id, ptr);
+    }
+
+    /// <summary>
+    ///     Register a custom compare hook for this component.
+    /// </summary>
+    /// <param name="callback">The comparison callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref UntypedComponent OnCompare(Ecs.CompareCallback callback)
+    {
+        Ecs.Assert(callback != null, nameof(ECS_INVALID_PARAMETER));
+
+        TypeHooksContext* context = GetHooksAndContext(out ecs_type_hooks_t hooks);
+        hooks.cmp = &Functions.OnCompareCallback;
+        hooks.flags &= ~(ECS_TYPE_HOOK_CMP_ILLEGAL | ECS_TYPE_HOOK_EQUALS_ILLEGAL);
+        context->OnCompare.Set(callback!, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, int>)&Functions.OnCompareCallbackDelegate);
+        SetHooks(ref hooks);
+
+        return ref this;
+    }
+
+    /// <summary>
+    ///     Register a custom equals hook for this component.
+    /// </summary>
+    /// <param name="callback">The equality callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref UntypedComponent OnEquals(Ecs.EqualsCallback callback)
+    {
+        Ecs.Assert(callback != null, nameof(ECS_INVALID_PARAMETER));
+
+        TypeHooksContext* context = GetHooksAndContext(out ecs_type_hooks_t hooks);
+        hooks.equals = Functions.OnEqualsHook;
+        hooks.flags &= ~ECS_TYPE_HOOK_EQUALS_ILLEGAL;
+        context->OnEquals.Set(callback!, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, bool>)&Functions.OnEqualsCallbackDelegate);
+        SetHooks(ref hooks);
+
+        return ref this;
+    }
+
+    private TypeHooksContext* GetHooksAndContext(out ecs_type_hooks_t hooks)
+    {
+        ecs_type_hooks_t* existingHooks = ecs_get_hooks_id(World, Id);
+        hooks = existingHooks == null ? default : *existingHooks;
+
+        TypeHooksContext* context = (TypeHooksContext*)hooks.binding_ctx;
+
+        if (context == null)
+        {
+            context = Memory.Alloc(TypeHooksContext.Default);
+            hooks.binding_ctx = context;
+            hooks.binding_ctx_free = &Functions.TypeHooksContextFree;
+        }
+
+        Ecs.Assert(context->Header == Ecs.Header, "Type hook binding context is not owned by Flecs.NET.");
+        return context;
     }
 
     /// <summary>

@@ -9,11 +9,10 @@ public static unsafe partial class Ecs
 {
     /// <summary>
     ///     Static class for overriding the os api.
+    ///     The setters are not thread-safe and should be called at startup, before logging starts.
     /// </summary>
     public static class Os
     {
-        private static bool _initialized;
-
         internal static OsApiContext Context;
 
         /// <summary>
@@ -45,33 +44,33 @@ public static unsafe partial class Ecs
         public static bool OverrideTracePop { get; set; } = true;
 
         /// <summary>
-        ///     Override the default os api.
+        ///     Applies the default abort callback and the configured overrides to the native os api.
         /// </summary>
         internal static void OverrideOsApi()
         {
-            if (_initialized)
-                return;
+            if (OverrideAbort && Context.Abort == default)
+                SetAbort(&DefaultAbort);
 
-            ecs_os_init();
+            ApplyOsApi();
+        }
 
+        /// <summary>
+        ///     Reapplies the overrides to the native os api. Flecs installs its default os api on the
+        ///     first ecs_init(), which overwrites them, so this has to run after world creation.
+        /// </summary>
+        internal static void ApplyOsApi()
+        {
             if (OverrideAbort)
-            {
-                if (Context.Abort == default)
-                    SetAbort(&DefaultAbort);
-
                 ecs_os_api.abort_ = &Functions.AbortCallback;
-            }
 
-            if (OverrideLog)
-                ecs_os_api.log_ = Context.Log == default ? ecs_os_api.log_ : &Functions.LogCallback;
+            if (OverrideLog && Context.Log != default)
+                ecs_os_api.log_ = &Functions.LogCallback;
 
-            if (OverrideTracePush)
-                ecs_os_api.perf_trace_push_ = Context.TracePush == default ? ecs_os_api.perf_trace_push_ : &Functions.TracePushCallback;
+            if (OverrideTracePush && Context.TracePush != default)
+                ecs_os_api.perf_trace_push_ = &Functions.TracePushCallback;
 
-            if (OverrideTracePop)
-                ecs_os_api.perf_trace_pop_ = Context.TracePop == default ? ecs_os_api.perf_trace_pop_ : &Functions.TracePopCallback;
-
-            _initialized = true;
+            if (OverrideTracePop && Context.TracePop != default)
+                ecs_os_api.perf_trace_pop_ = &Functions.TracePopCallback;
         }
 
         /// <summary>
@@ -81,6 +80,7 @@ public static unsafe partial class Ecs
         public static void SetAbort(Action callback)
         {
             Context.Abort.Set(callback, (delegate*<void>)&Functions.AbortCallbackDelegate);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -90,6 +90,7 @@ public static unsafe partial class Ecs
         public static void SetAbort(delegate*<void> callback)
         {
             Context.Abort.Set(callback, (delegate*<void>)&Functions.AbortCallbackPointer);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -99,6 +100,7 @@ public static unsafe partial class Ecs
         public static void SetLog(LogCallback callback)
         {
             Context.Log.Set(callback, (delegate*<int, byte*, int, byte*, void>)&Functions.LogCallbackDelegate);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -108,6 +110,7 @@ public static unsafe partial class Ecs
         public static void SetLog(delegate*<int, string, int, string, void> callback)
         {
             Context.Log.Set(callback, (delegate*<int, byte*, int, byte*, void>)&Functions.LogCallbackPointer);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -117,6 +120,7 @@ public static unsafe partial class Ecs
         public static void SetTracePush(TraceCallback callback)
         {
             Context.TracePush.Set(callback, (delegate*<byte*, ulong, byte*, void>)&Functions.TracePushCallbackDelegate);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -126,6 +130,7 @@ public static unsafe partial class Ecs
         public static void SetTracePush(delegate*<string, ulong, string, void> callback)
         {
             Context.TracePush.Set(callback, (delegate*<byte*, ulong, byte*, void>)&Functions.TracePushCallbackPointer);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -135,6 +140,7 @@ public static unsafe partial class Ecs
         public static void SetTracePop(TraceCallback callback)
         {
             Context.TracePop.Set(callback, (delegate*<byte*, ulong, byte*, void>)&Functions.TracePopCallbackDelegate);
+            ApplyOsApi();
         }
 
         /// <summary>
@@ -144,6 +150,7 @@ public static unsafe partial class Ecs
         public static void SetTracePop(delegate*<string, ulong, string, void> callback)
         {
             Context.TracePop.Set(callback, (delegate*<byte*, ulong, byte*, void>)&Functions.TracePopCallbackPointer);
+            ApplyOsApi();
         }
 
         private static void DefaultAbort()

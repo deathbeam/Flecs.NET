@@ -171,4 +171,106 @@ public class IterableTests
 
         Assert.Equal(2, count);
     }
+
+    [Fact]
+    private void FrameOffset()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position(1, 0));
+        Entity e2 = world.Entity().Set(new Position(2, 0));
+        Entity e3 = world.Entity().Set(new Position(3, 0)).Set(new Velocity(0, 0));
+        Entity e4 = world.Entity().Set(new Position(4, 0)).Set(new Velocity(0, 0));
+        Entity e5 = world.Entity().Set(new Position(5, 0)).Set(new Mass(0));
+
+        using Query<Position> q = world.Query<Position>();
+
+        Entity[] entities = new Entity[5];
+        int results = 0;
+        int total = 0;
+
+        q.Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                Assert.Equal(total, it.FrameOffset());
+
+                for (int i = 0; i < it.Count(); i++)
+                    entities[it.FrameOffset() + i] = it.Entity(i);
+
+                total += it.Count();
+                results++;
+            }
+        });
+
+        Assert.Equal(3, results);
+        Assert.Equal(5, total);
+        Assert.True(entities[0] == e1);
+        Assert.True(entities[1] == e2);
+        Assert.True(entities[2] == e3);
+        Assert.True(entities[3] == e4);
+        Assert.True(entities[4] == e5);
+    }
+
+    [Fact]
+    private void WorkerFrameOffset()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position(1, 0));
+        Entity e2 = world.Entity().Set(new Position(2, 0));
+        Entity e3 = world.Entity().Set(new Position(3, 0)).Set(new Velocity(0, 0));
+        Entity e4 = world.Entity().Set(new Position(4, 0)).Set(new Velocity(0, 0));
+        Entity e5 = world.Entity().Set(new Position(5, 0)).Set(new Mass(0));
+
+        using Query<Position> q = world.Query<Position>();
+
+        Entity[] entities = new Entity[5];
+        int results = 0;
+
+        q.Worker(0, 2).Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                Assert.Equal(1, it.Count());
+
+                if (results == 0)
+                    Assert.Equal(0, it.FrameOffset());
+                else if (results == 1)
+                    Assert.Equal(2, it.FrameOffset());
+                else if (results == 2)
+                    Assert.Equal(4, it.FrameOffset());
+
+                entities[it.FrameOffset()] = it.Entity(0);
+                results++;
+            }
+        });
+
+        Assert.Equal(3, results);
+
+        results = 0;
+
+        q.Worker(1, 2).Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                Assert.Equal(1, it.Count());
+
+                if (results == 0)
+                    Assert.Equal(1, it.FrameOffset());
+                else if (results == 1)
+                    Assert.Equal(3, it.FrameOffset());
+
+                entities[it.FrameOffset()] = it.Entity(0);
+                results++;
+            }
+        });
+
+        Assert.Equal(2, results);
+        Assert.True(entities[0] == e1);
+        Assert.True(entities[1] == e2);
+        Assert.True(entities[2] == e3);
+        Assert.True(entities[3] == e4);
+        Assert.True(entities[4] == e5);
+    }
 }

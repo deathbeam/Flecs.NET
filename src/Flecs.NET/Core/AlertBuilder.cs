@@ -86,6 +86,8 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public Alert Build()
     {
+        QueryBuilder.AssertReusable();
+
         fixed (ecs_alert_desc_t* alertDesc = &Desc)
         {
             alertDesc->query = QueryBuilder.Desc;
@@ -94,6 +96,9 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
 
             if (entity == 0)
                 Ecs.Error("Alert failed to init.");
+
+            // The alert query owns the contexts after initialization.
+            QueryBuilder.MarkBuilt();
 
             return new Alert(entity);
         }

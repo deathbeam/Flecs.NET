@@ -43,10 +43,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
         _desc = default;
         _queryBuilder = new QueryBuilder(world);
 
-        ecs_entity_desc_t entityDesc = default;
-        Desc.entity = ecs_entity_init(world, &entityDesc);
-        ecs_add_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsOnUpdate));
-        ecs_add_id(world, Desc.entity, EcsOnUpdate);
+        Desc.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -69,11 +66,8 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
 
         Desc.entity = ecs_entity_init(world, &entityDesc);
 
-        if (ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
-            return;
-
-        ecs_add_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsOnUpdate));
-        ecs_add_id(world, Desc.entity, EcsOnUpdate);
+        if (!ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
+            Desc.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -92,11 +86,8 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
 
         Desc.entity = ecs_entity_init(world, &entityDesc);
 
-        if (ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
-            return;
-
-        ecs_add_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsOnUpdate));
-        ecs_add_id(world, Desc.entity, EcsOnUpdate);
+        if (!ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
+            Desc.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -119,19 +110,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Kind(ulong phase)
     {
-        ulong currentPhase = ecs_get_target(World, Desc.entity, EcsDependsOn, 0);
-
-        if (currentPhase != 0)
-        {
-            ecs_remove_id(World, Desc.entity, Ecs.Pair(EcsDependsOn, currentPhase));
-            ecs_remove_id(World, Desc.entity, currentPhase);
-        }
-
-        if (phase != 0)
-        {
-            ecs_add_id(World, Desc.entity, Ecs.Pair(EcsDependsOn, phase));
-            ecs_add_id(World, Desc.entity, phase);
-        }
+        Desc.phase = phase;
 
         return ref this;
     }
@@ -522,10 +501,34 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
 
     internal System_ Build()
     {
+        QueryBuilder.AssertReusable();
+
         Desc.query = QueryBuilder.Desc;
 
+        ulong system;
+        System_ result;
+
         fixed (ecs_system_desc_t* ptr = &Desc)
-            return new System_(World, ecs_system_init(World, ptr));
+            system = ecs_system_init(World, ptr);
+
+        result = new System_(World, system);
+
+        // The system owns the contexts after initialization, so clear them for reuse.
+        Desc.ctx = null;
+        Desc.ctx_free = null;
+        Desc.callback_ctx = null;
+        Desc.callback_ctx_free = null;
+        Desc.run_ctx = null;
+        Desc.run_ctx_free = null;
+        Desc.query.binding_ctx = null;
+        Desc.query.binding_ctx_free = null;
+        Desc.query.group_by_ctx = null;
+        Desc.query.group_by_ctx_free = null;
+
+        if (system != 0)
+            QueryBuilder.MarkBuilt();
+
+        return result;
     }
 
     System_ IQueryBuilder<SystemBuilder, System_>.Build()

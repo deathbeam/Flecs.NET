@@ -275,7 +275,6 @@ public static unsafe class Type<T>
         }
 
         Entity prevScope = world.SetScope(ignoreScope ? 0ul : world.GetScope());
-        Entity prevWith = world.SetWith(ignoreScope ? 0ul : world.GetWith());
 
         using NativeString nativeSymbol = (NativeString)FullName;
         using NativeString nativeName = string.IsNullOrEmpty(name)
@@ -305,7 +304,6 @@ public static unsafe class Type<T>
         Ecs.Assert(component != 0, $"Failed to register component for type '{FullName}'");
         Ecs.Assert(component == entity, $"Component id for type '{FullName}' does not match entity id");
 
-        world.SetWith(prevWith);
         world.SetScope(prevScope);
 
         // Store the type in the component.

@@ -364,4 +364,48 @@ public unsafe class SingletonTests
             Assert.True(p == entities[i]);
         }
     }
+
+    [Fact]
+    private void QuerySingletonEnumConstantOr()
+    {
+        using World world = World.Create();
+
+        world.Component<StandardEnum>().Add(Ecs.Singleton);
+
+        using Query q = world.QueryBuilder()
+            .With(StandardEnum.Red).Or().With(StandardEnum.Blue)
+            .Build();
+
+        int count = 0;
+
+        q.Each((Iter it, int i) => { count++; });
+
+        Assert.Equal(0, count);
+
+        world.Add(StandardEnum.Green);
+
+        q.Each((Iter it, int i) => { count++; });
+
+        Assert.Equal(0, count);
+
+        world.Add(StandardEnum.Blue);
+
+        q.Each((Iter it, int i) =>
+        {
+            Assert.True(it.Src(0) == world.Component<StandardEnum>().Entity);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+
+        world.Add(StandardEnum.Red);
+
+        q.Each((Iter it, int i) =>
+        {
+            Assert.True(it.Src(0) == world.Component<StandardEnum>().Entity);
+            count++;
+        });
+
+        Assert.Equal(2, count);
+    }
 }
