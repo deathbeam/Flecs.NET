@@ -20,6 +20,8 @@ public class World : GeneratorBase
         return $$"""
             #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 
+            using static Flecs.NET.Bindings.flecs;
+
             namespace Flecs.NET.Core;
 
             public unsafe partial struct World
@@ -82,6 +84,11 @@ public class World : GeneratorBase
                 public {{Generator.GetTypeName(Type.Query, i)}} {{Generator.GetTypeName(Type.Query, i)}}(ulong entity)
                 {
                     return new {{Generator.GetTypeName(Type.QueryBuilder, i)}}(Handle, entity).Build();
+                }
+            
+                public {{Generator.GetTypeName(Type.SparseQuery, i)}} {{Generator.GetTypeName(Type.SparseQuery, i)}}()
+                {
+                    return new {{Generator.GetTypeName(Type.SparseQuery, i)}}(ecs_get_world(Handle));
                 }
             
                 public {{Generator.GetTypeName(Type.SystemBuilder, i)}} {{Generator.GetTypeName(Type.System, i)}}()

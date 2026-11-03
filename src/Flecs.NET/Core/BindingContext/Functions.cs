@@ -1087,4 +1087,216 @@ internal static unsafe partial class Functions
     }
 
     #endregion
+
+    #region Compare And Equals Hook Callbacks
+
+    [UnmanagedCallersOnly]
+    internal static int OnCompareCallback(void* a, void* b, ecs_type_info_t* typeInfo)
+    {
+        TypeHooksContext* context = (TypeHooksContext*)typeInfo->hooks.binding_ctx;
+        return ((delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, int>)context->OnCompare.Invoker)(
+            context, a, b, typeInfo);
+    }
+
+    // A C bool is not a valid return type for an unmanaged callers only method, so the thunk returns a byte.
+    [UnmanagedCallersOnly]
+    internal static byte OnEqualsCallback(void* a, void* b, ecs_type_info_t* typeInfo)
+    {
+        TypeHooksContext* context = (TypeHooksContext*)typeInfo->hooks.binding_ctx;
+        bool result = ((delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, bool>)context->OnEquals.Invoker)(
+            context, a, b, typeInfo);
+        return result ? (byte)1 : (byte)0;
+    }
+
+    internal static readonly delegate* unmanaged<void*, void*, ecs_type_info_t*, bool> OnEqualsHook =
+        (delegate* unmanaged<void*, void*, ecs_type_info_t*, bool>)
+        (delegate* unmanaged<void*, void*, ecs_type_info_t*, byte>)&OnEqualsCallback;
+
+    internal static int OnCompareCallbackDelegate(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((Ecs.CompareCallback)context->OnCompare.Delegate.Target!)(a, b, new TypeInfo(typeInfo));
+    }
+
+    internal static bool OnEqualsCallbackDelegate(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((Ecs.EqualsCallback)context->OnEquals.Delegate.Target!)(a, b, new TypeInfo(typeInfo));
+    }
+
+    internal static int OnCompareCallbackDelegate<T>(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((Ecs.CompareCallback<T>)context->OnCompare.Delegate.Target!)(
+            ref Managed.GetTypeRef<T>(a), ref Managed.GetTypeRef<T>(b), new TypeInfo(typeInfo));
+    }
+
+    internal static int OnCompareCallbackPointer<T>(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((delegate*<ref T, ref T, TypeInfo, int>)context->OnCompare.Pointer)(
+            ref Managed.GetTypeRef<T>(a), ref Managed.GetTypeRef<T>(b), new TypeInfo(typeInfo));
+    }
+
+    internal static bool OnEqualsCallbackDelegate<T>(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((Ecs.EqualsCallback<T>)context->OnEquals.Delegate.Target!)(
+            ref Managed.GetTypeRef<T>(a), ref Managed.GetTypeRef<T>(b), new TypeInfo(typeInfo));
+    }
+
+    internal static bool OnEqualsCallbackPointer<T>(TypeHooksContext* context, void* a, void* b,
+        ecs_type_info_t* typeInfo)
+    {
+        return ((delegate*<ref T, ref T, TypeInfo, bool>)context->OnEquals.Pointer)(
+            ref Managed.GetTypeRef<T>(a), ref Managed.GetTypeRef<T>(b), new TypeInfo(typeInfo));
+    }
+
+    #endregion
+
+    #region Script Function Callbacks
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptFunctionContextFree(void* context)
+    {
+        ScriptFunctionContext.Free((ScriptFunctionContext*)context);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptFunctionCallback(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result)
+    {
+        ScriptFunctionContext* context = (ScriptFunctionContext*)ctx->ctx;
+
+        if (context == null)
+            return;
+
+        ecs_function_ctx_t userCtx = *ctx;
+        userCtx.ctx = context->Ctx;
+        ((Ecs.ScriptFunctionCallback)context->Callback.Delegate.Target!)(
+            new ScriptFunction(userCtx), new ScriptArgs(argv, argc), new ScriptValue(result));
+    }
+
+    internal static void ScriptVectorFunctionCallback(int kind, ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv,
+        ecs_value_t* result, int elemCount)
+    {
+        ScriptFunctionContext* context = (ScriptFunctionContext*)ctx->ctx;
+
+        if (context == null)
+            return;
+
+        ecs_function_ctx_t userCtx = *ctx;
+        userCtx.ctx = context->Ctx;
+        ((Ecs.ScriptVectorFunctionCallback)context->VectorCallbacks[kind].Delegate.Target!)(
+            new ScriptFunction(userCtx), new ScriptArgs(argv, argc), new ScriptValue(result), elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback0(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(0, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback1(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(1, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback2(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(2, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback3(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(3, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback4(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(4, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback5(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(5, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback6(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(6, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback7(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(7, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback8(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(8, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback9(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(9, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback10(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(10, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback11(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(11, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback12(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(12, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback13(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(13, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback14(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(14, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback15(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(15, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback16(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(16, ctx, argc, argv, result, elemCount);
+    }
+
+    [UnmanagedCallersOnly]
+    internal static void ScriptVectorFunctionCallback17(ecs_function_ctx_t* ctx, int argc, ecs_value_t* argv, ecs_value_t* result, int elemCount)
+    {
+        ScriptVectorFunctionCallback(17, ctx, argc, argv, result, elemCount);
+    }
+
+    #endregion
 }

@@ -2152,9 +2152,9 @@ public unsafe class EntityTests
     {
         using World world = World.Create();
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        Entity e = world.Entity()
+        Entity e = stage.Entity()
             .Insert((ref Position p) =>
             {
                 p.X = 10;
@@ -2163,7 +2163,7 @@ public unsafe class EntityTests
 
         Assert.True(!e.Has<Position>());
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.True(e.Has<Position>());
 
@@ -2179,9 +2179,9 @@ public unsafe class EntityTests
     {
         using World world = World.Create();
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        Entity e = world.Entity()
+        Entity e = stage.Entity()
             .Insert((ref Position p, ref Velocity v) =>
             {
                 p = new Position(10, 20);
@@ -2191,7 +2191,7 @@ public unsafe class EntityTests
         Assert.True(!e.Has<Position>());
         Assert.True(!e.Has<Velocity>());
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.True(e.Has<Position>());
         Assert.True(e.Has<Velocity>());
@@ -2211,9 +2211,9 @@ public unsafe class EntityTests
     {
         using World world = World.Create();
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        Entity e = world.Entity()
+        Entity e = stage.Entity()
             .Insert((ref Position p, ref Velocity v, ref Mass m) =>
             {
                 p = new Position(10, 20);
@@ -2225,7 +2225,7 @@ public unsafe class EntityTests
         Assert.True(!e.Has<Velocity>());
         Assert.True(!e.Has<Mass>());
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.True(e.Has<Position>());
         Assert.True(e.Has<Velocity>());
@@ -2315,9 +2315,9 @@ public unsafe class EntityTests
                 Assert.Equal(2, v.Y);
             });
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        Entity e = world.Entity()
+        Entity e = stage.Entity()
             .Insert((ref Position p, ref Velocity v) =>
             {
                 p = new Position(10, 20);
@@ -2327,7 +2327,7 @@ public unsafe class EntityTests
         Assert.Equal(0, positionSet);
         Assert.Equal(0, velocitySet);
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(1, positionSet);
         Assert.Equal(1, velocitySet);
@@ -2483,150 +2483,6 @@ public unsafe class EntityTests
     }
 
     [Fact]
-    private void WithSelf()
-    {
-        using World world = World.Create();
-
-        Entity tag = world.Entity().With(() =>
-        {
-            Entity e1 = world.Entity();
-            e1.Set(new Self { Value = e1 });
-            Entity e2 = world.Entity();
-            e2.Set(new Self { Value = e2 });
-            Entity e3 = world.Entity();
-            e3.Set(new Self { Value = e3 });
-        });
-
-        Component<Self> self = world.Component<Self>();
-        Assert.True(!self.Has(tag));
-
-        int count = 0;
-        using Query query = world.QueryBuilder()
-            .With(tag)
-            .Build();
-
-        query.Each((Entity e) =>
-        {
-            Assert.True(e.Has(tag));
-
-            Assert.True(e.Read((ref readonly Self s) => { Assert.True(s.Value == e); }));
-
-            count++;
-        });
-
-        Assert.Equal(3, count);
-    }
-
-    [Fact]
-    private void WithRelationTypeSelf()
-    {
-        using World world = World.Create();
-
-        Entity bob = world.Entity().With<Likes>(() =>
-        {
-            Entity e1 = world.Entity();
-            e1.Set(new Self(e1));
-            Entity e2 = world.Entity();
-            e2.Set(new Self(e2));
-            Entity e3 = world.Entity();
-            e3.Set(new Self(e3));
-        });
-
-        Component<Self> self = world.Component<Self>();
-        Assert.True(!self.Has<Likes>(bob));
-
-        int count = 0;
-        using Query q = world.QueryBuilder()
-            .With<Likes>(bob)
-            .Build();
-
-        q.Each((Entity e) =>
-        {
-            Assert.True(e.Has<Likes>(bob));
-
-            Assert.True(e.Read((ref readonly Self s) => { Assert.True(s.Value == e); }));
-
-            count++;
-        });
-
-        Assert.Equal(3, count);
-    }
-
-    [Fact]
-    private void WithRelationSelf()
-    {
-        using World world = World.Create();
-
-        Entity likes = world.Entity();
-
-        Entity bob = world.Entity().With(likes, () =>
-        {
-            Entity e1 = world.Entity();
-            e1.Set(new Self(e1));
-            Entity e2 = world.Entity();
-            e2.Set(new Self(e2));
-            Entity e3 = world.Entity();
-            e3.Set(new Self(e3));
-        });
-
-        Component<Self> self = world.Component<Self>();
-        Assert.True(!self.Has(likes, bob));
-
-        int count = 0;
-        using Query q = world.QueryBuilder()
-            .With(likes, bob)
-            .Build();
-
-        q.Each((Entity e) =>
-        {
-            Assert.True(e.Has(likes, bob));
-
-            Assert.True(e.Read((ref readonly Self s) => { Assert.True(s.Value == e); }));
-
-            count++;
-        });
-
-        Assert.Equal(3, count);
-    }
-
-    [Fact]
-    private void WithSelfWithName()
-    {
-        using World world = World.Create();
-
-        Entity tier1 = world.Entity("Tier1").With(() =>
-        {
-            Entity tier2 = world.Entity("Tier2");
-            tier2.Set(new Self(tier2));
-        });
-
-        Entity tier2 = world.Lookup("Tier2");
-        Assert.True(tier2 != 0);
-
-        Assert.True(tier2.Has(tier1));
-    }
-
-    [Fact]
-    private void WithSelfNested()
-    {
-        using World world = World.Create();
-
-        Entity tier1 = world.Entity("Tier1").With(() =>
-        {
-            world.Entity("Tier2").With(() => { world.Entity("Tier3"); });
-        });
-
-        Entity tier2 = world.Lookup("Tier2");
-        Assert.True(tier2 != 0);
-
-        Entity tier3 = world.Lookup("Tier3");
-        Assert.True(tier3 != 0);
-
-        Assert.True(tier2.Has(tier1));
-        Assert.True(tier3.Has(tier2));
-    }
-
-    [Fact]
     private void WithScope()
     {
         using World world = World.Create();
@@ -2766,11 +2622,10 @@ public unsafe class EntityTests
 
         Entity e = default;
 
-        world.Defer(() =>
-        {
-            e = world.Entity("Foo");
-            Assert.True(e != 0);
-        });
+        World stage = world.GetStage(0);
+        e = stage.Entity("Foo");
+        Assert.True(e != 0);
+        stage.Merge();
 
         Assert.True(e.Has<EcsIdentifier>(EcsName));
         Assert.Equal("Foo", e.Name());
@@ -2783,11 +2638,10 @@ public unsafe class EntityTests
 
         Entity e = default;
 
-        world.Defer(() =>
-        {
-            e = world.Entity("Foo.Bar");
-            Assert.True(e != 0);
-        });
+        World stage = world.GetStage(0);
+        e = stage.Entity("Foo.Bar");
+        Assert.True(e != 0);
+        stage.Merge();
 
         Assert.True(e.Has<EcsIdentifier>(EcsName));
         Assert.Equal("Bar", e.Name());
@@ -2803,14 +2657,13 @@ public unsafe class EntityTests
         Entity e = default;
         Entity parent = world.Entity("Parent");
 
-        world.Defer(() =>
+        World stage = world.GetStage(0);
+        parent.Scope(() =>
         {
-            parent.Scope(() =>
-            {
-                e = world.Entity("Foo");
-                Assert.True(e != 0);
-            });
+            e = stage.Entity("Foo");
+            Assert.True(e != 0);
         });
+        stage.Merge();
 
         Assert.True(e.Has<EcsIdentifier>(EcsName));
         Assert.Equal("Foo", e.Name());
@@ -2825,14 +2678,13 @@ public unsafe class EntityTests
         Entity e = default;
         Entity parent = world.Entity("Parent");
 
-        world.Defer(() =>
+        World stage = world.GetStage(0);
+        parent.Scope(() =>
         {
-            parent.Scope(() =>
-            {
-                e = world.Entity("Foo.Bar");
-                Assert.True(e != 0);
-            });
+            e = stage.Entity("Foo.Bar");
+            Assert.True(e != 0);
         });
+        stage.Merge();
 
         Assert.True(e.Has<EcsIdentifier>(EcsName));
         Assert.Equal("Bar", e.Name());
@@ -2847,14 +2699,13 @@ public unsafe class EntityTests
         Entity e = default;
         Entity parent = default;
 
-        world.Defer(() =>
+        World stage = world.GetStage(0);
+        parent = stage.Entity("Parent").Scope(() =>
         {
-            parent = world.Entity("Parent").Scope(() =>
-            {
-                e = world.Entity("Foo.Bar");
-                Assert.True(e != 0);
-            });
+            e = stage.Entity("Foo.Bar");
+            Assert.True(e != 0);
         });
+        stage.Merge();
 
         Assert.True(parent.Has<EcsIdentifier>(EcsName));
         Assert.Equal("Parent", parent.Name());
@@ -2873,117 +2724,15 @@ public unsafe class EntityTests
         Entity e = default;
         Entity parent = world.Entity();
 
-        world.Defer(() =>
+        World stage = world.GetStage(0);
+        parent.Scope(() =>
         {
-            parent.Scope(() =>
-            {
-                e = world.Entity();
-                Assert.True(e != 0);
-            });
+            e = stage.Entity();
+            Assert.True(e != 0);
         });
+        stage.Merge();
 
         Assert.True(e.Has(EcsChildOf, parent));
-    }
-
-    [Fact]
-    private void DeferNewWithWith()
-    {
-        using World world = World.Create();
-
-        Entity e = default;
-        Entity tag = world.Entity();
-
-        world.Defer(() =>
-        {
-            tag.With(() =>
-            {
-                e = world.Entity();
-                Assert.True(e != 0);
-                Assert.True(!e.Has(tag));
-            });
-        });
-
-        Assert.True(e.Has(tag));
-    }
-
-    [Fact]
-    private void DeferNewWithNameScopeWith()
-    {
-        using World world = World.Create();
-
-        Entity e = default;
-        Entity tag = world.Entity();
-        Entity parent = world.Entity("Parent");
-
-        world.Defer(() =>
-        {
-            tag.With(() =>
-            {
-                parent.Scope(() =>
-                {
-                    e = world.Entity("Foo");
-                    Assert.True(e != 0);
-                    Assert.True(!e.Has(tag));
-                });
-                Assert.True(!e.Has(tag));
-            });
-            Assert.True(!e.Has(tag));
-        });
-
-        Assert.True(e.Has(tag));
-        Assert.True(e.Has<EcsIdentifier>(EcsName));
-        Assert.Equal("Foo", e.Name());
-        Assert.Equal(".Parent.Foo", e.Path());
-    }
-
-    [Fact]
-    private void DeferNewWithNestedNameScopeWith()
-    {
-        using World world = World.Create();
-
-        Entity e = default;
-        Entity tag = world.Entity();
-        Entity parent = world.Entity("Parent");
-
-        world.Defer(() =>
-        {
-            tag.With(() =>
-            {
-                parent.Scope(() =>
-                {
-                    e = world.Entity("Foo.Bar");
-                    Assert.True(e != 0);
-                    Assert.True(!e.Has(tag));
-                });
-                Assert.True(!e.Has(tag));
-            });
-            Assert.True(!e.Has(tag));
-        });
-
-        Assert.True(e.Has(tag));
-        Assert.True(e.Has<EcsIdentifier>(EcsName));
-        Assert.Equal("Bar", e.Name());
-        Assert.Equal(".Parent.Foo.Bar", e.Path());
-    }
-
-    [Fact]
-    private void DeferWithWithImplicitComponent()
-    {
-        using World world = World.Create();
-
-        Entity e = default;
-
-        world.Defer(() =>
-        {
-            world.With<Tag>(() =>
-            {
-                e = world.Entity();
-                Assert.True(!e.Has<Tag>());
-            });
-            Assert.True(!e.Has<Tag>());
-        });
-
-        Assert.True(e.Has<Tag>());
     }
 
     [Fact]
@@ -2993,23 +2742,36 @@ public unsafe class EntityTests
 
         Entity e = world.Entity();
 
-        world.Defer(() =>
-        {
-            e.Add<Tag0>();
-            Assert.True(!e.Has<Tag0>());
+        World stage = world.GetStage(0);
+        e.Stage(stage).Add<A>();
+        Assert.True(!e.Has<A>());
 
-            world.DeferSuspend();
-            e.Add<Tag1>();
-            Assert.True(!e.Has<Tag0>());
-            Assert.True(e.Has<Tag1>());
-            world.DeferResume();
+        e.Add<B>();
+        Assert.True(!e.Has<A>());
+        Assert.True(e.Has<B>());
 
-            Assert.True(!e.Has<Tag0>());
-            Assert.True(e.Has<Tag1>());
-        });
+        Assert.True(!e.Has<A>());
+        Assert.True(e.Has<B>());
+        stage.Merge();
 
-        Assert.True(e.Has<Tag0>());
-        Assert.True(e.Has<Tag1>());
+        Assert.True(e.Has<A>());
+        Assert.True(e.Has<B>());
+    }
+
+    [Fact]
+    private void RangeOnStage()
+    {
+        using World world = World.Create();
+
+        world.Entity().Set(new Position(10, 20));
+        Entity e = world.Entity().Set(new Position(20, 30));
+
+        World stage = world.GetStage(0);
+        Table table = e.Stage(stage).Range();
+
+        Assert.True(table.Handle != null);
+        Assert.Equal(1, table.Count);
+        Assert.Equal(1, table.Offset);
     }
 
     [Fact]
@@ -3019,110 +2781,16 @@ public unsafe class EntityTests
 
         Entity e = world.Entity();
 
-        world.DeferBegin();
-        Position* p = e.EnsurePtr<Position>();
+        World stage = world.GetStage(0);
+        Position* p = e.Stage(stage).EnsurePtr<Position>();
         p->X = 10;
         p->Y = 20;
-        world.DeferEnd();
+        stage.Merge();
 
         p = e.GetMutPtr<Position>();
         Assert.True(p != null);
         Assert.Equal(10, p->X);
         Assert.Equal(20, p->Y);
-    }
-
-    [Fact]
-    private void WithAfterBuilderMethod()
-    {
-        using World world = World.Create();
-
-        Entity a = world.Entity()
-            .Set(new Position(10, 20))
-            .With(() => { world.Entity("X"); });
-
-        Entity b = world.Entity().Set(new Position(30, 40))
-            .With<Likes>(() => { world.Entity("Y"); });
-
-        Entity c = world.Entity().Set(new Position(50, 60))
-            .With(EcsIsA, () => { world.Entity("Z"); });
-
-        Assert.True(a.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(10, p.X);
-            Assert.Equal(20, p.Y);
-        }));
-
-        Assert.True(b.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(30, p.X);
-            Assert.Equal(40, p.Y);
-        }));
-
-        Assert.True(c.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(50, p.X);
-            Assert.Equal(60, p.Y);
-        }));
-
-        Entity x = world.Lookup("X");
-        Assert.True(x != 0);
-        Assert.True(x.Has(a));
-
-        Entity y = world.Lookup("Y");
-        Assert.True(y != 0);
-        Assert.True(y.Has<Likes>(b));
-
-        Entity z = world.Lookup("Z");
-        Assert.True(z != 0);
-        Assert.True(z.Has(EcsIsA, c));
-    }
-
-    [Fact]
-    private void WithBeforeBuilderMethod()
-    {
-        using World world = World.Create();
-
-        Entity a = world.Entity()
-            .With(() => { world.Entity("X"); })
-            .Set(new Position(10, 20));
-
-        Entity b = world.Entity()
-            .With<Likes>(() => { world.Entity("Y"); })
-            .Set(new Position(30, 40));
-
-        Entity c = world.Entity()
-            .With(EcsIsA, () => { world.Entity("Z"); })
-            .Set(new Position(50, 60));
-
-        Assert.True(a.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(10, p.X);
-            Assert.Equal(20, p.Y);
-        }));
-
-        Assert.True(b.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(30, p.X);
-            Assert.Equal(40, p.Y);
-        }));
-
-        Assert.True(c.Read((ref readonly Position p) =>
-        {
-            Assert.Equal(50, p.X);
-            Assert.Equal(60, p.Y);
-        }));
-
-        Entity x = world.Lookup("X");
-        Assert.True(x != 0);
-        Assert.True(x.Has(a));
-
-        Entity y = world.Lookup("Y");
-        Assert.True(y != 0);
-        Assert.True(y.Has<Likes>(b));
-
-        Entity z = world.Lookup("Z");
-        Assert.True(z != 0);
-        Assert.True(z.Has(EcsIsA, c));
     }
 
     [Fact]
@@ -3697,53 +3365,6 @@ public unsafe class EntityTests
     }
 
     [Fact]
-    private void SlotOf()
-    {
-        using World world = World.Create();
-
-        Entity @base = world.Prefab();
-        Entity baseChild = world.Prefab()
-            .ChildOf(@base)
-            .SlotOf(@base);
-
-        Assert.True(baseChild.Has(Ecs.SlotOf, @base));
-
-        Entity inst = world.Entity().IsA(@base);
-        Assert.True(inst.Has(baseChild, Ecs.Wildcard));
-    }
-
-    [Fact]
-    private void SlotOfWithType()
-    {
-        using World world = World.Create();
-
-        Entity @base = world.Prefab<Parent>();
-        Entity baseChild = world.Prefab()
-            .ChildOf(@base)
-            .SlotOf<Parent>();
-
-        Assert.True(baseChild.Has(Ecs.SlotOf, @base));
-
-        Entity inst = world.Entity().IsA(@base);
-        Assert.True(inst.Has(baseChild, Ecs.Wildcard));
-    }
-
-    [Fact]
-    private void Slot()
-    {
-        using World world = World.Create();
-
-        Entity @base = world.Prefab();
-        Entity baseChild = world.Prefab()
-            .ChildOf(@base).Slot();
-
-        Assert.True(baseChild.Has(Ecs.SlotOf, @base));
-
-        Entity inst = world.Entity().IsA(@base);
-        Assert.True(inst.Has(baseChild, Ecs.Wildcard));
-    }
-
-    [Fact]
     private void IdGetEntity()
     {
         using World world = World.Create();
@@ -3766,7 +3387,7 @@ public unsafe class EntityTests
         world.ReadonlyBegin();
 
         World s = world.GetStage(0);
-        Entity em = e.Mut(s);
+        Entity em = e.Stage(s);
         Assert.True(em.Has<Rel, Obj>());
 
         int count = 0;
@@ -3780,6 +3401,85 @@ public unsafe class EntityTests
         Assert.Equal(1, count);
 
         world.ReadonlyEnd();
+    }
+
+    [Fact]
+    private void StageDefaultStage()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity();
+
+        world.ReadonlyBegin();
+
+        Entity ew = e.Stage();
+        Assert.True(ew.World == world.GetStage(0));
+
+        ew.Set(new Position(10, 20));
+        Assert.False(ew.Has<Position>());
+
+        world.ReadonlyEnd();
+
+        Assert.True(ew.Has<Position>());
+        Assert.True(e.Has<Position>());
+
+        Position* p = e.GetPtr<Position>();
+        Assert.True(p != null);
+        Assert.Equal(10, p->X);
+        Assert.Equal(20, p->Y);
+    }
+
+    [Fact]
+    private void EntityToEntityDefaultStage()
+    {
+        using World world = World.Create();
+
+        Entity e = world.Entity();
+
+        world.ReadonlyBegin();
+
+        Entity s = world.GetStage(0).Entity(e.Id).Stage();
+        Assert.True(s.World == world.GetStage(0));
+
+        s.Set(new Position(10, 20));
+        Assert.False(e.Has<Position>());
+
+        world.ReadonlyEnd();
+
+        Position* p = e.GetPtr<Position>();
+        Assert.True(p != null);
+        Assert.Equal(10, p->X);
+        Assert.Equal(20, p->Y);
+    }
+
+    [Fact]
+    private void EntityToEntityNonDefaultStage()
+    {
+        using World world = World.Create();
+
+        world.SetStageCount(2);
+
+        // Register the component up front, Flecs.NET doesn't allow component
+        // registration while a multithreaded world is in readonly mode.
+        world.Id<Position>();
+
+        Entity e = world.Entity();
+
+        world.ReadonlyBegin();
+
+        World stage1 = world.GetStage(1);
+        Entity s = stage1.Entity(e.Id).Stage();
+        Assert.True(s.World == stage1);
+
+        s.Set(new Position(10, 20));
+        Assert.False(e.Has<Position>());
+
+        world.ReadonlyEnd();
+
+        Position* p = e.GetPtr<Position>();
+        Assert.True(p != null);
+        Assert.Equal(10, p->X);
+        Assert.Equal(20, p->Y);
     }
 
     [Fact]
@@ -3818,7 +3518,7 @@ public unsafe class EntityTests
         World stage = world.GetStage(0);
 
         bool invoked = false;
-        e.Mut(stage).Read((ref readonly Position p) =>
+        e.Stage(stage).Read((ref readonly Position p) =>
         {
             invoked = true;
             Assert.Equal(10, p.X);
@@ -3852,22 +3552,22 @@ public unsafe class EntityTests
     {
         using World world = World.Create();
 
-        world.DeferBegin();
+        World stage = world.GetStage(0);
 
-        Entity e1 = world.Entity("e");
-        Entity e2 = world.Entity("e");
+        Entity e1 = stage.Entity("e");
+        Entity e2 = stage.Entity("e");
 
-        Entity f1 = world.Entity("p.f");
-        Entity f2 = world.Entity("p.f");
+        Entity f1 = stage.Entity("p.f");
+        Entity f2 = stage.Entity("p.f");
 
         Entity g1 = default;
         Entity g2 = default;
 
-        world.Scope(world.Entity("q"), () => { g1 = world.Entity("g"); });
+        stage.Scope(stage.Entity("q"), () => { g1 = stage.Entity("g"); });
 
-        world.Scope(world.Entity("q"), () => { g2 = world.Entity("g"); });
+        stage.Scope(stage.Entity("q"), () => { g2 = stage.Entity("g"); });
 
-        world.DeferEnd();
+        stage.Merge();
 
         Assert.Equal(".e", e1.Path());
         Assert.Equal(".p.f", f1.Path());
@@ -4147,9 +3847,9 @@ public unsafe class EntityTests
     {
         using World world = World.Create();
 
-        world.DeferBegin();
-        Entity e = world.Entity<Tag>();
-        world.DeferEnd();
+        World stage = world.GetStage(0);
+        Entity e = stage.Entity<Tag>();
+        stage.Merge();
 
         Assert.Equal("Tag", e.Name());
         Assert.Equal("Tag", e.Symbol());
@@ -4753,5 +4453,408 @@ public unsafe class EntityTests
         }
 
         Assert.Equal(0, count);
+    }
+
+    [Fact]
+    private void IdValuePairIsPair()
+    {
+        using World world = World.Create();
+
+        ulong val = 10376293567231426561UL;
+        Id id = new Id(world, val);
+        Assert.True(Ecs.IsPair(val));
+        Assert.Equal(Ecs.IsPair(val), id.IsPair());
+        Assert.False(id.IsEntity());
+        Assert.False(id.IsWildCard());
+    }
+
+    [Fact]
+    private void IdValuePairIsPairNoWorld()
+    {
+        ulong val = 10376293567231426561UL;
+        Id id = new Id(val);
+        Assert.True(Ecs.IsPair(val));
+        Assert.Equal(Ecs.IsPair(val), id.IsPair());
+        Assert.False(id.IsEntity());
+        Assert.True(id.First() == 6);
+        Assert.True(id.Second() == 1);
+    }
+
+    [Fact]
+    private void IdValuePairFromWorld()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity();
+        Assert.True(rel != 0);
+
+        Id id1 = world.Id(Ecs.ValuePair(rel, 10));
+        Assert.True(id1 != 0);
+        Assert.True(id1.World == world);
+        Assert.True(id1.IsPair());
+        Assert.Equal(id1.IsPair(), Ecs.IsPair(id1.Value));
+        Assert.False(id1.IsWildCard());
+        Assert.True(id1.HasRelation(rel));
+        Assert.True(id1.First() == rel);
+        Assert.True(id1.Second() == 10);
+
+        Id id2 = world.Id(Ecs.ValuePair(Ecs.Wildcard, 10));
+        Assert.True(id2.IsPair());
+        Assert.True(id2.IsWildCard());
+        Assert.True(id2.First() == Ecs.Wildcard);
+        Assert.True(id2.Second() == 10);
+    }
+
+    [Fact]
+    private void EachWDontFragmentComponent()
+    {
+        using World world = World.Create();
+
+        world.Component<EachDontFragment>().Add(Ecs.DontFragment);
+        world.Component<OtherDontFragment>().Add(Ecs.DontFragment);
+
+        Entity tag = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(tag)
+            .Set(new EachDontFragment(10, 20));
+
+        // DontFragment component on another entity should not be matched.
+        world.Entity().Set(new OtherDontFragment(1, 2));
+
+        int count = 0;
+        bool tagFound = false, dfFound = false;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id != world.Id<OtherDontFragment>());
+            if (id == tag)
+                tagFound = true;
+            else if (id == world.Id<EachDontFragment>())
+                dfFound = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tagFound);
+        Assert.True(dfFound);
+    }
+
+    [Fact]
+    private void EachWDontFragmentTag()
+    {
+        using World world = World.Create();
+
+        Entity dfTag = world.Entity().Add(Ecs.DontFragment);
+        Entity dfTagOther = world.Entity().Add(Ecs.DontFragment);
+        Entity tag = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(tag)
+            .Add(dfTag);
+
+        // DontFragment tag on another entity should not be matched.
+        world.Entity().Add(dfTagOther);
+
+        int count = 0;
+        bool tagFound = false, dfFound = false;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id != dfTagOther);
+            if (id == tag)
+                tagFound = true;
+            else if (id == dfTag)
+                dfFound = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tagFound);
+        Assert.True(dfFound);
+    }
+
+    [Fact]
+    private void EachWDontFragmentPair()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity tgt = world.Entity();
+        Entity tgtOther = world.Entity();
+        Entity tag = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(tag)
+            .Add(rel, tgt);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+        bool tagFound = false, pairFound = false;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id != world.Pair(rel, tgtOther));
+            if (id == tag)
+                tagFound = true;
+            else if (id == world.Pair(rel, tgt))
+                pairFound = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tagFound);
+        Assert.True(pairFound);
+    }
+
+    [Fact]
+    private void EachWOnlyDontFragment()
+    {
+        using World world = World.Create();
+
+        world.Component<EachDontFragment>().Add(Ecs.DontFragment);
+        world.Component<OtherDontFragment>().Add(Ecs.DontFragment);
+
+        Entity e = world.Entity()
+            .Set(new EachDontFragment(10, 20));
+
+        // DontFragment component on another entity should not be matched.
+        world.Entity().Set(new OtherDontFragment(1, 2));
+
+        int count = 0;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id == world.Id<EachDontFragment>());
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void EachWOnlyDontFragmentTag()
+    {
+        using World world = World.Create();
+
+        Entity dfTag = world.Entity().Add(Ecs.DontFragment);
+        Entity dfTagOther = world.Entity().Add(Ecs.DontFragment);
+
+        Entity e = world.Entity()
+            .Add(dfTag);
+
+        // DontFragment tag on another entity should not be matched.
+        world.Entity().Add(dfTagOther);
+
+        int count = 0;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id == dfTag);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void EachWOnlyDontFragmentPair()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity tgt = world.Entity();
+        Entity tgtOther = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(rel, tgt);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+
+        e.Each((Id id) =>
+        {
+            Assert.True(id == world.Pair(rel, tgt));
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void EachPairWDontFragmentMixed()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity fragRel = world.Entity();
+        Entity tag = world.Entity();
+        Entity tgt1 = world.Entity();
+        Entity tgt2 = world.Entity();
+        Entity tgtOther = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(tag)
+            .Add(fragRel, tgt1)
+            .Add(rel, tgt1)
+            .Add(rel, tgt2);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+        bool tgt1Found = false, tgt2Found = false;
+
+        e.Each(rel, Ecs.Wildcard, (Id id) =>
+        {
+            Assert.True(id.First() == rel);
+            Assert.True(id.Second() != tgtOther);
+            if (id.Second() == tgt1)
+                tgt1Found = true;
+            else if (id.Second() == tgt2)
+                tgt2Found = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tgt1Found);
+        Assert.True(tgt2Found);
+
+        // Fragmenting pairs must still match when the entity also has DontFragment pairs.
+        count = 0;
+
+        e.Each(fragRel, Ecs.Wildcard, (Id id) =>
+        {
+            Assert.True(id.First() == fragRel);
+            Assert.True(id.Second() == tgt1);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void EachRelWDontFragmentMixed()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity fragRel = world.Entity();
+        Entity tag = world.Entity();
+        Entity tgt1 = world.Entity();
+        Entity tgt2 = world.Entity();
+        Entity tgtOther = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(tag)
+            .Add(fragRel, tgt1)
+            .Add(rel, tgt1)
+            .Add(rel, tgt2);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+        bool tgt1Found = false, tgt2Found = false;
+
+        e.Each(rel, (Entity tgt) =>
+        {
+            Assert.True(tgt != tgtOther);
+            if (tgt == tgt1)
+                tgt1Found = true;
+            else if (tgt == tgt2)
+                tgt2Found = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tgt1Found);
+        Assert.True(tgt2Found);
+
+        // Fragmenting pairs must still match when the entity also has DontFragment pairs.
+        count = 0;
+
+        e.Each(fragRel, (Entity tgt) =>
+        {
+            Assert.True(tgt == tgt1);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void EachPairWDontFragment()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity tgt1 = world.Entity();
+        Entity tgt2 = world.Entity();
+        Entity tgtOther = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(rel, tgt1)
+            .Add(rel, tgt2);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+        bool tgt1Found = false, tgt2Found = false;
+
+        e.Each(rel, Ecs.Wildcard, (Id id) =>
+        {
+            Assert.True(id.First() == rel);
+            Assert.True(id.Second() != tgtOther);
+            if (id.Second() == tgt1)
+                tgt1Found = true;
+            else if (id.Second() == tgt2)
+                tgt2Found = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tgt1Found);
+        Assert.True(tgt2Found);
+    }
+
+    [Fact]
+    private void EachRelWDontFragment()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity tgt1 = world.Entity();
+        Entity tgt2 = world.Entity();
+        Entity tgtOther = world.Entity();
+
+        Entity e = world.Entity()
+            .Add(rel, tgt1)
+            .Add(rel, tgt2);
+
+        // Pair with same relationship on another entity should not be matched.
+        world.Entity().Add(rel, tgtOther);
+
+        int count = 0;
+        bool tgt1Found = false, tgt2Found = false;
+
+        e.Each(rel, (Entity tgt) =>
+        {
+            Assert.True(tgt != tgtOther);
+            if (tgt == tgt1)
+                tgt1Found = true;
+            else if (tgt == tgt2)
+                tgt2Found = true;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.True(tgt1Found);
+        Assert.True(tgt2Found);
     }
 }

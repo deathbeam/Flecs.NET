@@ -192,7 +192,7 @@ public unsafe partial struct WorkerIterable : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Iter)"/>
     public IterIterable Iter(Iter it)
     {
-        return Iter(it.World());
+        return Iter(it.Stage());
     }
 
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>

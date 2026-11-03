@@ -105,12 +105,21 @@ public unsafe struct Id : IEquatable<Id>
     }
 
     /// <summary>
-    ///     Test if id is pair. (has first, second)
+    ///     Test if id is pair. (has first, second, or first, value)
     /// </summary>
     /// <returns></returns>
     public bool IsPair()
     {
-        return (Value & ECS_ID_FLAGS_MASK) == ECS_PAIR;
+        return (Value & ECS_PAIR) != 0;
+    }
+
+    /// <summary>
+    ///     Test if id is a value pair. (has first, value)
+    /// </summary>
+    /// <returns></returns>
+    public bool IsValuePair()
+    {
+        return (Value & ECS_ID_FLAGS_MASK) == ECS_VALUE_PAIR;
     }
 
     /// <summary>
@@ -252,7 +261,7 @@ public unsafe struct Id : IEquatable<Id>
     public Entity Second()
     {
         ulong entity = Ecs.PairSecond(Value);
-        return World == null ? new Entity(entity) : new Entity(World, ecs_get_alive(World, entity));
+        return World == null || IsValuePair() ? new Entity(entity) : new Entity(World, ecs_get_alive(World, entity));
     }
 
     /// <summary>

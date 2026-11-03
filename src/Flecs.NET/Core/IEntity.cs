@@ -297,23 +297,26 @@ public unsafe interface IEntity<TEntity> : IId
     /// <inheritdoc cref="Entity.Clone(bool, ulong)"/>
     public Entity Clone(bool cloneValue = true, ulong dstId = 0);
 
-    /// <inheritdoc cref="Entity.Mut(ref Core.World)"/>
-    public Entity Mut(ref World stage);
+    /// <inheritdoc cref="Entity.Stage(ref Core.World)"/>
+    public Entity Stage(ref World stage);
 
-    /// <inheritdoc cref="Entity.Mut(ref Iter)"/>
-    public Entity Mut(ref Iter it);
+    /// <inheritdoc cref="Entity.Stage(ref Iter)"/>
+    public Entity Stage(ref Iter it);
 
-    /// <inheritdoc cref="Entity.Mut(ref Core.Entity)"/>
-    public Entity Mut(ref Entity entity);
+    /// <inheritdoc cref="Entity.Stage(ref Core.Entity)"/>
+    public Entity Stage(ref Entity entity);
 
-    /// <inheritdoc cref="Entity.Mut(Core.World)"/>
-    public Entity Mut(World stage);
+    /// <inheritdoc cref="Entity.Stage(Core.World)"/>
+    public Entity Stage(World stage);
 
-    /// <inheritdoc cref="Entity.Mut(Iter)"/>
-    public Entity Mut(Iter it);
+    /// <inheritdoc cref="Entity.Stage(Iter)"/>
+    public Entity Stage(Iter it);
 
-    /// <inheritdoc cref="Entity.Mut(Core.Entity)"/>
-    public Entity Mut(Entity entity);
+    /// <inheritdoc cref="Entity.Stage(Core.Entity)"/>
+    public Entity Stage(Entity entity);
+
+    /// <inheritdoc cref="Entity.Stage()"/>
+    public Entity Stage();
 
     /// <inheritdoc cref="Entity.ToJson(in EntityToJsonDesc)"/>
     public string ToJson(in EntityToJsonDesc desc);
@@ -464,19 +467,6 @@ public unsafe interface IEntity<TEntity> : IId
 
     /// <inheritdoc cref="Entity.DependsOn{T}(T)"/>
     public ref TEntity DependsOn<T>(T value) where T : Enum;
-
-    /// <inheritdoc cref="Entity.SlotOf(ulong)"/>
-    public ref TEntity SlotOf(ulong id);
-
-    /// <inheritdoc cref="Entity.SlotOf{T}()"/>
-    public ref TEntity SlotOf<T>();
-
-    /// <inheritdoc cref="Entity.SlotOf{T}(T)"/>
-    public ref TEntity SlotOf<T>(T value) where T : Enum;
-
-    /// <inheritdoc cref="Entity.Slot()"/>
-    public ref TEntity Slot();
-
     /// <inheritdoc cref="Entity.Remove(ulong)"/>
     public ref TEntity Remove(ulong id);
 
@@ -662,25 +652,6 @@ public unsafe interface IEntity<TEntity> : IId
 
     /// <inheritdoc cref="Entity.SetSecond{TSecond}(ulong, in TSecond)"/>
     public ref TEntity SetSecond<TSecond>(ulong first, in TSecond data);
-
-    /// <inheritdoc cref="Entity.With(Action)"/>
-    public ref TEntity With(Action callback);
-
-    /// <inheritdoc cref="Entity.With(ulong, Action)"/>
-    public ref TEntity With(ulong first, Action callback);
-
-    /// <inheritdoc cref="Entity.With{TFirst}(Action)"/>
-    public ref TEntity With<TFirst>(Action callback);
-
-    /// <inheritdoc cref="Entity.With(Ecs.WorldCallback)"/>
-    public ref TEntity With(Ecs.WorldCallback callback);
-
-    /// <inheritdoc cref="Entity.With(ulong, Ecs.WorldCallback)"/>
-    public ref TEntity With(ulong first, Ecs.WorldCallback callback);
-
-    /// <inheritdoc cref="Entity.With{TFirst}(Ecs.WorldCallback)"/>
-    public ref TEntity With<TFirst>(Ecs.WorldCallback callback);
-
     /// <inheritdoc cref="Entity.Scope(Action)"/>
     public ref TEntity Scope(Action callback);
 

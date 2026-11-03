@@ -7,6 +7,10 @@ namespace Flecs.NET.Core;
 /// <summary>
 ///     A wrapper around <see cref="ecs_type_info_t"/>*.
 /// </summary>
+/// <remarks>
+///     <see cref="World.TypeInfo(ulong)"/> returns an invalid instance when the id is not a component. The members
+///     dereference the handle, so check <see cref="IsValid"/> first.
+/// </remarks>
 public readonly unsafe struct TypeInfo : IEquatable<TypeInfo>
 {
     private readonly ecs_type_info_t* _handle;
@@ -26,6 +30,11 @@ public readonly unsafe struct TypeInfo : IEquatable<TypeInfo>
     }
 
     /// <summary>
+    ///     Returns true if the type info has a handle.
+    /// </summary>
+    public bool IsValid => _handle != null;
+
+    /// <summary>
     ///     Size of type.
     /// </summary>
     public int Size => Handle->size;
@@ -33,7 +42,7 @@ public readonly unsafe struct TypeInfo : IEquatable<TypeInfo>
     /// <summary>
     ///     Alignment of type.
     /// </summary>
-    public int Alignment => Handle->size;
+    public int Alignment => Handle->alignment;
 
     /// <summary>
     ///     Handle to component.
@@ -71,7 +80,7 @@ public readonly unsafe struct TypeInfo : IEquatable<TypeInfo>
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Handle->GetHashCode();
+        return _handle == null ? 0 : Handle->GetHashCode();
     }
 
     /// <summary>

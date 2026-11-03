@@ -147,6 +147,7 @@ public unsafe class RefTests
         using World world = World.Create();
         World stage = world.GetStage(0);
         Entity e = stage.Entity().Set(new Position { X = 10, Y = 20 });
+        stage.Merge();
         Ref<Position> reference = e.GetRef<Position>();
         Assert.Equal(10, reference.GetPtr()->X);
         Assert.Equal(20, reference.GetPtr()->Y);

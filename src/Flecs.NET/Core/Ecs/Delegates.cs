@@ -41,6 +41,30 @@ public static unsafe partial class Ecs
     public delegate void CopyCallback<T>(ref T dst, ref T src, TypeInfo typeInfo);
 
     /// <summary>
+    ///     Compare type hook callback. Returns a negative value if a is less than b, zero if they are equal
+    ///     and a positive value if a is greater than b.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public delegate int CompareCallback<T>(ref T a, ref T b, TypeInfo typeInfo);
+
+    /// <summary>
+    ///     Equals type hook callback.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public delegate bool EqualsCallback<T>(ref T a, ref T b, TypeInfo typeInfo);
+
+    /// <summary>
+    ///     Compare type hook callback for untyped components. Returns a negative value if a is less than b, zero
+    ///     if they are equal and a positive value if a is greater than b.
+    /// </summary>
+    public delegate int CompareCallback(void* a, void* b, TypeInfo typeInfo);
+
+    /// <summary>
+    ///     Equals type hook callback for untyped components.
+    /// </summary>
+    public delegate bool EqualsCallback(void* a, void* b, TypeInfo typeInfo);
+
+    /// <summary>
     ///     Each entity callback.
     /// </summary>
     public delegate void EachEntityCallback(Entity entity);
@@ -123,6 +147,17 @@ public static unsafe partial class Ecs
     ///     Group delete action.
     /// </summary>
     public delegate void GroupDeleteCallback<T>(World world, ulong group, ref T context);
+
+    /// <summary>
+    ///     Script function callback.
+    /// </summary>
+    public delegate void ScriptFunctionCallback(ScriptFunction ctx, ScriptArgs args, ScriptValue result);
+
+    /// <summary>
+    ///     Script vector function callback.
+    /// </summary>
+    public delegate void ScriptVectorFunctionCallback(ScriptFunction ctx, ScriptArgs args, ScriptValue result,
+        int elemCount);
 
     /// <summary>
     ///     Iter callback.

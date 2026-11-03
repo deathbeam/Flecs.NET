@@ -163,6 +163,11 @@ public static partial class Ecs
     /// </summary>
     public static ref ulong TOGGLE => ref ECS_TOGGLE;
 
+    /// <summary>
+    ///     Reference to <see cref="ECS_VALUE_PAIR"/>.
+    /// </summary>
+    public static ref ulong VALUE_PAIR => ref ECS_VALUE_PAIR;
+
     // Built-in tags
 
     /// <summary>
@@ -357,6 +362,11 @@ public static partial class Ecs
     /// </summary>
     public static ref ulong CanToggle => ref EcsCanToggle;
 
+    /// <summary>
+    ///     Reference to <see cref="EcsSingleton"/>.
+    /// </summary>
+    public static ref ulong Singleton => ref EcsSingleton;
+
     // OnInstantiate Trait
 
     /// <summary>
@@ -365,9 +375,9 @@ public static partial class Ecs
     public static ref ulong OnInstantiate => ref EcsOnInstantiate;
 
     /// <summary>
-    ///     Reference to <see cref="EcsOverride"/>.
+    ///     Reference to <see cref="EcsCopy"/>.
     /// </summary>
-    public static ref ulong Override => ref EcsOverride;
+    public static ref ulong Copy => ref EcsCopy;
 
     /// <summary>
     ///     Reference to <see cref="EcsInherit"/>.
@@ -419,14 +429,19 @@ public static partial class Ecs
     public static ref ulong ChildOf => ref EcsChildOf;
 
     /// <summary>
+    ///     Reference to <see cref="FLECS_IDEcsParentID_"/>.
+    /// </summary>
+    public static ref ulong Parent => ref FLECS_IDEcsParentID_;
+
+    /// <summary>
+    ///     Reference to <see cref="FLECS_IDEcsScriptID_"/>.
+    /// </summary>
+    public static ref ulong Script => ref FLECS_IDEcsScriptID_;
+
+    /// <summary>
     ///     Reference to <see cref="EcsDependsOn"/>.
     /// </summary>
     public static ref ulong DependsOn => ref EcsDependsOn;
-
-    /// <summary>
-    ///     Reference to <see cref="EcsSlotOf"/>.
-    /// </summary>
-    public static ref ulong SlotOf => ref EcsSlotOf;
 
     // Built-in identifiers
 

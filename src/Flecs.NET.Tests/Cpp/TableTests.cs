@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Flecs.NET.Core;
 using Xunit;
+using static Flecs.NET.Bindings.flecs;
 
 namespace Flecs.NET.Tests.Cpp;
 
@@ -624,5 +625,104 @@ public unsafe class TableTests
         Assert.Equal(Number.One, n![0]);
         Assert.Equal(Number.Two, n[1]);
         Assert.Equal(Number.Three, n[2]);
+    }
+
+    [Fact]
+    private void GetEntities()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new Position { X = 20, Y = 30 });
+        Entity e3 = world.Entity().Set(new Position { X = 30, Y = 40 });
+
+        Table table = e1.Table();
+        ulong* entities = table.Entities();
+        Assert.True(entities != null);
+        Assert.Equal(e1.Id.Value, entities[0]);
+        Assert.Equal(e2.Id.Value, entities[1]);
+        Assert.Equal(e3.Id.Value, entities[2]);
+    }
+
+    [Fact]
+    private void GetRecords()
+    {
+        using World world = World.Create();
+
+        Entity parent = world.Entity();
+        Entity e = world.Entity()
+            .ChildOf(parent)
+            .Set(new Position { X = 10, Y = 20 });
+
+        Table table = e.Table();
+        ecs_table_records_t records = table.Records();
+        Assert.Equal(6, records.count);
+
+        ecs_component_record_t* cr0 = flecs_table_record_get_component(&records.array[0]);
+        Assert.True(cr0 != null);
+        Assert.Equal((ulong)world.Component<Position>(), flecs_component_get_id(cr0));
+
+        ecs_component_record_t* cr1 = flecs_table_record_get_component(&records.array[1]);
+        Assert.True(cr1 != null);
+        Assert.Equal(world.Pair(Ecs.ChildOf, parent).Value, flecs_component_get_id(cr1));
+    }
+
+    [Fact]
+    private void HasFlags()
+    {
+        using World world = World.Create();
+
+        Entity parent = world.Entity();
+        Entity e1 = world.Entity()
+            .ChildOf(parent)
+            .Set(new Position { X = 10, Y = 20 });
+
+        Table table = e1.Table();
+
+        Assert.False(table.HasFlags(EcsTableIsComplex));
+        Assert.True(table.HasFlags(EcsTableHasPairs));
+        Assert.True(table.HasFlags(EcsTableHasChildOf));
+        Assert.False(table.HasFlags(EcsTableHasIsA));
+    }
+
+    [Fact]
+    private void ClearEntities()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new Position { X = 30, Y = 40 });
+
+        Assert.True(e1.IsAlive());
+        Assert.True(e2.IsAlive());
+
+        Table table = e1.Table();
+        Assert.Equal(2, table.Count);
+        Assert.Equal(2, table.Size());
+
+        table.ClearEntities();
+
+        Assert.False(e1.IsAlive());
+        Assert.False(e2.IsAlive());
+
+        // Table.Count is a snapshot taken when the table was obtained, so query the live count.
+        Assert.Equal(0, ecs_table_count(table));
+        Assert.Equal(2, table.Size());
+    }
+
+    [Fact]
+    private void LockUnlock()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Set(new Position { X = 10, Y = 20 });
+        Entity e2 = world.Entity();
+
+        Table table = e1.Table();
+        table.Lock();
+        table.Unlock();
+
+        e2.Set(new Position { X = 20, Y = 30 });
+        Assert.True(e2.Has<Position>());
     }
 }

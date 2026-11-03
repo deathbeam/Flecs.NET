@@ -119,7 +119,7 @@ public static unsafe partial class Ecs
         {
             using NativeString nativeMessage = (NativeString)message;
             using NativeString nativeFile = (NativeString)file;
-            ecs_log_(1, nativeFile, line, nativeMessage);
+            ecs_log_(0, nativeFile, line, nativeMessage);
             ecs_log_push_(0);
         }
 

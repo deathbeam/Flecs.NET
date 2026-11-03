@@ -81,7 +81,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
     /// <returns></returns>
     public Entity Entity()
     {
-        return new Entity(Handle->world, Handle->entity);
+        return new Entity(Handle->stage, Handle->entity);
     }
 
     /// <summary>
@@ -133,7 +133,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
     {
         for (int i = 0; i < Handle->term_count; i++)
         {
-            Term term = new Term(Handle->world, Handle->terms[i]);
+            Term term = new Term(Handle->stage, Handle->terms[i]);
             callback(ref term);
         }
     }
@@ -146,7 +146,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
     public Term Term(int index)
     {
         Ecs.Assert(index < Handle->term_count, nameof(ECS_COLUMN_INDEX_OUT_OF_RANGE));
-        return new Term(Handle->world, Handle->terms[index]);
+        return new Term(Handle->stage, Handle->terms[index]);
     }
 
     /// <summary>
@@ -292,7 +292,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
 public unsafe partial struct Query
 {
     /// <summary>
-    ///     Gets the query's world or stage.
+    ///     Gets the query's world.
     /// </summary>
     /// <returns></returns>
     public World World()
@@ -301,12 +301,12 @@ public unsafe partial struct Query
     }
 
     /// <summary>
-    ///     Gets the query's actual world.
+    ///     Gets the query's world or stage.
     /// </summary>
     /// <returns></returns>
-    public World RealWorld()
+    public World Stage()
     {
-        return Handle->real_world;
+        return Handle->stage;
     }
 }
 
@@ -322,7 +322,7 @@ public unsafe partial struct Query : IQuery
 public unsafe partial struct Query : IIterableBase
 {
     /// <inheritdoc cref="IIterableBase.World"/>
-    ecs_world_t* IIterableBase.World => Handle->world;
+    ecs_world_t* IIterableBase.World => Handle->stage;
 
     /// <inheritdoc cref="IIterableBase.GetIter"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -331,7 +331,7 @@ public unsafe partial struct Query : IIterableBase
         Ecs.Assert(Handle != null, "Cannot iterate invalid query.");
 
         if (world == null)
-            world = Handle->world;
+            world = Handle->stage;
 
         return ecs_query_iter(world, Handle);
     }
@@ -416,7 +416,7 @@ public unsafe partial struct Query : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Iter)"/>
     public IterIterable Iter(Iter it)
     {
-        return Iter(it.World());
+        return Iter(it.Stage());
     }
 
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>

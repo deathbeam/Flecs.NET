@@ -27,20 +27,20 @@ public static class Systems_MutateEntityHandle
 
                     // To make sure the delete operation is enqueued (see
                     // MutateEntity example for more details) we need to provide it
-                    // with a mutable context (stage) using the Mut() function. If
+                    // with a mutable context (stage) using the Stage() function. If
                     // we don't provide a mutable context, the operation will be
                     // attempted on the context stored in the Entity object,
                     // which would throw a readonly error.
 
-                    // The it.World() function can be used to provide the context:
-                    //   t.ToDelete.Mut(it.World()).Destruct();
+                    // The it.Stage() function can be used to provide the context:
+                    //   t.ToDelete.Stage(it.Stage()).Destruct();
                     //
                     // The current entity can also be used to provide context. This
                     // is useful for functions that accept a Entity:
-                    //   t.ToDelete.Mut(it.Entity(i)).Destruct();
+                    //   t.ToDelete.Stage(it.Entity(i)).Destruct();
                     //
                     // A shortcut is to use the iterator directly:
-                    t.ToDelete.Mut(ref it).Destruct();
+                    t.ToDelete.Stage(ref it).Destruct();
                     Console.WriteLine($"Expire: {t.ToDelete} deleted!");
                 }
             });

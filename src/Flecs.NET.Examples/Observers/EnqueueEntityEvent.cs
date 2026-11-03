@@ -40,19 +40,19 @@ public static class Observers_EnqueueEntityEvent
             Console.WriteLine($"Resized to ({p.Width}, {p.Height})!");
         });
 
-        // We can only call enqueue events while the world is deferred mode.
-        world.DeferBegin();
+        // Events can only be enqueued on a stage.
+        World stage = world.GetStage(0);
 
         // Emit the Click event.
-        widget.Enqueue<Click>();
+        widget.Stage(stage).Enqueue<Click>();
 
         // Emit the Resize event.
-        widget.Enqueue(new Resize(100, 200));
+        widget.Stage(stage).Enqueue(new Resize(100, 200));
 
         Console.WriteLine("Events enqueued!");
 
         // Flushes the queue, and invokes the observer
-        world.DeferEnd();
+        stage.Merge();
     }
 }
 

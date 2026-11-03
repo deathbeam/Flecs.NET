@@ -8,7 +8,7 @@
 //
 // While this functionality is not unique to prefabs (the same mechanism is
 // used to distribute component handles), prefabs are a good fit, especially
-// when combined with prefab slots (see slots example and code below).
+// when combined with prefab hierarchies (see slots example and code below).
 
 using Flecs.NET.Core;
 
@@ -32,19 +32,19 @@ public static class Prefabs_TypedPrefabs
 
         // Associate types with prefabs
         world.Prefab<Turret>();
-        world.Prefab<Turret.Base>().SlotOf<Turret>();
-        world.Prefab<Turret.Head>().SlotOf<Turret>();
+        world.Prefab<Turret.Base>();
+        world.Prefab<Turret.Head>();
 
         world.Prefab<Railgun>().IsA<Turret>();
-        world.Prefab<Railgun.Beam>().SlotOf<Railgun>();
+        world.Prefab<Railgun.Beam>();
 
         // Create prefab instance.
         Entity inst = world.Entity("MyRailgun").IsA<Railgun>();
 
-        // Get entities for slots
-        Entity instBase = inst.Target<Turret.Base>();
-        Entity instHead = inst.Target<Turret.Head>();
-        Entity instBeam = inst.Target<Railgun.Beam>();
+        // Get instantiated children by name
+        Entity instBase = inst.Lookup("Base");
+        Entity instHead = inst.Lookup("Head");
+        Entity instBeam = inst.Lookup("Beam");
 
         Console.WriteLine("Instance Base: " + instBase.Path());
         Console.WriteLine("Instance Head: " + instHead.Path());

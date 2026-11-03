@@ -27,8 +27,8 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Iter(ecs_iter_t* iter, Ecs.IterCallback callback)
     {
-        Ecs.TableLock(iter->world, iter->table);
-        try { callback(new Iter(iter)); } finally { Ecs.TableUnlock(iter->world, iter->table); }
+        Ecs.TableLock(iter->stage, iter->table);
+        try { callback(new Iter(iter)); } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>
@@ -40,11 +40,11 @@ public static unsafe partial class Invoker
     {
         Ecs.Assert(iter->entities != null, "No entities returned, use Iter() or Each() without the entity argument instead.");
 
-        Ecs.TableLock(iter->world, iter->table);
+        Ecs.TableLock(iter->stage, iter->table);
         try {
             for (int i = 0; i < iter->count; i++)
-                callback(new Entity(iter->world, iter->entities[i]));
-        } finally { Ecs.TableUnlock(iter->world, iter->table); }
+                callback(new Entity(iter->stage, iter->entities[i]));
+        } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>
@@ -54,12 +54,12 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Each(ecs_iter_t* iter, Ecs.EachIterCallback callback)
     {
-        Ecs.TableLock(iter->world, iter->table);
+        Ecs.TableLock(iter->stage, iter->table);
         try {
             int count = iter->count == 0 && iter->table == null ? 1 : iter->count;
             for (int i = 0; i < count; i++)
                 callback(new Iter(iter), i);
-        } finally { Ecs.TableUnlock(iter->world, iter->table); }
+        } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>
@@ -91,7 +91,7 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Observe(ecs_iter_t* iter, Ecs.ObserveEntityCallback callback)
     {
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)));
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)));
     }
 
     /// <summary>
@@ -101,7 +101,7 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Observe(ecs_iter_t* iter, delegate*<Entity, void> callback)
     {
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)));
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)));
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public static unsafe partial class Invoker
     public static void Observe<T>(ecs_iter_t* iter, Ecs.ObserveEntityRefCallback<T> callback)
     {
         Ecs.Assert(iter->param != null, "Entity observer invoked without event payload");
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)), ref Managed.GetTypeRef<T>(iter->param));
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)), ref Managed.GetTypeRef<T>(iter->param));
     }
 
     /// <summary>
@@ -173,7 +173,7 @@ public static unsafe partial class Invoker
     public static void Observe<T>(ecs_iter_t* iter, delegate*<Entity, ref T, void> callback)
     {
         Ecs.Assert(iter->param != null, "Entity observer invoked without event payload");
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)), ref Managed.GetTypeRef<T>(iter->param));
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)), ref Managed.GetTypeRef<T>(iter->param));
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public static unsafe partial class Invoker
     public static void Observe<T>(ecs_iter_t* iter, Ecs.ObserveEntityPointerCallback<T> callback)
     {
         Ecs.Assert(iter->param != null, "Entity observer invoked without event payload");
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)), (T*)iter->param);
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)), (T*)iter->param);
     }
 
     /// <summary>
@@ -197,7 +197,7 @@ public static unsafe partial class Invoker
     public static void Observe<T>(ecs_iter_t* iter, delegate*<Entity, T*, void> callback)
     {
         Ecs.Assert(iter->param != null, "Entity observer invoked without event payload");
-        callback(new Entity(iter->world, ecs_field_src(iter, 0)), (T*)iter->param);
+        callback(new Entity(iter->stage, ecs_field_src(iter, 0)), (T*)iter->param);
     }
 
     /// <summary>
@@ -207,8 +207,8 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Iter(ecs_iter_t* iter, delegate*<Iter, void> callback)
     {
-        Ecs.TableLock(iter->world, iter->table);
-        try { callback(new Iter(iter)); } finally { Ecs.TableUnlock(iter->world, iter->table); }
+        Ecs.TableLock(iter->stage, iter->table);
+        try { callback(new Iter(iter)); } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>
@@ -220,11 +220,11 @@ public static unsafe partial class Invoker
     {
         Ecs.Assert(iter->count > 0, "No entities returned, use Iter() or Each() without the entity argument instead.");
 
-        Ecs.TableLock(iter->world, iter->table);
+        Ecs.TableLock(iter->stage, iter->table);
         try {
             for (int i = 0; i < iter->count; i++)
-                callback(new Entity(iter->world, iter->entities[i]));
-        } finally { Ecs.TableUnlock(iter->world, iter->table); }
+                callback(new Entity(iter->stage, iter->entities[i]));
+        } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>
@@ -234,12 +234,12 @@ public static unsafe partial class Invoker
     /// <param name="callback"></param>
     public static void Each(ecs_iter_t* iter, delegate*<Iter, int, void> callback)
     {
-        Ecs.TableLock(iter->world, iter->table);
+        Ecs.TableLock(iter->stage, iter->table);
         try {
             int count = iter->count == 0 && iter->table == null ? 1 : iter->count;
             for (int i = 0; i < count; i++)
                 callback(new Iter(iter), i);
-        } finally { Ecs.TableUnlock(iter->world, iter->table); }
+        } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 
     /// <summary>

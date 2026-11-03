@@ -325,8 +325,8 @@ public unsafe class TypeRegistrationTests
         world.System()
             .Iter((Iter it) =>
             {
-                Entity color = it.World().Component<Color>();
-                Entity red = it.World().Entity(Color.Red);
+                Entity color = it.Stage().Component<Color>();
+                Entity red = it.Stage().Entity(Color.Red);
                 Assert.True(red != 0);
                 Assert.True(red.IsChildOf(color));
                 Assert.True(red.Has(EcsConstant, Ecs.Wildcard));

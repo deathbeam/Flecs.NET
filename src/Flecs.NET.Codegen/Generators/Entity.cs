@@ -661,40 +661,46 @@ public class Entity : GeneratorBase
                     return Entity.Clone(cloneValue, dstId);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(ref Core.World)"/>
-                public Entity Mut(ref World stage)
+                /// <inheritdoc cref="Entity.Stage(ref Core.World)"/>
+                public Entity Stage(ref World stage)
                 {
-                    return Entity.Mut(ref stage);
+                    return Entity.Stage(ref stage);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(ref Iter)"/>
-                public Entity Mut(ref Iter it)
+                /// <inheritdoc cref="Entity.Stage(ref Iter)"/>
+                public Entity Stage(ref Iter it)
                 {
-                    return Entity.Mut(ref it);
+                    return Entity.Stage(ref it);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(ref Core.Entity)"/>
-                public Entity Mut(ref Entity entity)
+                /// <inheritdoc cref="Entity.Stage(ref Core.Entity)"/>
+                public Entity Stage(ref Entity entity)
                 {
-                    return Entity.Mut(ref entity);
+                    return Entity.Stage(ref entity);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(Core.World)"/>
-                public Entity Mut(World stage)
+                /// <inheritdoc cref="Entity.Stage(Core.World)"/>
+                public Entity Stage(World stage)
                 {
-                    return Entity.Mut(stage);
+                    return Entity.Stage(stage);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(Iter)"/>
-                public Entity Mut(Iter it)
+                /// <inheritdoc cref="Entity.Stage(Iter)"/>
+                public Entity Stage(Iter it)
                 {
-                    return Entity.Mut(it);
+                    return Entity.Stage(it);
                 }
             
-                /// <inheritdoc cref="Entity.Mut(Core.Entity)"/>
-                public Entity Mut(Entity entity)
+                /// <inheritdoc cref="Entity.Stage(Core.Entity)"/>
+                public Entity Stage(Entity entity)
                 {
-                    return Entity.Mut(entity);
+                    return Entity.Stage(entity);
+                }
+            
+                /// <inheritdoc cref="Entity.Stage()"/>
+                public Entity Stage()
+                {
+                    return Entity.Stage();
                 }
             
                 /// <inheritdoc cref="Entity.ToJson(in EntityToJsonDesc)"/>
@@ -1021,34 +1027,6 @@ public class Entity : GeneratorBase
                 public ref {{typeName}} DependsOn<T>(T value) where T : Enum
                 {
                     Entity.DependsOn(value);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.SlotOf(ulong)"/>
-                public ref {{typeName}} SlotOf(ulong id)
-                {
-                    Entity.SlotOf(id);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.SlotOf{T}()"/>
-                public ref {{typeName}} SlotOf<T>()
-                {
-                    Entity.SlotOf<T>();
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.SlotOf{T}(T)"/>
-                public ref {{typeName}} SlotOf<T>(T value) where T : Enum
-                {
-                    Entity.SlotOf(value);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.Slot()"/>
-                public ref {{typeName}} Slot()
-                {
-                    Entity.Slot();
                     return ref this;
                 }
             
@@ -1483,48 +1461,6 @@ public class Entity : GeneratorBase
                 public ref {{typeName}} SetSecond<TSecond>(ulong first, in TSecond data)
                 {
                     Entity.SetSecond(first, in data);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With(Action)"/>
-                public ref {{typeName}} With(Action callback)
-                {
-                    Entity.With(callback);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With(ulong, Action)"/>
-                public ref {{typeName}} With(ulong first, Action callback)
-                {
-                    Entity.With(first, callback);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With{TFirst}(Action)"/>
-                public ref {{typeName}} With<TFirst>(Action callback)
-                {
-                    Entity.With<TFirst>(callback);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With(Ecs.WorldCallback)"/>
-                public ref {{typeName}} With(Ecs.WorldCallback callback)
-                {
-                    Entity.With(callback);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With(ulong, Ecs.WorldCallback)"/>
-                public ref {{typeName}} With(ulong first, Ecs.WorldCallback callback)
-                {
-                    Entity.With(first, callback);
-                    return ref this;
-                }
-            
-                /// <inheritdoc cref="Entity.With{TFirst}(Ecs.WorldCallback)"/>
-                public ref {{typeName}} With<TFirst>(Ecs.WorldCallback callback)
-                {
-                    Entity.With<TFirst>(callback);
                     return ref this;
                 }
             

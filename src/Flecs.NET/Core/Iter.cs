@@ -45,7 +45,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Entity System()
     {
-        return new Entity(Handle->world, Handle->system);
+        return new Entity(Handle->stage, Handle->system);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Entity Event()
     {
-        return new Entity(Handle->world, Handle->@event);
+        return new Entity(Handle->stage, Handle->@event);
     }
 
     /// <summary>
@@ -63,16 +63,25 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Id EventId()
     {
-        return new Id(Handle->world, Handle->event_id);
+        return new Id(Handle->stage, Handle->event_id);
     }
 
     /// <summary>
-    ///     Returns staged C# world.
+    ///     Returns the actual C# world.
     /// </summary>
     /// <returns></returns>
     public World World()
     {
         return new World(Handle->world);
+    }
+
+    /// <summary>
+    ///     Returns the C# world or stage the iterator was created with.
+    /// </summary>
+    /// <returns></returns>
+    public World Stage()
+    {
+        return new World(Handle->stage);
     }
 
     /// <summary>
@@ -83,6 +92,16 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public int Count()
     {
         return Handle->count;
+    }
+
+    /// <summary>
+    ///     Returns the offset of the current table relative to the frame.
+    /// </summary>
+    /// <returns>The frame offset.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int FrameOffset()
+    {
+        return Handle->frame_offset;
     }
 
     /// <summary>
@@ -111,7 +130,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public FlecsType Type()
     {
-        return new FlecsType(Handle->world, ecs_table_get_type(Handle->table));
+        return new FlecsType(Handle->stage, ecs_table_get_type(Handle->table));
     }
 
     /// <summary>
@@ -120,7 +139,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Table Table()
     {
-        return new Table(Handle->real_world, Handle->table);
+        return new Table(Handle->world, Handle->table);
     }
 
     /// <summary>
@@ -129,7 +148,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Table OtherTable()
     {
-        return new Table(Handle->real_world, Handle->other_table);
+        return new Table(Handle->world, Handle->other_table);
     }
 
     /// <summary>
@@ -138,7 +157,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     /// <returns></returns>
     public Table Range()
     {
-        return new Table(Handle->real_world, Handle->table, Handle->offset, Handle->count);
+        return new Table(Handle->world, Handle->table, Handle->offset, Handle->count);
     }
 
     /// <summary>
@@ -208,7 +227,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public Entity Entity(int row)
     {
         Ecs.Assert(row < Handle->count, nameof(ECS_COLUMN_INDEX_OUT_OF_RANGE));
-        return new Entity(Handle->world, Handle->entities[row]);
+        return new Entity(Handle->stage, Handle->entities[row]);
     }
 
     /// <summary>
@@ -272,7 +291,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public Entity Src(int index)
     {
         Ecs.Assert(index < Handle->field_count, "Field index out of range.");
-        return new Entity(Handle->world, ecs_field_src(Handle, (byte)index));
+        return new Entity(Handle->stage, ecs_field_src(Handle, (byte)index));
     }
 
     /// <summary>
@@ -283,7 +302,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public Id Id(int index)
     {
         Ecs.Assert(index < Handle->field_count, "Field index out of range.");
-        return new Id(Handle->world, ecs_field_id(Handle, (byte)index));
+        return new Id(Handle->stage, ecs_field_id(Handle, (byte)index));
     }
 
     /// <summary>
@@ -297,7 +316,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
         Ecs.Assert(index < Handle->field_count, "Field index out of range.");
         ulong id = ecs_field_id(Handle, (byte)index);
         Ecs.Assert(Ecs.EntityHasIdFlag(id, ECS_PAIR) != 0, nameof(ECS_INVALID_PARAMETER));
-        return new Id(Handle->world, id);
+        return new Id(Handle->stage, id);
     }
 
     /// <summary>
@@ -309,15 +328,6 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     {
         Ecs.Assert(index < Handle->field_count, "Field index out of range.");
         return ecs_field_column(Handle, (byte)index);
-    }
-
-    /// <summary>
-    ///     Convert current iterator result to string.
-    /// </summary>
-    /// <returns></returns>
-    public string Str()
-    {
-        return NativeString.GetStringAndFree(ecs_iter_str(Handle));
     }
 
     /// <summary>
@@ -355,6 +365,20 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public Field<T> Field<T>(int index)
     {
         return GetField<T>(index);
+    }
+
+    /// <summary>
+    ///     Retrieves a field that was matched through component inheritance at the provided index. Unlike
+    ///     <see cref="Field{T}(int)"/>, this returns a field that iterates with a runtime stride, so it works when
+    ///     the matched (derived) component is larger than <typeparamref name="T"/>.
+    /// </summary>
+    /// <param name="index">The field index.</param>
+    /// <typeparam name="T">The base type of the field.</typeparam>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public BaseField<T> BaseField<T>(int index)
+    {
+        return GetBaseField<T>(index);
     }
 
     /// <summary>
@@ -419,7 +443,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public Entity GetVar(int varId)
     {
         Ecs.Assert(varId != -1, nameof(ECS_INVALID_PARAMETER));
-        return new Entity(Handle->world, ecs_iter_get_var(Handle, varId));
+        return new Entity(Handle->stage, ecs_iter_get_var(Handle, varId));
     }
 
     /// <summary>
@@ -435,7 +459,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
         int varId = ecs_query_find_var(query, nativeName);
         Ecs.Assert(varId != -1, nameof(ECS_INVALID_PARAMETER));
 
-        return new Entity(Handle->world, ecs_iter_get_var(Handle, varId));
+        return new Entity(Handle->stage, ecs_iter_get_var(Handle, varId));
     }
 
     /// <summary>
@@ -457,7 +481,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
         {
             ulong id = tableType->array[i];
             Ecs.Assert(Ecs.IsPair(id), "Field must be a pair.");
-            callback(new Entity(Handle->world, Ecs.PairSecond(Handle->real_world, id)));
+            callback(new Entity(Handle->stage, Ecs.PairSecond(Handle->world, id)));
         }
     }
 
@@ -480,7 +504,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
         {
             ulong id = tableType->array[i];
             Ecs.Assert(Ecs.IsPair(id), "Field must be a pair.");
-            callback(new Entity(Handle->world, Ecs.PairSecond(Handle->real_world, id)));
+            callback(new Entity(Handle->stage, Ecs.PairSecond(Handle->world, id)));
         }
     }
 
@@ -491,14 +515,14 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     public bool Next()
     {
         if ((Handle->flags & EcsIterIsValid) != 0 && Handle->table != null)
-            Ecs.TableUnlock(Handle->world, Handle->table);
+            Ecs.TableUnlock(Handle->stage, Handle->table);
 
         bool result = ((delegate* unmanaged<ecs_iter_t*, byte>)Handle->next)(Handle) != 0;
 
         Handle->flags |= EcsIterIsValid;
 
         if (result && Handle->table != null)
-            Ecs.TableLock(Handle->world, Handle->table);
+            Ecs.TableLock(Handle->stage, Handle->table);
 
         return result;
     }
@@ -529,7 +553,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
             return;
 
         if ((Handle->flags & EcsIterIsValid) != 0 && Handle->table != null)
-            Ecs.TableUnlock(Handle->world, Handle->table);
+            Ecs.TableUnlock(Handle->stage, Handle->table);
 
         ecs_iter_fini(Handle);
         Handle = null;
@@ -575,6 +599,18 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
         AssertField<T>(Handle, index);
         UntypedField field = GetUntypedFieldAt(index, row);
         return new Field<T>(field.Data, 1);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal BaseField<T> GetBaseField<T>(int index)
+    {
+        Ecs.Assert(ecs_field_size(Handle, (byte)index) == Type<T>.Size, nameof(ECS_COLUMN_TYPE_MISMATCH));
+
+        return new BaseField<T>(
+            ecs_base_field_w_size(Handle, Type<T>.Size, (byte)index),
+            (int)ecs_field_stride(Handle, (byte)index),
+            ecs_field_is_self(Handle, (byte)index) ? Handle->count : 1
+        );
     }
 
     [Conditional("DEBUG")]

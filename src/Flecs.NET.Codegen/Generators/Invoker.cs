@@ -212,7 +212,7 @@ public class Invoker : GeneratorBase
                             for (int i = 0; i < count; i++)
                             {
                                 if (callback({{Generator.GetCallbackArguments(callback, iterationTechnique, i)}}))
-                                    return new Entity(it.Handle->world, it.Handle->entities[i]);
+                                    return new Entity(it.Handle->stage, it.Handle->entities[i]);
                             }
                                 
                             return default;
@@ -340,15 +340,13 @@ public class Invoker : GeneratorBase
                 /// <returns>True if the entity has the specified components.</returns>
                 public static bool {{Generator.GetInvokerName(callback)}}<{{Generator.TypeParameters[i]}}>(ecs_world_t* world, ulong entity, {{Generator.GetCallbackType(callback, i)}} callback)
                 {
-                    ecs_record_t* record = ecs_{{Generator.GetInvokerName(callback).ToLower()}}_begin(world, entity);
+                    ecs_record_t* record = flecs_entities_get(ecs_get_world(world), entity);
             
-                    if (record == null)
+                    if (record == null || record->table == null)
                         return false;
             
-                    ecs_table_t *table = record->table;
-            
-                    if (table == null)
-                        return false;
+                    ecs_table_t* table = record->table;
+                    Ecs.TableLock(world, table);
             
                     void** pointers = stackalloc void*[{{i + 1}}];
                     bool hasComponents = Ecs.GetPointers<{{Generator.TypeParameters[i]}}>(world, entity, record, table, pointers);
@@ -356,7 +354,7 @@ public class Invoker : GeneratorBase
                     if (hasComponents)
                         callback({{Generator.GetCallbackArguments(callback, i)}});
             
-                    ecs_{{Generator.GetInvokerName(callback).ToLower()}}_end(record);
+                    Ecs.TableUnlock(world, table);
             
                     return hasComponents;
                 }
@@ -378,43 +376,17 @@ public class Invoker : GeneratorBase
                     
                     ecs_table_t* table = null;
                 
-                    if (!world.IsDeferred())
+                    if (!world.IsStage())
                     {
-                        Ecs.Assert(!world.IsStage(), nameof(ECS_INVALID_PARAMETER));
-                
-                        ecs_record_t* record = ecs_record_find(world, entity);
-                        
-                        if (record != null)
-                            table = record->table;
-                
-                        ecs_table_t* prev = table;
-                        ecs_table_t* next = null;
-                        
-                        ulong* added = stackalloc ulong[{{i + 1}}];
-                        int addedCount = 0;
-                        
-                        for (int i = 0; i < {{i + 1}}; i++)
-                        {
-                            next = ecs_table_add_id(world, prev, ids[i]);
-                            
-                            if (prev != next)
-                                added[addedCount++] = ids[i];
-                                
-                            prev = next;
-                        }
-            
-                        if (table != next)
-                        {
-                            ecs_type_t type = default;
-                            type.array = added;
-                            type.count = addedCount;
-                            ecs_commit(world, entity, record, next, &type, null);
-                            table = next;
-                        }
-                
+                        ecs_record_t* record = flecs_entities_get(world, entity);
+                        Ecs.Assert(record != null, nameof(ECS_INVALID_PARAMETER));
+
+                        flecs_add_ids(world, entity, ids, {{i + 1}});
+                        table = record->table;
+
                         if (!Ecs.GetPointers<{{Generator.TypeParameters[i]}}>(world, entity, record, table, pointers))
                             Ecs.Error(nameof(ECS_INTERNAL_ERROR));
-                
+
                         Ecs.TableLock(world, table);
                     }
                     else
@@ -424,7 +396,7 @@ public class Invoker : GeneratorBase
                 
                     callback({{Generator.GetCallbackArguments(callback, i)}});
                 
-                    if (!world.IsDeferred())
+                    if (table != null)
                         Ecs.TableUnlock(world, table);
                 
                     {{Generator.ModifiedChain[i]}}

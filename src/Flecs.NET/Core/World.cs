@@ -36,9 +36,8 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     /// <returns></returns>
     public static World Create()
     {
-        Ecs.Os.OverrideOsApi();
-
         World w = new World(ecs_init());
+        Ecs.Os.OverrideOsApi();
         w.EnsureBindingContext();
         w.InitBuiltinComponents();
 
@@ -73,9 +72,8 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         for (int i = 0; i < args.Length; i++)
             nativeStrings[i] = (NativeString)args[i];
 
-        Ecs.Os.OverrideOsApi();
-
         World w = new World(ecs_init_w_args(args.Length, (byte**)nativeStrings));
+        Ecs.Os.OverrideOsApi();
         w.EnsureBindingContext();
         w.InitBuiltinComponents();
 
@@ -173,30 +171,27 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     }
 
     /// <summary>
-    ///     Defer operations until end end of frame, or until DeferEnd() is called.
+    ///     Begin exclusive access.
     /// </summary>
-    /// <returns></returns>
-    public bool DeferBegin()
+    /// <param name="threadName">Optional thread name for improved debug messages.</param>
+    public void ExclusiveAccessBegin(string? threadName = null)
     {
-        return ecs_defer_begin(Handle);
+        // Flecs stores the pointer, so the string must outlive the exclusive access section.
+        WorldContext.ExclusiveAccessThreadName.Dispose();
+        WorldContext.ExclusiveAccessThreadName = (NativeString)threadName;
+        ecs_exclusive_access_begin(Handle, WorldContext.ExclusiveAccessThreadName);
     }
 
     /// <summary>
-    ///     End block of operations to defer.
+    ///     End exclusive access.
     /// </summary>
-    /// <returns></returns>
-    public bool DeferEnd()
+    /// <param name="lockWorld">Lock world for all threads, allow readonly operations.</param>
+    public void ExclusiveAccessEnd(bool lockWorld = false)
     {
-        return ecs_defer_end(Handle);
-    }
+        ecs_exclusive_access_end(Handle, lockWorld);
 
-    /// <summary>
-    ///     Test whether deferring is enabled.
-    /// </summary>
-    /// <returns></returns>
-    public bool IsDeferred()
-    {
-        return ecs_is_deferred(Handle);
+        WorldContext.ExclusiveAccessThreadName.Dispose();
+        WorldContext.ExclusiveAccessThreadName = default;
     }
 
     /// <summary>
@@ -336,6 +331,14 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     public void Dim(int entityCount)
     {
         ecs_dim(Handle, entityCount);
+    }
+
+    /// <summary>
+    ///     Free unused memory.
+    /// </summary>
+    public void Shrink()
+    {
+        ecs_shrink(Handle);
     }
 
     /// <summary>
@@ -1853,107 +1856,6 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     }
 
     /// <summary>
-    ///     All entities created in function are created with id.
-    /// </summary>
-    /// <param name="id">Id to be added to the created entities.</param>
-    /// <param name="callback">The callback.</param>
-    public void With(ulong id, Action callback)
-    {
-        ulong prev = ecs_set_with(Handle, id);
-        callback();
-        ecs_set_with(Handle, prev);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first id.</param>
-    /// <param name="second">The second id.</param>
-    /// <param name="callback">The callback.</param>
-    public void With(ulong first, ulong second, Action callback)
-    {
-        With(Ecs.Pair(first, second), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with type.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="T">The component.</typeparam>
-    public void With<T>(Action callback)
-    {
-        With(Type<T>.Id(Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with enum.
-    /// </summary>
-    /// <param name="value">The enum constant.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="T">The enum.</typeparam>
-    public void With<T>(T value, Action callback) where T : Enum
-    {
-        With<T>(Type<T>.Id(Handle, value), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="second">The second id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    public void With<TFirst>(ulong second, Action callback)
-    {
-        With(Ecs.Pair<TFirst>(second, Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void With<TFirst, TSecond>(Action callback)
-    {
-        With(Ecs.Pair<TFirst, TSecond>(Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="second">The second enum constant id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    /// <typeparam name="TSecond">The second enum.</typeparam>
-    public void With<TFirst, TSecond>(TSecond second, Action callback) where TSecond : Enum
-    {
-        With<TFirst>(Type<TSecond>.Id(Handle, second), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first enum constant.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first enum.</typeparam>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void With<TFirst, TSecond>(TFirst first, Action callback) where TFirst : Enum
-    {
-        WithSecond<TSecond>(Type<TFirst>.Id(Handle, first), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void WithSecond<TSecond>(ulong first, Action callback)
-    {
-        With(first, Type<TSecond>.Id(Handle), callback);
-    }
-
-    /// <summary>
     ///     All entities created in function are created in scope. All operations
     ///     called in function (such as lookup) are relative to scope.
     /// </summary>
@@ -2209,34 +2111,6 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     }
 
     /// <summary>
-    ///     Defer all operations called in function. If the world is already in
-    ///     deferred mode, do nothing.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    public void Defer(Action callback)
-    {
-        ecs_defer_begin(Handle);
-        callback();
-        ecs_defer_end(Handle);
-    }
-
-    /// <summary>
-    ///     Suspend deferring operations.
-    /// </summary>
-    public void DeferSuspend()
-    {
-        ecs_defer_suspend(Handle);
-    }
-
-    /// <summary>
-    ///     Resume deferring operations.
-    /// </summary>
-    public void DeferResume()
-    {
-        ecs_defer_resume(Handle);
-    }
-
-    /// <summary>
     ///     Check if entity id exists in the world.
     /// </summary>
     /// <param name="entity"></param>
@@ -2294,6 +2168,16 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     public void SetVersion(ulong entity)
     {
         ecs_set_version(Handle, entity);
+    }
+
+    /// <summary>
+    ///     Get the version of the provided entity.
+    /// </summary>
+    /// <param name="entity">The entity.</param>
+    /// <returns>The version of the entity.</returns>
+    public uint GetVersion(ulong entity)
+    {
+        return ecs_get_version(entity);
     }
 
     /// <summary>
@@ -2385,6 +2269,17 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     public Id Id<T>()
     {
         return new Id(Handle, Type<T>.Id(Handle));
+    }
+
+    /// <summary>
+    ///     Return the component id if it has been registered. This operation is similar to <see cref="Id{T}()"/>
+    ///     but will never automatically register the component.
+    /// </summary>
+    /// <typeparam name="T">The type for which to obtain the id.</typeparam>
+    /// <returns>The component id if registered, else 0.</returns>
+    public ulong IdIfRegistered<T>()
+    {
+        return Type<T>.IsRegistered(Handle, out ulong id) ? id : 0;
     }
 
     /// <summary>
@@ -2532,6 +2427,94 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     public Id PairSecond<TSecond>(ulong first)
     {
         return IdSecond<TSecond>(first);
+    }
+
+    /// <summary>
+    ///     Get the type info for an id.
+    /// </summary>
+    /// <param name="id">The id.</param>
+    /// <returns>The type info, or an empty type info if the id is not a component.</returns>
+    public TypeInfo TypeInfo(ulong id)
+    {
+        return new TypeInfo(ecs_get_type_info(Handle, id));
+    }
+
+    /// <summary>
+    ///     Get the type info for a pair.
+    /// </summary>
+    /// <param name="first">The first id.</param>
+    /// <param name="second">The second id.</param>
+    /// <returns>The type info, or an empty type info if the pair is not a component.</returns>
+    public TypeInfo TypeInfo(ulong first, ulong second)
+    {
+        return TypeInfo(Ecs.Pair(first, second));
+    }
+
+    /// <summary>
+    ///     Get the type info for a type.
+    /// </summary>
+    /// <typeparam name="T">The type.</typeparam>
+    /// <returns>The type info, or an empty type info if the type is not a component.</returns>
+    public TypeInfo TypeInfo<T>()
+    {
+        return TypeInfo(Type<T>.Id(Handle));
+    }
+
+    /// <summary>
+    ///     Get the type info for an enum.
+    /// </summary>
+    /// <param name="value">The enum constant.</param>
+    /// <typeparam name="T">The enum.</typeparam>
+    /// <returns>The type info, or an empty type info if the enum is not a component.</returns>
+    public TypeInfo TypeInfo<T>(T value) where T : Enum
+    {
+        return TypeInfo(Type<T>.Id(Handle, value));
+    }
+
+    /// <summary>
+    ///     Get the type info for a pair.
+    /// </summary>
+    /// <param name="second">The second id.</param>
+    /// <typeparam name="TFirst">The first type.</typeparam>
+    /// <returns>The type info, or an empty type info if the pair is not a component.</returns>
+    public TypeInfo TypeInfo<TFirst>(ulong second)
+    {
+        return TypeInfo(Ecs.Pair<TFirst>(second, Handle));
+    }
+
+    /// <summary>
+    ///     Get the type info for a pair.
+    /// </summary>
+    /// <typeparam name="TFirst">The first type.</typeparam>
+    /// <typeparam name="TSecond">The second type.</typeparam>
+    /// <returns>The type info, or an empty type info if the pair is not a component.</returns>
+    public TypeInfo TypeInfo<TFirst, TSecond>()
+    {
+        return TypeInfo(Ecs.Pair<TFirst, TSecond>(Handle));
+    }
+
+    /// <summary>
+    ///     Get the type info for a pair.
+    /// </summary>
+    /// <param name="second">The second enum constant.</param>
+    /// <typeparam name="TFirst">The first type.</typeparam>
+    /// <typeparam name="TSecond">The second enum.</typeparam>
+    /// <returns>The type info, or an empty type info if the pair is not a component.</returns>
+    public TypeInfo TypeInfo<TFirst, TSecond>(TSecond second) where TSecond : Enum
+    {
+        return TypeInfo<TFirst>(Type<TSecond>.Id(Handle, second));
+    }
+
+    /// <summary>
+    ///     Get the type info for a pair.
+    /// </summary>
+    /// <param name="first">The first enum constant.</param>
+    /// <typeparam name="TFirst">The first enum.</typeparam>
+    /// <typeparam name="TSecond">The second type.</typeparam>
+    /// <returns>The type info, or an empty type info if the pair is not a component.</returns>
+    public TypeInfo TypeInfo<TFirst, TSecond>(TFirst first) where TFirst : Enum
+    {
+        return TypeInfo(Ecs.PairSecond<TSecond>(Type<TFirst>.Id(Handle, first), Handle));
     }
 
     /// <summary>
@@ -3016,7 +2999,7 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         if (prevParent == parent)
             return Entity(result);
 
-        if (parent != 0)
+        if (parent != 0 && result.Has(Ecs.Module))
             parent.Add(Ecs.Module);
 
         // Module was reparented, cleanup old parent(s)
@@ -3024,7 +3007,45 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
 
         while (current != 0)
         {
+            // Stop if the old parent is an ancestor of the new parent
+            Entity ancestor = parent;
+            while (ancestor != 0 && ancestor != current)
+                ancestor = ancestor.Parent();
+
+            if (ancestor == current)
+                break;
+
             Entity next = current.Parent();
+
+            // Move entities that were created in the old parent to the renamed module
+            bool hasModules = false;
+            ecs_world_t* stage = ecs_get_stage(ecs_get_world(Handle), 0);
+            ecs_iter_t it = ecs_children(Handle, current);
+
+            while (ecs_children_next(&it))
+            {
+                for (int i = 0; i < it.count; i++)
+                {
+                    ulong child = it.entities[i];
+
+                    if (ecs_has_id(Handle, child, EcsModule))
+                    {
+                        hasModules = true;
+                        continue;
+                    }
+
+                    if (ecs_has_id(Handle, child, Ecs.Pair(FLECS_IDEcsPolyID_, EcsWildcard)))
+                        continue;
+
+                    ecs_add_id(stage, child, Ecs.Pair(EcsChildOf, result));
+                }
+            }
+
+            ecs_merge(stage);
+
+            if (hasModules)
+                break;
+
             current.Destruct();
             SetVersion(current);
             current = next;
@@ -3273,6 +3294,383 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         return new ScriptBuilder(Handle, name);
     }
 
+    /// <summary>
+    ///     Parses a script. The returned script can be evaluated any number of times with
+    ///     <see cref="ParsedScript.Eval()"/>.
+    /// </summary>
+    /// <param name="name">The script name (typically the file).</param>
+    /// <param name="code">The script code.</param>
+    /// <returns>The parsed script.</returns>
+    public ParsedScript ScriptParse(string name, string code)
+    {
+        using NativeString nativeName = (NativeString)name;
+        using NativeString nativeCode = (NativeString)code;
+
+        return new ParsedScript(ecs_script_parse(Handle, nativeName, nativeCode, null, null));
+    }
+
+    /// <summary>
+    ///     Parses a script. The returned script can be evaluated any number of times with
+    ///     <see cref="ParsedScript.Eval()"/>.
+    /// </summary>
+    /// <param name="name">The script name (typically the file).</param>
+    /// <param name="code">The script code.</param>
+    /// <param name="desc">The parse parameters.</param>
+    /// <param name="result">The parse result.</param>
+    /// <returns>The parsed script.</returns>
+    public ParsedScript ScriptParse(string name, string code, ref ecs_script_eval_desc_t desc,
+        ref ecs_script_eval_result_t result)
+    {
+        using NativeString nativeName = (NativeString)name;
+        using NativeString nativeCode = (NativeString)code;
+
+        fixed (ecs_script_eval_desc_t* descPtr = &desc)
+        fixed (ecs_script_eval_result_t* resultPtr = &result)
+            return new ParsedScript(ecs_script_parse(Handle, nativeName, nativeCode, descPtr, resultPtr));
+    }
+
+    /// <summary>
+    ///     Update the code of a script.
+    /// </summary>
+    /// <param name="script">The script entity.</param>
+    /// <param name="code">The new script code.</param>
+    /// <param name="instance">The script instance to update.</param>
+    /// <returns>Zero if success, non-zero if failed.</returns>
+    public int ScriptUpdate(ulong script, string code, ulong instance = 0)
+    {
+        using NativeString nativeCode = (NativeString)code;
+        return ecs_script_update(Handle, script, instance, nativeCode);
+    }
+
+    /// <summary>
+    ///     Reload a script from new code, or from its file when code is null.
+    /// </summary>
+    /// <param name="script">The script entity.</param>
+    /// <param name="code">The new script code, or null to reload from the script file.</param>
+    /// <returns>Zero if success, non-zero if failed.</returns>
+    public int ScriptReload(ulong script, string? code = null)
+    {
+        using NativeString nativeCode = (NativeString)code;
+        return ecs_script_reload(Handle, script, nativeCode);
+    }
+
+    /// <summary>
+    ///     Creates a script function builder.
+    /// </summary>
+    /// <param name="name">The function name.</param>
+    /// <returns>The function builder.</returns>
+    public FunctionBuilder Function(string name)
+    {
+        return new FunctionBuilder(Handle, name);
+    }
+
+    /// <summary>
+    ///     Creates a script method builder.
+    /// </summary>
+    /// <param name="type">The type the method belongs to.</param>
+    /// <param name="name">The method name.</param>
+    /// <returns>The function builder.</returns>
+    public FunctionBuilder Method(ulong type, string name)
+    {
+        return new FunctionBuilder(Handle, name, type, true);
+    }
+
+    /// <summary>
+    ///     Creates a script method builder.
+    /// </summary>
+    /// <param name="name">The method name.</param>
+    /// <typeparam name="T">The type the method belongs to.</typeparam>
+    /// <returns>The function builder.</returns>
+    public FunctionBuilder Method<T>(string name)
+    {
+        return Method(Type<T>.Id(Handle), name);
+    }
+
+    /// <summary>
+    ///     Creates a const variable that can be accessed by scripts. The value of a const variable is folded
+    ///     into expressions that use it.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="value">The variable value.</param>
+    /// <param name="parent">The variable parent. Defaults to the current scope.</param>
+    /// <typeparam name="T">The variable type.</typeparam>
+    /// <returns>The const variable entity.</returns>
+    public Entity ConstVar<T>(string name, T value, ulong parent = 0) where T : unmanaged
+    {
+        return ConstVar(name, Type<T>.Id(Handle), &value, parent);
+    }
+
+    /// <summary>
+    ///     Creates a const variable that can be accessed by scripts. The value of a const variable is folded
+    ///     into expressions that use it.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="type">The variable type.</param>
+    /// <param name="value">Pointer to the variable value. The value is copied.</param>
+    /// <param name="parent">The variable parent. Defaults to the current scope.</param>
+    /// <returns>The const variable entity.</returns>
+    public Entity ConstVar(string name, ulong type, void* value, ulong parent = 0)
+    {
+        using NativeString nativeName = (NativeString)name;
+
+        ecs_const_var_desc_t desc = default;
+        desc.name = nativeName;
+        desc.parent = parent != 0 ? parent : ecs_get_scope(Handle);
+        desc.type = type;
+        desc.value = value;
+
+        return new Entity(Handle, ecs_const_var_init(Handle, &desc));
+    }
+
+    /// <summary>
+    ///     Creates a mutable variable that can be accessed by scripts. Unlike a const variable the value of a
+    ///     mut variable is never folded into expressions, which means scripts that use it are reevaluated when
+    ///     the value changes.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="value">The variable value.</param>
+    /// <param name="parent">The variable parent. Defaults to the current scope.</param>
+    /// <typeparam name="T">The variable type.</typeparam>
+    /// <returns>The mut variable entity.</returns>
+    public Entity MutVar<T>(string name, T value, ulong parent = 0) where T : unmanaged
+    {
+        return MutVar(name, Type<T>.Id(Handle), &value, parent);
+    }
+
+    /// <summary>
+    ///     Creates a mutable variable that can be accessed by scripts. Unlike a const variable the value of a
+    ///     mut variable is never folded into expressions, which means scripts that use it are reevaluated when
+    ///     the value changes.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="type">The variable type.</param>
+    /// <param name="value">Pointer to the variable value. The value is copied.</param>
+    /// <param name="parent">The variable parent. Defaults to the current scope.</param>
+    /// <returns>The mut variable entity.</returns>
+    public Entity MutVar(string name, ulong type, void* value, ulong parent = 0)
+    {
+        using NativeString nativeName = (NativeString)name;
+
+        ecs_mut_var_desc_t desc = default;
+        desc.name = nativeName;
+        desc.parent = parent != 0 ? parent : ecs_get_scope(Handle);
+        desc.type = type;
+        desc.value = value;
+
+        return new Entity(Handle, ecs_mut_var_init(Handle, &desc));
+    }
+
+    /// <summary>
+    ///     Sets the value of a mut variable. Scripts that use the variable are reevaluated.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="value">The new value.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>Zero if success, non-zero if failed.</returns>
+    public int SetMutVar<T>(string name, T value) where T : unmanaged
+    {
+        ulong var = LookupScriptVar(name);
+
+        if (var == 0)
+            return -1;
+
+        using NativeString nativePath = (NativeString)ecs_get_path_w_sep(Handle, 0, var,
+            Pointers.DefaultSeparator, null);
+
+        return ecs_mut_var_set_w_type(Handle, nativePath, Type<T>.Id(Handle), sizeof(T), &value);
+    }
+
+    /// <summary>
+    ///     Gets the value of a const variable.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>The variable value, or the default value if the variable was not found.</returns>
+    public T GetConstVar<T>(string name) where T : unmanaged
+    {
+        return GetConstVar(name, default(T));
+    }
+
+    /// <summary>
+    ///     Gets the value of a const variable.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="defaultValue">The value returned when the variable was not found or cannot be cast.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>The variable value, or the default value if the variable was not found.</returns>
+    public T GetConstVar<T>(string name, T defaultValue) where T : unmanaged
+    {
+        ulong var = LookupScriptVar(name);
+
+        if (var == 0)
+        {
+            Ecs.Log.Warn($"Unresolved const variable '{name}', returning default");
+            return defaultValue;
+        }
+
+        return GetScriptVarValue(name, false, ecs_const_var_get(Handle, var), defaultValue);
+    }
+
+    /// <summary>
+    ///     Gets the value of a const variable as a string.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="defaultValue">The value returned when the variable was not found or cannot be cast.</param>
+    /// <returns>The variable value, or the default value if the variable was not found.</returns>
+    public string GetConstVar(string name, string defaultValue = "")
+    {
+        ulong var = LookupScriptVar(name);
+
+        if (var == 0)
+        {
+            Ecs.Log.Warn($"Unresolved const variable '{name}', returning default");
+            return defaultValue;
+        }
+
+        ecs_value_t value = ecs_const_var_get(Handle, var);
+
+        if (value.ptr == null)
+        {
+            Ecs.Log.Warn($"Entity '{name}' is not a const variable, returning default");
+            return defaultValue;
+        }
+
+        ecs_meta_cursor_t cursor = ecs_meta_cursor(Handle, value.type, value.ptr);
+        byte* str = ecs_meta_get_string(&cursor);
+
+        if (str == null)
+        {
+            Ecs.Log.Warn($"Cannot cast const variable '{name}' to a string, returning default");
+            return defaultValue;
+        }
+
+        return NativeString.GetString(str);
+    }
+
+    /// <summary>
+    ///     Gets the value of a mut variable.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>The variable value, or the default value if the variable was not found.</returns>
+    public T GetMutVar<T>(string name) where T : unmanaged
+    {
+        return GetMutVar(name, default(T));
+    }
+
+    /// <summary>
+    ///     Gets the value of a mut variable.
+    /// </summary>
+    /// <param name="name">The variable name.</param>
+    /// <param name="defaultValue">The value returned when the variable was not found or cannot be cast.</param>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <returns>The variable value, or the default value if the variable was not found.</returns>
+    public T GetMutVar<T>(string name, T defaultValue) where T : unmanaged
+    {
+        ulong var = LookupScriptVar(name);
+
+        if (var == 0)
+        {
+            Ecs.Log.Warn($"Unresolved mut variable '{name}', returning default");
+            return defaultValue;
+        }
+
+        return GetScriptVarValue(name, true, ecs_mut_var_get(Handle, var), defaultValue);
+    }
+
+    private ulong LookupScriptVar(string name)
+    {
+        using NativeString nativeName = (NativeString)name;
+        return ecs_lookup_path_w_sep(Handle, 0, nativeName, Pointers.DefaultSeparator,
+            Pointers.DefaultSeparator, false);
+    }
+
+    private T GetScriptVarValue<T>(string name, bool mutable, ecs_value_t value, T defaultValue)
+        where T : unmanaged
+    {
+        string kind = mutable ? "mut" : "const";
+
+        if (value.ptr == null)
+        {
+            Ecs.Log.Warn($"Entity '{name}' is not a {kind} variable, returning default");
+            return defaultValue;
+        }
+
+        if (Type<T>.Id(Handle) == value.type)
+            return *(T*)value.ptr;
+
+        TypeCode typeCode = Type.GetTypeCode(typeof(T));
+
+        if (typeCode == TypeCode.Object || typeCode == TypeCode.Boolean)
+        {
+            Ecs.Log.Warn($"Cannot cast {kind} variable '{name}' to '{typeof(T).Name}', returning default");
+            return defaultValue;
+        }
+
+        ecs_meta_cursor_t cursor = ecs_meta_cursor(Handle, value.type, value.ptr);
+
+        switch (typeCode)
+        {
+            case TypeCode.Char:
+            {
+                char v = (char)ecs_meta_get_char(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.SByte:
+            {
+                sbyte v = (sbyte)ecs_meta_get_int(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Int16:
+            {
+                short v = (short)ecs_meta_get_int(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Int32:
+            {
+                int v = (int)ecs_meta_get_int(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Int64:
+            {
+                long v = ecs_meta_get_int(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Byte:
+            {
+                byte v = (byte)ecs_meta_get_uint(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.UInt16:
+            {
+                ushort v = (ushort)ecs_meta_get_uint(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.UInt32:
+            {
+                uint v = (uint)ecs_meta_get_uint(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.UInt64:
+            {
+                ulong v = ecs_meta_get_uint(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Single:
+            {
+                float v = (float)ecs_meta_get_float(&cursor);
+                return *(T*)&v;
+            }
+            case TypeCode.Double:
+            {
+                double v = ecs_meta_get_float(&cursor);
+                return *(T*)&v;
+            }
+            default:
+                Ecs.Log.Warn($"Cannot cast {kind} variable '{name}' to '{typeof(T).Name}', returning default");
+                return defaultValue;
+        }
+    }
     /// <summary>
     ///     Convert value to string.
     /// </summary>
@@ -3929,25 +4327,6 @@ public unsafe partial struct World
     }
 
     /// <summary>
-    ///     Set current with id.
-    /// </summary>
-    /// <param name="with">The id.</param>
-    /// <returns>The previous id.</returns>
-    public Entity SetWith(ulong with)
-    {
-        return new Entity(Handle, ecs_set_with(Handle, with));
-    }
-
-    /// <summary>
-    ///     Get current with id.
-    /// </summary>
-    /// <returns>The last id provided to ecs_set_with().</returns>
-    public Entity GetWith()
-    {
-        return new Entity(Handle, ecs_get_with(Handle));
-    }
-
-    /// <summary>
     ///     All entities created in function are created in scope. All operations
     ///     called in function (such as lookup) are relative to scope.
     /// </summary>
@@ -3979,119 +4358,6 @@ public unsafe partial struct World
     public void Scope<T>(T value, Ecs.WorldCallback callback) where T : Enum
     {
         Scope(Type<T>.Id(Handle, value), callback);
-    }
-
-    /// <summary>
-    ///     Defer all operations called in function. If the world is already in
-    ///     deferred mode, do nothing.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    public void Defer(Ecs.WorldCallback callback)
-    {
-        ecs_defer_begin(Handle);
-        callback(Handle);
-        ecs_defer_end(Handle);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with id.
-    /// </summary>
-    /// <param name="id">Id to be added to the created entities.</param>
-    /// <param name="callback">The callback.</param>
-    public void With(ulong id, Ecs.WorldCallback callback)
-    {
-        ulong prev = ecs_set_with(Handle, id);
-        callback(Handle);
-        ecs_set_with(Handle, prev);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first id.</param>
-    /// <param name="second">The second id.</param>
-    /// <param name="callback">The callback.</param>
-    public void With(ulong first, ulong second, Ecs.WorldCallback callback)
-    {
-        With(Ecs.Pair(first, second), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with type.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="T">The component.</typeparam>
-    public void With<T>(Ecs.WorldCallback callback)
-    {
-        With(Type<T>.Id(Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with enum.
-    /// </summary>
-    /// <param name="value">The enum constant.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="T">The enum.</typeparam>
-    public void With<T>(T value, Ecs.WorldCallback callback) where T : Enum
-    {
-        With<T>(Type<T>.Id(Handle, value), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="second">The second id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    public void With<TFirst>(ulong second, Ecs.WorldCallback callback)
-    {
-        With(Ecs.Pair<TFirst>(second, Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void With<TFirst, TSecond>(Ecs.WorldCallback callback)
-    {
-        With(Ecs.Pair<TFirst, TSecond>(Handle), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="second">The second enum constant id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first component.</typeparam>
-    /// <typeparam name="TSecond">The second enum.</typeparam>
-    public void With<TFirst, TSecond>(TSecond second, Ecs.WorldCallback callback) where TSecond : Enum
-    {
-        With<TFirst>(Type<TSecond>.Id(Handle, second), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first enum constant.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TFirst">The first enum.</typeparam>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void With<TFirst, TSecond>(TFirst first, Ecs.WorldCallback callback) where TFirst : Enum
-    {
-        WithSecond<TSecond>(Type<TFirst>.Id(Handle, first), callback);
-    }
-
-    /// <summary>
-    ///     All entities created in function are created with pair.
-    /// </summary>
-    /// <param name="first">The first id.</param>
-    /// <param name="callback">The callback.</param>
-    /// <typeparam name="TSecond">The second component.</typeparam>
-    public void WithSecond<TSecond>(ulong first, Ecs.WorldCallback callback)
-    {
-        With(first, Type<TSecond>.Id(Handle), callback);
     }
 
     /// <summary>

@@ -1159,6 +1159,46 @@ public unsafe partial struct Component<TComponent>
         return ref SetOnRemoveCallback(callback, (delegate*<ecs_iter_t*, void>)&Functions.OnRemoveEachIterPointerCallbackPointer<TComponent>);
     }
 
+    /// <summary>
+    ///     Registers a custom compare hook for this component.
+    /// </summary>
+    /// <param name="callback">The comparison callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref Component<TComponent> OnCompare(Ecs.CompareCallback<TComponent> callback)
+    {
+        return ref SetOnCompareCallback(callback, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, int>)&Functions.OnCompareCallbackDelegate<TComponent>);
+    }
+
+    /// <summary>
+    ///     Registers a custom compare hook for this component.
+    /// </summary>
+    /// <param name="callback">The comparison callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref Component<TComponent> OnCompare(delegate*<ref TComponent, ref TComponent, TypeInfo, int> callback)
+    {
+        return ref SetOnCompareCallback(callback, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, int>)&Functions.OnCompareCallbackPointer<TComponent>);
+    }
+
+    /// <summary>
+    ///     Registers a custom equals hook for this component.
+    /// </summary>
+    /// <param name="callback">The equality callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref Component<TComponent> OnEquals(Ecs.EqualsCallback<TComponent> callback)
+    {
+        return ref SetOnEqualsCallback(callback, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, bool>)&Functions.OnEqualsCallbackDelegate<TComponent>);
+    }
+
+    /// <summary>
+    ///     Registers a custom equals hook for this component.
+    /// </summary>
+    /// <param name="callback">The equality callback function.</param>
+    /// <returns>Reference to self.</returns>
+    public ref Component<TComponent> OnEquals(delegate*<ref TComponent, ref TComponent, TypeInfo, bool> callback)
+    {
+        return ref SetOnEqualsCallback(callback, (delegate*<TypeHooksContext*, void*, void*, ecs_type_info_t*, bool>)&Functions.OnEqualsCallbackPointer<TComponent>);
+    }
+
     private ref Component<TComponent> SetOnAddCallback<T>(T callback, void* invoker) where T : Delegate
     {
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
@@ -1209,6 +1249,46 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_remove = &Functions.OnRemoveCallback;
         context->OnRemove.Set(callback, invoker);
+        ecs_set_hooks_id(World, Id, &hooks);
+        return ref this;
+    }
+
+    private ref Component<TComponent> SetOnCompareCallback<T>(T callback, void* invoker) where T : Delegate
+    {
+        GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
+        hooks.cmp = &Functions.OnCompareCallback;
+        hooks.flags &= ~(ECS_TYPE_HOOK_CMP_ILLEGAL | ECS_TYPE_HOOK_EQUALS_ILLEGAL);
+        context->OnCompare.Set(callback, invoker);
+        ecs_set_hooks_id(World, Id, &hooks);
+        return ref this;
+    }
+
+    private ref Component<TComponent> SetOnCompareCallback(void* callback, void* invoker)
+    {
+        GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
+        hooks.cmp = &Functions.OnCompareCallback;
+        hooks.flags &= ~(ECS_TYPE_HOOK_CMP_ILLEGAL | ECS_TYPE_HOOK_EQUALS_ILLEGAL);
+        context->OnCompare.Set(callback, invoker);
+        ecs_set_hooks_id(World, Id, &hooks);
+        return ref this;
+    }
+
+    private ref Component<TComponent> SetOnEqualsCallback<T>(T callback, void* invoker) where T : Delegate
+    {
+        GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
+        hooks.equals = Functions.OnEqualsHook;
+        hooks.flags &= ~ECS_TYPE_HOOK_EQUALS_ILLEGAL;
+        context->OnEquals.Set(callback, invoker);
+        ecs_set_hooks_id(World, Id, &hooks);
+        return ref this;
+    }
+
+    private ref Component<TComponent> SetOnEqualsCallback(void* callback, void* invoker)
+    {
+        GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
+        hooks.equals = Functions.OnEqualsHook;
+        hooks.flags &= ~ECS_TYPE_HOOK_EQUALS_ILLEGAL;
+        context->OnEquals.Set(callback, invoker);
         ecs_set_hooks_id(World, Id, &hooks);
         return ref this;
     }

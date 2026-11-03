@@ -84,6 +84,8 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     /// <returns></returns>
     public Pipeline Build()
     {
+        QueryBuilder.AssertReusable();
+
         fixed (ecs_pipeline_desc_t* pipelineDesc = &Desc)
         {
             pipelineDesc->query = QueryBuilder.Desc;
@@ -92,6 +94,9 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
 
             if (entity == 0)
                 Ecs.Error("Pipeline failed to init.");
+
+            // The pipeline query owns the contexts after initialization.
+            QueryBuilder.MarkBuilt();
 
             return new Pipeline(entity);
         }

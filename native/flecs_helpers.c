@@ -54,6 +54,7 @@ extern void* EcsColorCss;
 extern void* EcsColorHsl;
 extern void* EcsColorRgb;
 extern void* EcsConstant;
+extern void* EcsCopy;
 extern void* EcsCounter;
 extern void* EcsCounterId;
 extern void* EcsCounterIncrement;
@@ -157,6 +158,7 @@ extern void* EcsOnDeleteTarget;
 extern void* EcsOneOf;
 extern void* EcsOnInstantiate;
 extern void* EcsOnLoad;
+extern void* EcsOnQueryCacheRevalidate;
 extern void* EcsOnRemove;
 extern void* EcsOnSet;
 extern void* EcsOnStart;
@@ -166,7 +168,6 @@ extern void* EcsOnTableDelete;
 extern void* EcsOnUpdate;
 extern void* EcsOnValidate;
 extern void* EcsOrderedChildren;
-extern void* EcsOverride;
 extern void* EcsPairIsTag;
 extern void* EcsPanic;
 extern void* EcsParentDepth;
@@ -204,10 +205,11 @@ extern void* EcsRemove;
 extern void* EcsScopeClose;
 extern void* EcsScopeOpen;
 extern void* EcsScriptTemplate;
+extern void* EcsScriptTemplateManual;
+extern void* EcsScriptTemplatePending;
 extern void* EcsScriptVectorType;
 extern void* EcsSeconds;
 extern void* EcsSingleton;
-extern void* EcsSlotOf;
 extern void* EcsSparse;
 extern void* EcsSpeed;
 extern void* EcsSymbol;
@@ -255,6 +257,8 @@ extern void* FLECS_IDecs_id_tID_;
 extern void* FLECS_IDecs_iptr_tID_;
 extern void* FLECS_IDecs_misc_memory_tID_;
 extern void* FLECS_IDecs_query_memory_tID_;
+extern void* FLECS_IDecs_script_template_ref_tID_;
+extern void* FLECS_IDecs_shell_resource_tID_;
 extern void* FLECS_IDecs_string_tID_;
 extern void* FLECS_IDecs_table_histogram_tID_;
 extern void* FLECS_IDecs_table_memory_tID_;
@@ -263,6 +267,7 @@ extern void* FLECS_IDecs_u32_tID_;
 extern void* FLECS_IDecs_u64_tID_;
 extern void* FLECS_IDecs_u8_tID_;
 extern void* FLECS_IDecs_uptr_tID_;
+extern void* FLECS_IDecs_value_tID_;
 extern void* FLECS_IDEcsAlertCriticalID_;
 extern void* FLECS_IDEcsAlertErrorID_;
 extern void* FLECS_IDEcsAlertID_;
@@ -273,16 +278,17 @@ extern void* FLECS_IDEcsAlertTimeoutID_;
 extern void* FLECS_IDEcsAlertWarningID_;
 extern void* FLECS_IDEcsArrayID_;
 extern void* FLECS_IDEcsBitmaskID_;
+extern void* FLECS_IDEcsCommandSessionID_;
 extern void* FLECS_IDEcsComponentID_;
 extern void* FLECS_IDEcsConstantsID_;
 extern void* FLECS_IDEcsCounterID_;
 extern void* FLECS_IDEcsCounterIdID_;
 extern void* FLECS_IDEcsCounterIncrementID_;
-extern void* FLECS_IDEcsDefaultChildComponentID_;
 extern void* FLECS_IDEcsDocDescriptionID_;
 extern void* FLECS_IDEcsEnumID_;
 extern void* FLECS_IDEcsGaugeID_;
 extern void* FLECS_IDEcsIdentifierID_;
+extern void* FLECS_IDEcsMapID_;
 extern void* FLECS_IDEcsMemberID_;
 extern void* FLECS_IDEcsMemberRangesID_;
 extern void* FLECS_IDEcsMetricID_;
@@ -297,12 +303,21 @@ extern void* FLECS_IDEcsPolyID_;
 extern void* FLECS_IDEcsPrimitiveID_;
 extern void* FLECS_IDEcsRateFilterID_;
 extern void* FLECS_IDEcsRestID_;
+extern void* FLECS_IDEcsScriptActivateEventID_;
 extern void* FLECS_IDEcsScriptConstVarID_;
+extern void* FLECS_IDEcsScriptFocusEventID_;
 extern void* FLECS_IDEcsScriptFunctionID_;
 extern void* FLECS_IDEcsScriptID_;
+extern void* FLECS_IDEcsScriptKeyboardEventID_;
 extern void* FLECS_IDEcsScriptMethodID_;
+extern void* FLECS_IDEcsScriptMouseEventID_;
+extern void* FLECS_IDEcsScriptMutVarID_;
 extern void* FLECS_IDEcsScriptRngID_;
+extern void* FLECS_IDEcsScriptShellID_;
+extern void* FLECS_IDEcsScriptTaskID_;
 extern void* FLECS_IDEcsScriptTemplateID_;
+extern void* FLECS_IDEcsScriptTemplateManualID_;
+extern void* FLECS_IDEcsScriptTemplatePendingID_;
 extern void* FLECS_IDEcsScriptVectorTypeID_;
 extern void* FLECS_IDEcsStructID_;
 extern void* FLECS_IDEcsSystemStatsID_;
@@ -320,6 +335,7 @@ extern void* FLECS_IDEcsWorldSummaryID_;
 extern void* FLECS_IDFlecsAlertsID_;
 extern void* FLECS_IDFlecsMetricsID_;
 extern void* FLECS_IDFlecsStatsID_;
+extern void* FlecsMeta;
 BINDGEN_API void* ECS_AUTO_OVERRIDE_BindgenGetExtern() {
     return &ECS_AUTO_OVERRIDE;
 }
@@ -472,6 +488,9 @@ BINDGEN_API void* EcsColorRgb_BindgenGetExtern() {
 }
 BINDGEN_API void* EcsConstant_BindgenGetExtern() {
     return &EcsConstant;
+}
+BINDGEN_API void* EcsCopy_BindgenGetExtern() {
+    return &EcsCopy;
 }
 BINDGEN_API void* EcsCounter_BindgenGetExtern() {
     return &EcsCounter;
@@ -782,6 +801,9 @@ BINDGEN_API void* EcsOnInstantiate_BindgenGetExtern() {
 BINDGEN_API void* EcsOnLoad_BindgenGetExtern() {
     return &EcsOnLoad;
 }
+BINDGEN_API void* EcsOnQueryCacheRevalidate_BindgenGetExtern() {
+    return &EcsOnQueryCacheRevalidate;
+}
 BINDGEN_API void* EcsOnRemove_BindgenGetExtern() {
     return &EcsOnRemove;
 }
@@ -808,9 +830,6 @@ BINDGEN_API void* EcsOnValidate_BindgenGetExtern() {
 }
 BINDGEN_API void* EcsOrderedChildren_BindgenGetExtern() {
     return &EcsOrderedChildren;
-}
-BINDGEN_API void* EcsOverride_BindgenGetExtern() {
-    return &EcsOverride;
 }
 BINDGEN_API void* EcsPairIsTag_BindgenGetExtern() {
     return &EcsPairIsTag;
@@ -923,6 +942,12 @@ BINDGEN_API void* EcsScopeOpen_BindgenGetExtern() {
 BINDGEN_API void* EcsScriptTemplate_BindgenGetExtern() {
     return &EcsScriptTemplate;
 }
+BINDGEN_API void* EcsScriptTemplateManual_BindgenGetExtern() {
+    return &EcsScriptTemplateManual;
+}
+BINDGEN_API void* EcsScriptTemplatePending_BindgenGetExtern() {
+    return &EcsScriptTemplatePending;
+}
 BINDGEN_API void* EcsScriptVectorType_BindgenGetExtern() {
     return &EcsScriptVectorType;
 }
@@ -931,9 +956,6 @@ BINDGEN_API void* EcsSeconds_BindgenGetExtern() {
 }
 BINDGEN_API void* EcsSingleton_BindgenGetExtern() {
     return &EcsSingleton;
-}
-BINDGEN_API void* EcsSlotOf_BindgenGetExtern() {
-    return &EcsSlotOf;
 }
 BINDGEN_API void* EcsSparse_BindgenGetExtern() {
     return &EcsSparse;
@@ -1076,6 +1098,12 @@ BINDGEN_API void* FLECS_IDecs_misc_memory_tID__BindgenGetExtern() {
 BINDGEN_API void* FLECS_IDecs_query_memory_tID__BindgenGetExtern() {
     return &FLECS_IDecs_query_memory_tID_;
 }
+BINDGEN_API void* FLECS_IDecs_script_template_ref_tID__BindgenGetExtern() {
+    return &FLECS_IDecs_script_template_ref_tID_;
+}
+BINDGEN_API void* FLECS_IDecs_shell_resource_tID__BindgenGetExtern() {
+    return &FLECS_IDecs_shell_resource_tID_;
+}
 BINDGEN_API void* FLECS_IDecs_string_tID__BindgenGetExtern() {
     return &FLECS_IDecs_string_tID_;
 }
@@ -1099,6 +1127,9 @@ BINDGEN_API void* FLECS_IDecs_u8_tID__BindgenGetExtern() {
 }
 BINDGEN_API void* FLECS_IDecs_uptr_tID__BindgenGetExtern() {
     return &FLECS_IDecs_uptr_tID_;
+}
+BINDGEN_API void* FLECS_IDecs_value_tID__BindgenGetExtern() {
+    return &FLECS_IDecs_value_tID_;
 }
 BINDGEN_API void* FLECS_IDEcsAlertCriticalID__BindgenGetExtern() {
     return &FLECS_IDEcsAlertCriticalID_;
@@ -1130,6 +1161,9 @@ BINDGEN_API void* FLECS_IDEcsArrayID__BindgenGetExtern() {
 BINDGEN_API void* FLECS_IDEcsBitmaskID__BindgenGetExtern() {
     return &FLECS_IDEcsBitmaskID_;
 }
+BINDGEN_API void* FLECS_IDEcsCommandSessionID__BindgenGetExtern() {
+    return &FLECS_IDEcsCommandSessionID_;
+}
 BINDGEN_API void* FLECS_IDEcsComponentID__BindgenGetExtern() {
     return &FLECS_IDEcsComponentID_;
 }
@@ -1145,9 +1179,6 @@ BINDGEN_API void* FLECS_IDEcsCounterIdID__BindgenGetExtern() {
 BINDGEN_API void* FLECS_IDEcsCounterIncrementID__BindgenGetExtern() {
     return &FLECS_IDEcsCounterIncrementID_;
 }
-BINDGEN_API void* FLECS_IDEcsDefaultChildComponentID__BindgenGetExtern() {
-    return &FLECS_IDEcsDefaultChildComponentID_;
-}
 BINDGEN_API void* FLECS_IDEcsDocDescriptionID__BindgenGetExtern() {
     return &FLECS_IDEcsDocDescriptionID_;
 }
@@ -1159,6 +1190,9 @@ BINDGEN_API void* FLECS_IDEcsGaugeID__BindgenGetExtern() {
 }
 BINDGEN_API void* FLECS_IDEcsIdentifierID__BindgenGetExtern() {
     return &FLECS_IDEcsIdentifierID_;
+}
+BINDGEN_API void* FLECS_IDEcsMapID__BindgenGetExtern() {
+    return &FLECS_IDEcsMapID_;
 }
 BINDGEN_API void* FLECS_IDEcsMemberID__BindgenGetExtern() {
     return &FLECS_IDEcsMemberID_;
@@ -1202,8 +1236,14 @@ BINDGEN_API void* FLECS_IDEcsRateFilterID__BindgenGetExtern() {
 BINDGEN_API void* FLECS_IDEcsRestID__BindgenGetExtern() {
     return &FLECS_IDEcsRestID_;
 }
+BINDGEN_API void* FLECS_IDEcsScriptActivateEventID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptActivateEventID_;
+}
 BINDGEN_API void* FLECS_IDEcsScriptConstVarID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptConstVarID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptFocusEventID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptFocusEventID_;
 }
 BINDGEN_API void* FLECS_IDEcsScriptFunctionID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptFunctionID_;
@@ -1211,14 +1251,35 @@ BINDGEN_API void* FLECS_IDEcsScriptFunctionID__BindgenGetExtern() {
 BINDGEN_API void* FLECS_IDEcsScriptID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptID_;
 }
+BINDGEN_API void* FLECS_IDEcsScriptKeyboardEventID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptKeyboardEventID_;
+}
 BINDGEN_API void* FLECS_IDEcsScriptMethodID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptMethodID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptMouseEventID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptMouseEventID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptMutVarID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptMutVarID_;
 }
 BINDGEN_API void* FLECS_IDEcsScriptRngID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptRngID_;
 }
+BINDGEN_API void* FLECS_IDEcsScriptShellID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptShellID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptTaskID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptTaskID_;
+}
 BINDGEN_API void* FLECS_IDEcsScriptTemplateID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptTemplateID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptTemplateManualID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptTemplateManualID_;
+}
+BINDGEN_API void* FLECS_IDEcsScriptTemplatePendingID__BindgenGetExtern() {
+    return &FLECS_IDEcsScriptTemplatePendingID_;
 }
 BINDGEN_API void* FLECS_IDEcsScriptVectorTypeID__BindgenGetExtern() {
     return &FLECS_IDEcsScriptVectorTypeID_;
@@ -1270,4 +1331,7 @@ BINDGEN_API void* FLECS_IDFlecsMetricsID__BindgenGetExtern() {
 }
 BINDGEN_API void* FLECS_IDFlecsStatsID__BindgenGetExtern() {
     return &FLECS_IDFlecsStatsID_;
+}
+BINDGEN_API void* FlecsMeta_BindgenGetExtern() {
+    return &FlecsMeta;
 }

@@ -100,6 +100,32 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     }
 
     /// <summary>
+    ///     Get the number of allocated elements in the table.
+    /// </summary>
+    /// <returns></returns>
+    public int Size()
+    {
+        return ecs_table_size(Handle);
+    }
+
+    /// <summary>
+    ///     Get the array of entity ids.
+    /// </summary>
+    /// <returns></returns>
+    public ulong* Entities()
+    {
+        return ecs_table_entities(Handle);
+    }
+
+    /// <summary>
+    ///     Delete entities in the table.
+    /// </summary>
+    public void ClearEntities()
+    {
+        ecs_table_clear_entities(World, Handle);
+    }
+
+    /// <summary>
     ///     Find type index for (component) id.
     /// </summary>
     /// <param name="id"></param>
@@ -652,6 +678,50 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public int Depth<T>(T value) where T : Enum
     {
         return Depth(Type<T>.Id(World, value));
+    }
+
+    /// <summary>
+    ///     Get the table records array.
+    /// </summary>
+    /// <returns></returns>
+    public ecs_table_records_t Records()
+    {
+        return flecs_table_records(Handle);
+    }
+
+    /// <summary>
+    ///     Get the table id.
+    /// </summary>
+    /// <returns></returns>
+    public ulong Id()
+    {
+        return flecs_table_id(Handle);
+    }
+
+    /// <summary>
+    ///     Lock the table.
+    /// </summary>
+    public void Lock()
+    {
+        ecs_table_lock(World, Handle);
+    }
+
+    /// <summary>
+    ///     Unlock the table.
+    /// </summary>
+    public void Unlock()
+    {
+        ecs_table_unlock(World, Handle);
+    }
+
+    /// <summary>
+    ///     Check if the table has the specified flags.
+    /// </summary>
+    /// <param name="flags">The flags to check for.</param>
+    /// <returns>True if the table has the specified flags.</returns>
+    public bool HasFlags(uint flags)
+    {
+        return ecs_table_has_flags(Handle, flags);
     }
 
     /// <summary>

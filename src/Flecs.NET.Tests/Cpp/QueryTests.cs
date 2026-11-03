@@ -2656,14 +2656,13 @@ public unsafe class QueryTests
         Entity e = world.Entity().Add<A>();
 
         int count = 0;
-        world.Defer(() =>
+        World stage = world.GetStage(0);
+        q.Each((Entity ent) =>
         {
-            q.Each((Entity ent) =>
-            {
-                ent.Add<B>();
-                count++;
-            });
+            ent.Stage(stage).Add<B>();
+            count++;
         });
+        stage.Merge();
 
         Assert.Equal(1, count);
         Assert.True(e.Has<B>());
@@ -3561,5 +3560,1032 @@ public unsafe class QueryTests
                 it.Targets(1, (Entity _) => { });
             });
         });
+    }
+
+    [Fact]
+    private void ComponentInheritanceBaseField()
+    {
+        using World world = World.Create();
+
+        world.Component<InheritUnit>();
+        world.Component<InheritWarrior>().Entity.IsA<InheritUnit>();
+
+        Entity w1 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 10 }, Dmg = 1 });
+        Entity w2 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 20 }, Dmg = 2 });
+        Entity w3 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 30 }, Dmg = 3 });
+
+        int sum = 0, count = 0;
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+                for (int i = 0; i < it.Count(); i++)
+                {
+                    sum += f[i].Hp;
+                    count++;
+                }
+            }
+        });
+
+        Assert.Equal(3, count);
+        Assert.Equal(60, sum);
+
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+                for (int i = 0; i < it.Count(); i++)
+                    f[i].Hp *= 2;
+            }
+        });
+
+        Assert.Equal(20, w1.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(40, w2.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(60, w3.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(1, w1.Get<InheritWarrior>().Dmg);
+    }
+
+    [Fact]
+    private void SparseQueryEach()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<VelocityDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity()
+            .Set(new PositionDfOr { X = 10, Y = 20 })
+            .Set(new VelocityDfOr { X = 1, Y = 2 });
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+        Entity e3 = world.Entity().Set(new VelocityDfOr { X = 3, Y = 4 });
+
+        SparseQuery<PositionDfOr, VelocityDfOr> q = world.SparseQuery<PositionDfOr, VelocityDfOr>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p, ref VelocityDfOr v) =>
+        {
+            Assert.True(e == e1);
+            Assert.Equal(10, p.X);
+            Assert.Equal(20, p.Y);
+            p.X += v.X;
+            p.Y += v.Y;
+            count++;
+        });
+
+        Assert.Equal(1, count);
+        Assert.Equal(1, q.Count());
+
+        PositionDfOr* p1 = e1.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p1->X);
+        Assert.Equal(22, p1->Y);
+
+        Assert.True(e2.IsAlive());
+        Assert.True(e3.IsAlive());
+    }
+
+    [Fact]
+    private void SparseQueryEmpty()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<VelocityDfOr>().Add(Ecs.DontFragment);
+
+        SparseQuery<PositionDfOr, VelocityDfOr> q = world.SparseQuery<PositionDfOr, VelocityDfOr>();
+
+        int count = 0;
+        q.Each((ref PositionDfOr _, ref VelocityDfOr _) => { count++; });
+
+        Assert.Equal(0, count);
+        Assert.Equal(0, q.Count());
+    }
+
+    [Fact]
+    private void SparseQueryRecycledEntity()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDfOr { X = 10, Y = 20 });
+        e1.Destruct();
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+        Assert.True(e1 != e2);
+        Assert.Equal((uint)e1.Id.Value, (uint)e2.Id.Value);
+
+        SparseQuery<PositionDfOr> q = world.SparseQuery<PositionDfOr>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p) =>
+        {
+            Assert.True(e == e2);
+            Assert.Equal(30, p.X);
+            Assert.Equal(40, p.Y);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    private void SparseQuerySkipPrefabDisabled()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e = world.Entity().Set(new PositionDfOr { X = 10, Y = 20 });
+        world.Entity().Add(Ecs.Prefab).Set(new PositionDfOr { X = 1, Y = 2 });
+        world.Entity().Add(Ecs.Disabled).Set(new PositionDfOr { X = 3, Y = 4 });
+        world.Entity().Add(EcsNotQueryable).Set(new PositionDfOr { X = 5, Y = 6 });
+
+        SparseQuery<PositionDfOr> q = world.SparseQuery<PositionDfOr>();
+
+        int count = 0;
+        q.Each((Entity ent, ref PositionDfOr pos) =>
+        {
+            Assert.True(ent == e);
+            Assert.Equal(10, pos.X);
+            Assert.Equal(20, pos.Y);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+        Assert.Equal(1, q.Count());
+    }
+
+    [Fact]
+    private void SparseQueryTypeNoOnInstantiate()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDf>().Add(Ecs.DontFragment);
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDf { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDf { X = 30, Y = 40 });
+
+        SparseQuery<PositionDf> q = world.SparseQuery<PositionDf>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDf p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            count++;
+        });
+
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    private void SparseQueryEachOnInstantiateOverride()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDfOr { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+        Entity e3 = world.Entity();
+
+        SparseQuery<PositionDfOr> q = world.SparseQuery<PositionDfOr>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            p.X++;
+            p.Y++;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(2, q.Count());
+
+        PositionDfOr* p1 = e1.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p1->X);
+        Assert.Equal(21, p1->Y);
+
+        PositionDfOr* p2 = e2.GetPtr<PositionDfOr>();
+        Assert.Equal(31, p2->X);
+        Assert.Equal(41, p2->Y);
+
+        Assert.True(e3.IsAlive());
+    }
+
+    [Fact]
+    private void SparseQueryEachOnInstantiateDontInherit()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfDi>().Add(Ecs.DontFragment);
+        world.Component<PositionDfDi>().Add(Ecs.OnInstantiate, Ecs.DontInherit);
+
+        Entity e1 = world.Entity().Set(new PositionDfDi { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDfDi { X = 30, Y = 40 });
+
+        SparseQuery<PositionDfDi> q = world.SparseQuery<PositionDfDi>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfDi p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            p.X++;
+            p.Y++;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(2, q.Count());
+
+        PositionDfDi* p1 = e1.GetPtr<PositionDfDi>();
+        Assert.Equal(11, p1->X);
+        Assert.Equal(21, p1->Y);
+
+        PositionDfDi* p2 = e2.GetPtr<PositionDfDi>();
+        Assert.Equal(31, p2->X);
+        Assert.Equal(41, p2->Y);
+    }
+
+    [Fact]
+    private void SparseQueryEachOnInstantiateMixedTerms()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<PositionDfDi>().Add(Ecs.DontFragment);
+        world.Component<PositionDfDi>().Add(Ecs.OnInstantiate, Ecs.DontInherit);
+
+        Entity e1 = world.Entity()
+            .Set(new PositionDfOr { X = 10, Y = 20 })
+            .Set(new PositionDfDi { X = 1, Y = 2 });
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+        Entity e3 = world.Entity().Set(new PositionDfDi { X = 3, Y = 4 });
+
+        SparseQuery<PositionDfOr, PositionDfDi> q = world.SparseQuery<PositionDfOr, PositionDfDi>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p, ref PositionDfDi d) =>
+        {
+            Assert.True(e == e1);
+            Assert.Equal(10, p.X);
+            Assert.Equal(20, p.Y);
+            p.X += d.X;
+            p.Y += d.Y;
+            count++;
+        });
+
+        Assert.Equal(1, count);
+        Assert.Equal(1, q.Count());
+
+        PositionDfOr* p = e1.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p->X);
+        Assert.Equal(22, p->Y);
+
+        Assert.True(e2.IsAlive());
+        Assert.True(e3.IsAlive());
+    }
+
+    [Fact]
+    private void SparseQueryConvertToQuery1Term()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDfOr { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+
+        using Query<PositionDfOr> q = world.SparseQuery<PositionDfOr>().ToQuery();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(2, q.Count());
+    }
+
+    [Fact]
+    private void SparseQueryConvertToQuery3Terms()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<VelocityDfOr>().Add(Ecs.DontFragment);
+        world.Component<PositionDfDi>().Add(Ecs.DontFragment);
+        world.Component<PositionDfDi>().Add(Ecs.OnInstantiate, Ecs.DontInherit);
+
+        Entity e1 = world.Entity()
+            .Set(new PositionDfOr { X = 10, Y = 20 })
+            .Set(new VelocityDfOr { X = 1, Y = 2 })
+            .Set(new PositionDfDi { X = 3, Y = 4 });
+        world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+
+        using Query<PositionDfOr, VelocityDfOr, PositionDfDi> q =
+            world.SparseQuery<PositionDfOr, VelocityDfOr, PositionDfDi>().ToQuery();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p, ref VelocityDfOr v, ref PositionDfDi d) =>
+        {
+            Assert.True(e == e1);
+            Assert.Equal(10, p.X);
+            Assert.Equal(20, p.Y);
+            Assert.Equal(1, v.X);
+            Assert.Equal(2, v.Y);
+            Assert.Equal(3, d.X);
+            Assert.Equal(4, d.Y);
+            count++;
+        });
+
+        Assert.Equal(1, count);
+        Assert.Equal(1, q.Count());
+    }
+
+    [Fact]
+    private void SparseQueryDynamicDontInherit()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDf>().Add(Ecs.DontFragment);
+        world.Component<PositionDf>().Add(Ecs.OnInstantiate, Ecs.DontInherit);
+
+        Entity e1 = world.Entity().Set(new PositionDf { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDf { X = 30, Y = 40 });
+
+        SparseQuery<PositionDf> q = world.SparseQuery<PositionDf>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDf p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(2, q.Count());
+    }
+
+    [Fact]
+    private void WorldEachSparse()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<VelocityDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity()
+            .Set(new PositionDfOr { X = 10, Y = 20 })
+            .Set(new VelocityDfOr { X = 1, Y = 2 });
+        world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+
+        int count = 0;
+        world.Each((ref PositionDfOr p, ref VelocityDfOr v) =>
+        {
+            Assert.Equal(10, p.X);
+            Assert.Equal(20, p.Y);
+            Assert.Equal(1, v.X);
+            Assert.Equal(2, v.Y);
+            p.X += v.X;
+            p.Y += v.Y;
+            count++;
+        });
+
+        Assert.Equal(1, count);
+
+        PositionDfOr* p = e1.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p->X);
+        Assert.Equal(22, p->Y);
+    }
+
+    [Fact]
+    private void WorldEachSparseWithEntity()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDfOr { X = 10, Y = 20 });
+        Entity e2 = world.Entity().Set(new PositionDfOr { X = 30, Y = 40 });
+
+        int count = 0;
+        world.Each((Entity e, ref PositionDfOr p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+            count++;
+        });
+
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    private void TermEachSparseComponent()
+    {
+        using World world = World.Create();
+
+        world.Component<Position>().Add(Ecs.Sparse);
+
+        Entity e1 = world.Entity().Set(new Position(1, 2));
+        Entity e2 = world.Entity().Set(new Position(3, 4));
+        Entity e3 = world.Entity().Set(new Position(5, 6));
+
+        e3.Add<Tag>();
+
+        int count = 0;
+        world.Each((Entity e, ref Position p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(1, p.X);
+                Assert.Equal(2, p.Y);
+                count++;
+            }
+            if (e == e2)
+            {
+                Assert.Equal(3, p.X);
+                Assert.Equal(4, p.Y);
+                count++;
+            }
+            if (e == e3)
+            {
+                Assert.Equal(5, p.X);
+                Assert.Equal(6, p.Y);
+                count++;
+            }
+        });
+
+        Assert.Equal(3, count);
+    }
+
+    [Fact]
+    private void TermEachDontFragmentComponent()
+    {
+        using World world = World.Create();
+
+        world.Component<Position>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new Position(1, 2));
+        Entity e2 = world.Entity().Set(new Position(3, 4));
+        Entity e3 = world.Entity().Set(new Position(5, 6));
+
+        e3.Add<Tag>();
+
+        int count = 0;
+        world.Each((Entity e, ref Position p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(1, p.X);
+                Assert.Equal(2, p.Y);
+                count++;
+            }
+            if (e == e2)
+            {
+                Assert.Equal(3, p.X);
+                Assert.Equal(4, p.Y);
+                count++;
+            }
+            if (e == e3)
+            {
+                Assert.Equal(5, p.X);
+                Assert.Equal(6, p.Y);
+                count++;
+            }
+        });
+
+        Assert.Equal(3, count);
+    }
+
+    [Fact]
+    private void TermEachDontFragmentPairObjectWildcard()
+    {
+        using World world = World.Create();
+
+        Entity rel = world.Entity().Add(Ecs.DontFragment);
+        Entity obj1 = world.Entity();
+        Entity obj2 = world.Entity();
+
+        Entity e1 = world.Entity().Add(rel, obj1);
+        Entity e2 = world.Entity().Add(rel, obj1);
+        e2.Remove(rel, obj1);
+        e2.Add(rel, obj2);
+        e2.Remove(rel, obj2);
+        e2.Add(rel, obj1);
+
+        int count = 0;
+        world.Each(world.Pair(rel, Ecs.Wildcard), (Entity e) =>
+        {
+            if (e == e1 || e == e2)
+                count++;
+        });
+
+        Assert.Equal(2, count);
+    }
+
+    [Fact]
+    private void GetFirstWNonThisSrc()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity("e1");
+        Entity e2 = world.Entity("e2");
+
+        using Query q = world.QueryBuilder().Expr("ChildOf($x, *)").Build();
+
+        Entity first = q.Iter().First();
+        Assert.True(first == 0);
+
+        e1.ChildOf(e2);
+
+        first = q.Iter().First();
+        Assert.True(first == 0);
+    }
+
+    [Fact]
+    private void GetFirstDirectWNonThisSrc()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity("e1");
+        Entity e2 = world.Entity("e2");
+
+        using Query q = world.QueryBuilder().Expr("ChildOf($x, _)").Build();
+
+        Entity first = q.First();
+        Assert.True(first == 0);
+
+        e1.ChildOf(e2);
+
+        first = q.First();
+        Assert.True(first == 0);
+    }
+
+    [Fact]
+    private void GetFirstSkipsEmptyResults()
+    {
+        using World world = World.Create();
+
+        Entity e1 = world.Entity().Add<Position>().Add<Velocity>();
+        Entity e2 = world.Entity().Add<Position>();
+        e2.Destruct();
+
+        using Query<Position> q = world.QueryBuilder<Position>()
+            .Cached()
+            .QueryFlags(Ecs.QueryMatchEmptyTables)
+            .Build();
+
+        Entity first = q.First();
+        Assert.True(first != 0);
+        Assert.True(first == e1);
+    }
+
+    [Fact]
+    private void DontFragmentTraitRegistered()
+    {
+        using World world = World.Create();
+
+        Component<PositionDfOr> c = world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        Assert.True(c.Has(Ecs.DontFragment));
+    }
+
+    [Fact]
+    private void DontFragmentTraitSpecializedRegistered()
+    {
+        using World world = World.Create();
+
+        Component<PositionSpecializedDf> c = world.Component<PositionSpecializedDf>().Add(Ecs.DontFragment);
+        Assert.True(c.Has(Ecs.DontFragment));
+    }
+
+    [Fact]
+    private void EachDontFragmentTrait()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity e1 = world.Entity().Set(new PositionDfOr(10, 20));
+        Entity e2 = world.Entity().Set(new PositionDfOr(30, 40));
+
+        using Query<PositionDfOr> q = world.Query<PositionDfOr>();
+
+        int count = 0;
+        q.Each((Entity e, ref PositionDfOr p) =>
+        {
+            if (e == e1)
+            {
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+            }
+            else if (e == e2)
+            {
+                Assert.Equal(30, p.X);
+                Assert.Equal(40, p.Y);
+            }
+
+            p.X++;
+            p.Y++;
+            count++;
+        });
+
+        Assert.Equal(2, count);
+
+        PositionDfOr* p1 = e1.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p1->X);
+        Assert.Equal(21, p1->Y);
+
+        PositionDfOr* p2 = e2.GetPtr<PositionDfOr>();
+        Assert.Equal(31, p2->X);
+        Assert.Equal(41, p2->Y);
+    }
+
+    [Fact]
+    private void EachDontFragmentTraitMixed()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity entity = world.Entity()
+            .Set(new PositionDfOr(10, 20))
+            .Set(new Velocity(1, 2));
+
+        using Query<PositionDfOr, Velocity> q = world.Query<PositionDfOr, Velocity>();
+
+        q.Each((ref PositionDfOr p, ref Velocity v) =>
+        {
+            p.X += v.X;
+            p.Y += v.Y;
+        });
+
+        PositionDfOr* p = entity.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p->X);
+        Assert.Equal(22, p->Y);
+    }
+
+    [Fact]
+    private void EachDontFragmentTraitShared()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+
+        Entity parent = world.Entity().Set(new Velocity(1, 2));
+        Entity entity = world.Entity().ChildOf(parent)
+            .Set(new PositionDfOr(10, 20));
+
+        using Query<PositionDfOr, Velocity> q = world.QueryBuilder<PositionDfOr, Velocity>()
+            .TermAt(1).Up()
+            .Build();
+
+        int count = 0;
+        q.Each((ref PositionDfOr p, ref Velocity v) =>
+        {
+            Assert.Equal(1, v.X);
+            Assert.Equal(2, v.Y);
+            p.X += v.X;
+            p.Y += v.Y;
+            count++;
+        });
+
+        Assert.Equal(1, count);
+
+        PositionDfOr* p = entity.GetPtr<PositionDfOr>();
+        Assert.Equal(11, p->X);
+        Assert.Equal(22, p->Y);
+    }
+
+    [Fact]
+    private void EachOptionalSparse()
+    {
+        using World world = World.Create();
+
+        world.Component<Position>().Add(Ecs.Sparse);
+
+        Entity e1 = world.Entity().Set(new Velocity(1, 2)).Set(new Position(10, 20));
+        Entity e2 = world.Entity().Set(new Velocity(3, 4));
+
+        using Query<Velocity, Position> q = world.QueryBuilder<Velocity, Position>()
+            .TermAt(1).Optional()
+            .Build();
+
+        int count = 0, withP = 0;
+        q.Each((Entity e, ref Velocity v, ref Position p) =>
+        {
+            if (e == e1)
+            {
+                Assert.False(Unsafe.IsNullRef(ref p));
+                Assert.Equal(10, p.X);
+                Assert.Equal(20, p.Y);
+                Assert.Equal(1, v.X);
+                Assert.Equal(2, v.Y);
+                withP++;
+            }
+            else
+            {
+                Assert.True(e == e2);
+                Assert.True(Unsafe.IsNullRef(ref p));
+                Assert.Equal(3, v.X);
+                Assert.Equal(4, v.Y);
+            }
+            count++;
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(1, withP);
+    }
+
+    [Fact]
+    private void SparseQueryDynamicInherit1Term()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfDi>()
+            .Add(Ecs.DontFragment)
+            .Add(Ecs.OnInstantiate, Ecs.Inherit);
+
+        Entity owner = world.Entity().Set(new PositionDfDi(10, 20));
+        Entity @base = world.Prefab().Set(new PositionDfDi(1, 2));
+        Entity inst = world.Entity().IsA(@base);
+
+        Assert.False(inst.Owns<PositionDfDi>());
+        Assert.True(inst.Has<PositionDfDi>());
+
+        foreach (ecs_query_cache_kind_t cacheKind in new[] { Ecs.QueryCacheNone, Ecs.QueryCacheAuto })
+        {
+            using Query<PositionDfDi> q = world.QueryBuilder<PositionDfDi>()
+                .CacheKind(cacheKind)
+                .Build();
+
+            int ownerCount = 0, instCount = 0;
+            q.Each((Entity e, ref PositionDfDi p) =>
+            {
+                if (e == owner)
+                {
+                    Assert.Equal(10, p.X);
+                    Assert.Equal(20, p.Y);
+                    ownerCount++;
+                }
+                else
+                {
+                    Assert.True(e == inst);
+                    Assert.Equal(1, p.X);
+                    Assert.Equal(2, p.Y);
+                    instCount++;
+                }
+            });
+
+            Assert.Equal(1, ownerCount);
+            Assert.Equal(1, instCount);
+        }
+    }
+
+    [Fact]
+    private void SparseQueryDynamicInherit3Terms()
+    {
+        using World world = World.Create();
+
+        world.Component<PositionDfDi>()
+            .Add(Ecs.DontFragment)
+            .Add(Ecs.OnInstantiate, Ecs.Inherit);
+        world.Component<PositionDfOr>().Add(Ecs.DontFragment);
+        world.Component<VelocityDfOr>().Add(Ecs.DontFragment);
+
+        Entity owner = world.Entity()
+            .Set(new PositionDfDi(10, 20))
+            .Set(new PositionDfOr(30, 40))
+            .Set(new VelocityDfOr(1, 2));
+
+        Entity @base = world.Prefab().Set(new PositionDfDi(50, 60));
+        Entity inst = world.Entity().IsA(@base)
+            .Set(new PositionDfOr(70, 80))
+            .Set(new VelocityDfOr(3, 4));
+
+        Assert.False(inst.Owns<PositionDfDi>());
+        Assert.True(inst.Has<PositionDfDi>());
+
+        foreach (ecs_query_cache_kind_t cacheKind in new[] { Ecs.QueryCacheNone, Ecs.QueryCacheAuto })
+        {
+            using Query<PositionDfDi, PositionDfOr, VelocityDfOr> q =
+                world.QueryBuilder<PositionDfDi, PositionDfOr, VelocityDfOr>()
+                    .CacheKind(cacheKind)
+                    .Build();
+
+            int ownerCount = 0, instCount = 0;
+            q.Each((Entity e, ref PositionDfDi p, ref PositionDfOr p2, ref VelocityDfOr v) =>
+            {
+                if (e == owner)
+                {
+                    Assert.Equal(10, p.X);
+                    Assert.Equal(20, p.Y);
+                    Assert.Equal(30, p2.X);
+                    Assert.Equal(40, p2.Y);
+                    Assert.Equal(1, v.X);
+                    Assert.Equal(2, v.Y);
+                    ownerCount++;
+                }
+                else
+                {
+                    Assert.True(e == inst);
+                    Assert.Equal(50, p.X);
+                    Assert.Equal(60, p.Y);
+                    Assert.Equal(70, p2.X);
+                    Assert.Equal(80, p2.Y);
+                    Assert.Equal(3, v.X);
+                    Assert.Equal(4, v.Y);
+                    instCount++;
+                }
+            });
+
+            Assert.Equal(1, ownerCount);
+            Assert.Equal(1, instCount);
+        }
+    }
+
+    [Fact]
+    private void ComponentInheritanceEach()
+    {
+        using World world = World.Create();
+
+        world.Component<InheritUnit>();
+        world.Component<InheritWarrior>().Entity.IsA<InheritUnit>();
+
+        Entity w1 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 10 }, Dmg = 1 });
+        Entity w2 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 20 }, Dmg = 2 });
+        Entity w3 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 30 }, Dmg = 3 });
+
+        int sum = 0, count = 0;
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+
+                for (int i = 0; i < it.Count(); i++)
+                {
+                    sum += f[i].Hp;
+                    count++;
+                }
+            }
+        });
+
+        Assert.Equal(3, count);
+        Assert.Equal(60, sum);
+
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+
+                for (int i = 0; i < it.Count(); i++)
+                    f[i].Hp *= 2;
+            }
+        });
+
+        Assert.Equal(20, w1.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(40, w2.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(60, w3.Get<InheritWarrior>().Base.Hp);
+        Assert.Equal(1, w1.Get<InheritWarrior>().Dmg);
+        Assert.Equal(2, w2.Get<InheritWarrior>().Dmg);
+        Assert.Equal(3, w3.Get<InheritWarrior>().Dmg);
+    }
+
+    [Fact]
+    private void ComponentInheritanceEachMultipleDerived()
+    {
+        using World world = World.Create();
+
+        world.Component<InheritUnit>();
+        world.Component<InheritWarrior>().Entity.IsA<InheritUnit>();
+        world.Component<InheritMage>().Entity.IsA<InheritUnit>();
+
+        Entity w = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 10 }, Dmg = 5 });
+        Entity m = world.Entity().Set(new InheritMage { Base = new InheritUnit { Hp = 20 }, Mana = 7 });
+
+        int sum = 0, count = 0;
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+
+                for (int i = 0; i < it.Count(); i++)
+                {
+                    sum += f[i].Hp;
+                    count++;
+                }
+            }
+        });
+
+        Assert.Equal(2, count);
+        Assert.Equal(30, sum);
+
+        Assert.Equal(5, w.Get<InheritWarrior>().Dmg);
+        Assert.Equal(7, m.Get<InheritMage>().Mana);
+    }
+
+    [Fact]
+    private void ComponentInheritanceEachEntity()
+    {
+        using World world = World.Create();
+
+        world.Component<InheritUnit>();
+        world.Component<InheritWarrior>().Entity.IsA<InheritUnit>();
+
+        Entity w1 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 10 }, Dmg = 1 });
+        Entity w2 = world.Entity().Set(new InheritWarrior { Base = new InheritUnit { Hp = 20 }, Dmg = 2 });
+
+        int found = 0;
+        world.Query<InheritUnit>().Run((Iter it) =>
+        {
+            while (it.Next())
+            {
+                BaseField<InheritUnit> f = it.BaseField<InheritUnit>(0);
+
+                for (int i = 0; i < it.Count(); i++)
+                {
+                    Entity e = it.Entity(i);
+
+                    if (e == w1)
+                    {
+                        Assert.Equal(10, f[i].Hp);
+                        found++;
+                    }
+                    if (e == w2)
+                    {
+                        Assert.Equal(20, f[i].Hp);
+                        found++;
+                    }
+                }
+            }
+        });
+
+        Assert.Equal(2, found);
     }
 }
