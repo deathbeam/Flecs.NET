@@ -2,6 +2,10 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
   pull_request:
   workflow_dispatch:
     inputs:
@@ -56,7 +60,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     permissions:
-      contents: read
+      contents: write
       id-token: write
       packages: write
 
@@ -78,9 +82,24 @@ jobs:
             9.0.x
             10.0.x
 
+      - name: Validate Tag Version
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          prefix=$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' src/Directory.Build.props)
+          if [ "$version" != "$prefix" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match VersionPrefix $prefix in src/Directory.Build.props"
+            exit 1
+          fi
+
       - name: Set Version Suffix
         shell: bash
         run: |
+          if [ '${{ github.ref_type }}' == 'tag' ]; then
+            exit 0
+          fi
+
           if [ '${{ github.event.inputs.use-auto-generated-version }}' != 'false' ]; then
             echo "FlecsVersionSuffix=build.$(git rev-list --count HEAD)" >> $GITHUB_ENV
           fi
@@ -186,7 +205,7 @@ jobs:
           matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && github.ref == 'refs/heads/main')
+            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
           )
         shell: bash
         run: dotnet nuget push 'artifacts/nuget/*.nupkg' --skip-duplicate --api-key '${{ secrets.GITHUB_TOKEN }}' --source 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'
@@ -196,7 +215,7 @@ jobs:
           matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && github.ref == 'refs/heads/main')
+            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
           )
         uses: NuGet/login@v1
         id: nuget-login
@@ -208,7 +227,19 @@ jobs:
           matrix.os == 'macos-15' &&
           (
             (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && github.ref == 'refs/heads/main')
+            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
           )
         shell: bash
         run: dotnet nuget push 'artifacts/nuget/*.nupkg' --skip-duplicate --api-key '${{ steps.nuget-login.outputs.NUGET_API_KEY }}' --source 'https://api.nuget.org/v3/index.json'
+
+      - name: Upload Release Assets
+        if: matrix.os == 'macos-15' && github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" artifacts/nuget/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" artifacts/nuget/* --generate-notes
+          fi
