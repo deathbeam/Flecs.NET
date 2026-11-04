@@ -127,14 +127,14 @@ public readonly unsafe struct WorldInfo : IEquatable<WorldInfo>
     public long PipelineBuildCountTotal => Handle->pipeline_build_count_total;
 
     /// <summary>
-    ///     Total number of systems ran in last frame.
+    ///     Total number of times a system ran.
     /// </summary>
-    public long SystemsRanFrame => Handle->systems_ran_total;
+    public long SystemsRanTotal => Handle->systems_ran_total;
 
     /// <summary>
-    ///     Total number of times observer was invoked.
+    ///     Total number of times an observer ran.
     /// </summary>
-    public long ObserversRanFrame => Handle->observers_ran_total;
+    public long ObserversRanTotal => Handle->observers_ran_total;
 
     /// <summary>
     ///     Number of tag (No data) ids in the world.

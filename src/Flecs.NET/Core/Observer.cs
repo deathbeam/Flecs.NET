@@ -19,12 +19,12 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <summary>
     ///     A reference to the entity.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Gets an observer from the provided world an entity.
@@ -61,7 +61,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(T value)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value)
             .Build();
     }
@@ -76,7 +76,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(T value, Ecs.UserContextFinish<T> callback)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -91,7 +91,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(T value, delegate*<ref T, void> callback)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -104,7 +104,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(ref T value)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value)
             .Build();
     }
@@ -119,7 +119,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(ref T value, Ecs.UserContextFinish<T> callback)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -134,7 +134,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public void Ctx<T>(ref T value, delegate*<ref T, void> callback)
     {
-        new ObserverBuilder(World, Entity)
+        new ObserverBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -145,7 +145,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public ref T Ctx<T>()
     {
-        UserContext* context = (UserContext*)ecs_observer_get(World, Entity)->ctx;
+        UserContext* context = (UserContext*)ecs_observer_get(WorldPtr, Entity)->ctx;
         return ref context->Get<T>();
     }
 
@@ -155,7 +155,7 @@ public unsafe partial struct Observer : IEquatable<Observer>, IDisposable, IEnti
     /// <returns></returns>
     public Query Query()
     {
-        return new Query(ecs_observer_get(World, Id)->query);
+        return new Query(ecs_observer_get(WorldPtr, Id)->query);
     }
 
     /// <summary>

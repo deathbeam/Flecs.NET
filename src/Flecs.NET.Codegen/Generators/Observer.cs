@@ -40,10 +40,10 @@ public class Observer : GeneratorBase
                 public ref Entity Entity => ref _observer.Entity;
             
                 /// <inheritdoc cref="Observer.Id"/>
-                public ref Id Id => ref _observer.Id;
+                public ref readonly Id Id => ref _observer.Id;
             
-                /// <inheritdoc cref="Observer.World"/>
-                public ref ecs_world_t* World => ref _observer.World;
+                /// <inheritdoc cref="Observer.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _observer.WorldPtr;
                 
                 /// <summary>
                 ///     Creates an observer with the provided observer.

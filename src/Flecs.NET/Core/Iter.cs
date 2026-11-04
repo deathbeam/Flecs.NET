@@ -18,9 +18,9 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     private ecs_iter_t* _handle;
 
     /// <summary>
-    ///     Reference to handle.
+    ///     The underlying <see cref="ecs_iter_t"/>* handle.
     /// </summary>
-    public ref ecs_iter_t* Handle => ref _handle;
+    public ref readonly ecs_iter_t* Handle => ref _handle;
 
     /// <summary>
     ///     Creates an iter wrapper using the provided handle.
@@ -67,18 +67,18 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
     }
 
     /// <summary>
-    ///     Returns the actual C# world.
+    ///     Returns the world.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The world.</returns>
     public World World()
     {
         return new World(Handle->world);
     }
 
     /// <summary>
-    ///     Returns the C# world or stage the iterator was created with.
+    ///     Returns the world or stage the iterator was created with.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The world or stage.</returns>
     public World Stage()
     {
         return new World(Handle->stage);
@@ -556,7 +556,7 @@ public unsafe partial struct Iter : IEnumerable<int>, IEquatable<Iter>, IDisposa
             Ecs.TableUnlock(Handle->stage, Handle->table);
 
         ecs_iter_fini(Handle);
-        Handle = null;
+        _handle = null;
     }
 
 

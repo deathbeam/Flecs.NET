@@ -16,7 +16,7 @@ public static class NodeBuilder
                 public {{Generator.GetTypeName(returnType, i)}} {{Generator.GetInvokerName(callback)}}({{Generator.GetCallbackType(callback, i)}} callback)
                 {
                     {{Generator.GetTypeName(Type.TypeHelper, i)}}.AssertReferenceTypes({{(Generator.GetCallbackIsUnmanaged(callback) ? "false" : "true")}});
-                    {{Generator.GetTypeName(Type.TypeHelper, i)}}.AssertSparseTypes(World, {{(Generator.GetCallbackIsIter(callback) ? "false" : "true")}});
+                    {{Generator.GetTypeName(Type.TypeHelper, i)}}.AssertSparseTypes(WorldPtr, {{(Generator.GetCallbackIsIter(callback) ? "false" : "true")}});
                     return {{(Generator.GetCallbackIsRun(callback) ? "SetRun" : "SetCallback")}}(callback, (delegate*<ecs_iter_t*, void>)&Functions.{{callback}}<{{Generator.TypeParameters[i]}}>).Build();
                 }
             """);

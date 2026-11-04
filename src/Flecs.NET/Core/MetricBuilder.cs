@@ -17,12 +17,12 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <summary>
     ///     The world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the desc struct.
     /// </summary>
-    public ref ecs_metric_desc_t Desc => ref _desc;
+    internal ref ecs_metric_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates a metric builder using the provided entity.
@@ -34,7 +34,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
         _world = world;
         _desc = default;
         _strings = default;
-        Desc.entity = entity;
+        Descriptor.entity = entity;
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Member(ulong entity)
     {
-        Desc.member = entity;
+        Descriptor.member = entity;
         return ref this;
     }
 
@@ -66,9 +66,9 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Member(string name)
     {
-        Entity m = Desc.id == 0
-            ? new World(World).Lookup(name)
-            : new Entity(World, ecs_get_typeid(World, Desc.id)).Lookup(name);
+        Entity m = Descriptor.id == 0
+            ? new World(WorldPtr).Lookup(name)
+            : new Entity(WorldPtr, ecs_get_typeid(WorldPtr, Descriptor.id)).Lookup(name);
 
         if (m == 0)
             Ecs.Log.Err("member '%s' not found", name);
@@ -84,7 +84,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Member<T>(string name)
     {
-        Entity entity = new Entity(World, Type<T>.Id(World));
+        Entity entity = new Entity(WorldPtr, Type<T>.Id(WorldPtr));
         ulong member = entity.Lookup(name);
 
         if (member != 0)
@@ -101,7 +101,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     public ref MetricBuilder DotMember(string expr)
     {
         NativeString nativeExpr = (NativeString)expr;
-        Desc.dotmember = nativeExpr;
+        Descriptor.dotmember = nativeExpr;
         _strings.Add(nativeExpr);
         return ref this;
     }
@@ -115,8 +115,8 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     public ref MetricBuilder DotMember<T>(string expr)
     {
         NativeString nativeExpr = (NativeString)expr;
-        Desc.dotmember = nativeExpr;
-        Desc.id = Type<T>.Id(World);
+        Descriptor.dotmember = nativeExpr;
+        Descriptor.id = Type<T>.Id(WorldPtr);
         _strings.Add(nativeExpr);
         return ref this;
     }
@@ -128,7 +128,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Id(ulong id)
     {
-        Desc.id = id;
+        Descriptor.id = id;
         return ref this;
     }
 
@@ -150,7 +150,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Id<T>()
     {
-        return ref Id(Type<T>.Id(World));
+        return ref Id(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Id<TFirst>(ulong second)
     {
-        return ref Id(Ecs.Pair<TFirst>(second, World));
+        return ref Id(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Id<TFirst, TSecond>()
     {
-        return ref Id(Ecs.Pair<TFirst, TSecond>(World));
+        return ref Id(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -183,7 +183,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder IdSecond<TSecond>(ulong first)
     {
-        return ref Id(Ecs.PairSecond<TSecond>(first, World));
+        return ref Id(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Targets(bool value = true)
     {
-        Desc.targets = value;
+        Descriptor.targets = value;
         return ref this;
     }
 
@@ -204,7 +204,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Kind(ulong kind)
     {
-        Desc.kind = kind;
+        Descriptor.kind = kind;
         return ref this;
     }
 
@@ -215,7 +215,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public ref MetricBuilder Kind<T>()
     {
-        return ref Kind(Type<T>.Id(World));
+        return ref Kind(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     public ref MetricBuilder Brief(string brief)
     {
         NativeString nativeBrief = (NativeString)brief;
-        Desc.brief = nativeBrief;
+        Descriptor.brief = nativeBrief;
         _strings.Add(nativeBrief);
         return ref this;
     }
@@ -238,7 +238,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public bool Equals(MetricBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -257,7 +257,7 @@ public unsafe struct MetricBuilder : IDisposable, IEquatable<MetricBuilder>
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

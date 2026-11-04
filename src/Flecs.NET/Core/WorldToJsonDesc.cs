@@ -10,7 +10,7 @@ public unsafe record struct WorldToJsonDesc
     /// <summary>
     ///     The underlying <see cref="ecs_world_to_json_desc_t"/> instance.
     /// </summary>
-    public ecs_world_to_json_desc_t Desc;
+    public ecs_world_to_json_desc_t Descriptor;
 
     /// <summary>
     ///     Initializes a new instance of <see cref="WorldToJsonDesc"/> with the provided description.
@@ -18,18 +18,18 @@ public unsafe record struct WorldToJsonDesc
     /// <param name="desc">The <see cref="ecs_world_to_json_desc_t"/> instance to wrap.</param>
     public WorldToJsonDesc(ecs_world_to_json_desc_t desc)
     {
-        Desc = desc;
+        Descriptor = desc;
     }
 
     /// <summary>
     ///     Whether to include built-in flecs modules and contents.
     /// </summary>
-    public ref bool BuiltIn => ref Desc.serialize_builtin;
+    public ref bool BuiltIn => ref Descriptor.serialize_builtin;
 
     /// <summary>
     ///     Whether to include modules and contents.
     /// </summary>
-    public ref bool Modules => ref Desc.serialize_modules;
+    public ref bool Modules => ref Descriptor.serialize_modules;
 
     /// <summary>
     ///     Implicitly converts an <see cref="ecs_world_to_json_desc_t"/> instance to a <see cref="WorldToJsonDesc"/>.
@@ -48,6 +48,6 @@ public unsafe record struct WorldToJsonDesc
     /// <returns>A new <see cref="ecs_world_to_json_desc_t"/> instance initialized with the given description.</returns>
     public static implicit operator ecs_world_to_json_desc_t(WorldToJsonDesc desc)
     {
-        return desc.Desc;
+        return desc.Descriptor;
     }
 }

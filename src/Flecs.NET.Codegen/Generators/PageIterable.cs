@@ -30,10 +30,10 @@ public class PageIterable : GeneratorBase
             public unsafe partial struct {{Generator.GetTypeName(Type.PageIterable, i)}} : IEquatable<{{Generator.GetTypeName(Type.PageIterable, i)}}>
             {
                 /// <inheritdoc cref="IPageIterable.Underlying"/>
-                public PageIterable Underlying;
+                internal PageIterable Underlying;
             
-                /// <inheritdoc cref="IPageIterable.Iterator"/>
-                public ref ecs_iter_t Iterator => ref Underlying.Iterator;
+                /// <inheritdoc cref="PageIterable.Iterator"/>
+                internal ref ecs_iter_t Iterator => ref Underlying.Iterator;
                 
                 /// <inheritdoc cref="IPageIterable.Offset"/>
                 public int Offset => Underlying.Offset;
@@ -90,14 +90,17 @@ public class PageIterable : GeneratorBase
             // IPageIterable Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.PageIterable, i)}} : IPageIterable
             {
-                ref PageIterable IPageIterable.Underlying => ref Underlying;
+                ref readonly PageIterable IPageIterable.Underlying => ref Underlying;
             }
 
             // IIterableBase Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.PageIterable, i)}} : IIterableBase
             {
-                /// <inheritdoc cref="IIterableBase.World"/>
-                ecs_world_t* IIterableBase.World => Iterator.world;
+                /// <inheritdoc cref="IIterableBase.World()"/>
+                World IIterableBase.World()
+                {
+                    return Iterator.world;
+                }
                 
                 /// <inheritdoc cref="IIterableBase.GetIter"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

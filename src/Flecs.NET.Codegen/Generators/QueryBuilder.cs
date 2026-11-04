@@ -32,11 +32,11 @@ public class QueryBuilder : GeneratorBase
             
                 ref QueryBuilder IQueryBuilderBase.QueryBuilder => ref _queryBuilder;
                 
-                /// <inheritdoc cref="QueryBuilder.World"/>
-                public ref ecs_world_t* World => ref _queryBuilder.World;
+                /// <inheritdoc cref="QueryBuilder.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _queryBuilder.WorldPtr;
                 
-                /// <inheritdoc cref="QueryBuilder.Desc"/>
-                public ref ecs_query_desc_t Desc => ref _queryBuilder.Desc;
+                /// <inheritdoc cref="QueryBuilder.Descriptor"/>
+                internal ref ecs_query_desc_t Descriptor => ref _queryBuilder.Descriptor;
             
                 /// <inheritdoc cref="QueryBuilder(ecs_world_t*)"/>
                 public QueryBuilder(ecs_world_t* world)
@@ -297,10 +297,10 @@ public class QueryBuilder : GeneratorBase
                     return ref this;
                 }
             
-                /// <inheritdoc cref="Core.QueryBuilder.Descend()"/>
-                public ref {{Generator.GetTypeName(type, i)}} Descend()
+                /// <inheritdoc cref="Core.QueryBuilder.Desc()"/>
+                public ref {{Generator.GetTypeName(type, i)}} Desc()
                 {
-                    Ecs.GetQueryBuilder(ref this).Descend();
+                    Ecs.GetQueryBuilder(ref this).Desc();
                     return ref this;
                 }
             

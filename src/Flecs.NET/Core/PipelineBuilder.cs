@@ -17,12 +17,12 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the pipeline description.
     /// </summary>
-    public ref ecs_pipeline_desc_t Desc => ref _desc;
+    internal ref ecs_pipeline_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     A reference to the query builder.
@@ -47,7 +47,7 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     /// <param name="entity">The pipeline entity.</param>
     public PipelineBuilder(ecs_world_t* world, ulong entity) : this(world)
     {
-        Desc.entity = entity;
+        Descriptor.entity = entity;
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
         entityDesc.name = nativeName;
         entityDesc.sep = Pointers.DefaultSeparator;
         entityDesc.root_sep = Pointers.DefaultSeparator;
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
     }
 
     /// <summary>
@@ -86,11 +86,11 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     {
         QueryBuilder.AssertReusable();
 
-        fixed (ecs_pipeline_desc_t* pipelineDesc = &Desc)
+        fixed (ecs_pipeline_desc_t* pipelineDesc = &Descriptor)
         {
-            pipelineDesc->query = QueryBuilder.Desc;
+            pipelineDesc->query = QueryBuilder.Descriptor;
 
-            Entity entity = new Entity(World, ecs_pipeline_init(World, pipelineDesc));
+            Entity entity = new Entity(WorldPtr, ecs_pipeline_init(WorldPtr, pipelineDesc));
 
             if (entity == 0)
                 Ecs.Error("Pipeline failed to init.");
@@ -109,7 +109,7 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     /// <returns></returns>
     public bool Equals(PipelineBuilder other)
     {
-        return Desc == other.Desc && QueryBuilder == other.QueryBuilder;
+        return Descriptor == other.Descriptor && QueryBuilder == other.QueryBuilder;
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public unsafe partial struct PipelineBuilder : IDisposable, IEquatable<PipelineB
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Desc.GetHashCode(), QueryBuilder.GetHashCode());
+        return HashCode.Combine(Descriptor.GetHashCode(), QueryBuilder.GetHashCode());
     }
 
     /// <summary>

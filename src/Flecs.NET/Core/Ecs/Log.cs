@@ -51,7 +51,7 @@ public static unsafe partial class Ecs
         ///     Enable time delta in logging.
         /// </summary>
         /// <param name="enabled"></param>
-        public static void EnableTimeDelta(bool enabled = true)
+        public static void EnableTimedelta(bool enabled = true)
         {
             ecs_log_enable_timedelta(enabled);
         }

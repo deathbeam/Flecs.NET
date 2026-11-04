@@ -99,8 +99,8 @@ public unsafe interface IQueryBuilder<TBuilder, TResult> : IQueryBuilderBase
     /// <inheritdoc cref="QueryBuilder.Cascade{T}(T)"/>
     public ref TBuilder Cascade<T>(T value) where T : Enum;
 
-    /// <inheritdoc cref="QueryBuilder.Descend()"/>
-    public ref TBuilder Descend();
+    /// <inheritdoc cref="QueryBuilder.Desc()"/>
+    public ref TBuilder Desc();
 
     /// <inheritdoc cref="QueryBuilder.Parent()"/>
     public ref TBuilder Parent();

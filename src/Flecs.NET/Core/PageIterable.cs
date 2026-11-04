@@ -12,7 +12,7 @@ public partial struct PageIterable : IEquatable<PageIterable>
     /// <summary>
     ///     The iterator instance.
     /// </summary>
-    public ecs_iter_t Iterator;
+    internal ecs_iter_t Iterator;
 
     /// <summary>
     ///     The number of entities to skip.
@@ -92,8 +92,7 @@ public partial struct PageIterable : IEquatable<PageIterable>
 // IPageIterable Interface
 public unsafe partial struct PageIterable : IPageIterable
 {
-    ref PageIterable IPageIterable.Underlying => ref this;
-    ref ecs_iter_t IPageIterable.Iterator => ref Iterator;
+    ref readonly PageIterable IPageIterable.Underlying => ref this;
     int IPageIterable.Offset => Offset;
     int IPageIterable.Limit => Limit;
 }
@@ -101,8 +100,11 @@ public unsafe partial struct PageIterable : IPageIterable
 // IIterableBase Interface
 public unsafe partial struct PageIterable: IIterableBase
 {
-    /// <inheritdoc cref="IIterableBase.World"/>
-    ecs_world_t* IIterableBase.World => Iterator.world;
+    /// <inheritdoc cref="IIterableBase.World()"/>
+    World IIterableBase.World()
+    {
+        return Iterator.world;
+    }
 
     /// <inheritdoc cref="IIterableBase.GetIter"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -198,7 +200,7 @@ public unsafe partial struct PageIterable : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>
     public IterIterable Iter(Entity entity)
     {
-        return Iter(entity.CsWorld());
+        return Iter(entity.World());
     }
 
     /// <inheritdoc cref="IIterable.Count()"/>

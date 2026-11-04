@@ -21,12 +21,12 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the system description.
     /// </summary>
-    public ref ecs_system_desc_t Desc => ref _desc;
+    internal ref ecs_system_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     A reference to the query builder.
@@ -43,7 +43,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
         _desc = default;
         _queryBuilder = new QueryBuilder(world);
 
-        Desc.phase = EcsOnUpdate;
+        Descriptor.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -64,10 +64,10 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
         entityDesc.sep = Pointers.DefaultSeparator;
         entityDesc.root_sep = Pointers.DefaultSeparator;
 
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
 
-        if (!ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
-            Desc.phase = EcsOnUpdate;
+        if (!ecs_has_id(world, Descriptor.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
+            Descriptor.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -84,10 +84,10 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
         ecs_entity_desc_t entityDesc = default;
         entityDesc.id = entity;
 
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
 
-        if (!ecs_has_id(world, Desc.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
-            Desc.phase = EcsOnUpdate;
+        if (!ecs_has_id(world, Descriptor.entity, Ecs.Pair(EcsDependsOn, EcsWildcard)))
+            Descriptor.phase = EcsOnUpdate;
     }
 
     /// <summary>
@@ -110,7 +110,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Kind(ulong phase)
     {
-        Desc.phase = phase;
+        Descriptor.phase = phase;
 
         return ref this;
     }
@@ -122,7 +122,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Kind<T>()
     {
-        return ref Kind(Type<T>.Id(World));
+        return ref Kind(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -133,7 +133,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Kind<T>(T value) where T : Enum
     {
-        return ref Kind(Type<T>.Id(World, value));
+        return ref Kind(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder MultiThreaded(bool value = true)
     {
-        Desc.multi_threaded = value;
+        Descriptor.multi_threaded = value;
         return ref this;
     }
 
@@ -154,7 +154,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Immediate(bool value = true)
     {
-        Desc.immediate = value;
+        Descriptor.immediate = value;
         return ref this;
     }
 
@@ -165,7 +165,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Interval(float interval)
     {
-        Desc.interval = interval;
+        Descriptor.interval = interval;
         return ref this;
     }
 
@@ -177,8 +177,8 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Rate(ulong tickSource, int rate)
     {
-        Desc.rate = rate;
-        Desc.tick_source = tickSource;
+        Descriptor.rate = rate;
+        Descriptor.tick_source = tickSource;
         return ref this;
     }
 
@@ -189,7 +189,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder Rate(int rate)
     {
-        Desc.rate = rate;
+        Descriptor.rate = rate;
         return ref this;
     }
 
@@ -200,7 +200,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder TickSource(ulong tickSource)
     {
-        Desc.tick_source = tickSource;
+        Descriptor.tick_source = tickSource;
         return ref this;
     }
 
@@ -211,7 +211,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public ref SystemBuilder TickSource<T>()
     {
-        Desc.tick_source = Type<T>.Id(World);
+        Descriptor.tick_source = Type<T>.Id(WorldPtr);
         return ref this;
     }
 
@@ -503,27 +503,27 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     {
         QueryBuilder.AssertReusable();
 
-        Desc.query = QueryBuilder.Desc;
+        Descriptor.query = QueryBuilder.Descriptor;
 
         ulong system;
         System_ result;
 
-        fixed (ecs_system_desc_t* ptr = &Desc)
-            system = ecs_system_init(World, ptr);
+        fixed (ecs_system_desc_t* ptr = &Descriptor)
+            system = ecs_system_init(WorldPtr, ptr);
 
-        result = new System_(World, system);
+        result = new System_(WorldPtr, system);
 
         // The system owns the contexts after initialization, so clear them for reuse.
-        Desc.ctx = null;
-        Desc.ctx_free = null;
-        Desc.callback_ctx = null;
-        Desc.callback_ctx_free = null;
-        Desc.run_ctx = null;
-        Desc.run_ctx_free = null;
-        Desc.query.binding_ctx = null;
-        Desc.query.binding_ctx_free = null;
-        Desc.query.group_by_ctx = null;
-        Desc.query.group_by_ctx_free = null;
+        Descriptor.ctx = null;
+        Descriptor.ctx_free = null;
+        Descriptor.callback_ctx = null;
+        Descriptor.callback_ctx_free = null;
+        Descriptor.run_ctx = null;
+        Descriptor.run_ctx_free = null;
+        Descriptor.query.binding_ctx = null;
+        Descriptor.query.binding_ctx_free = null;
+        Descriptor.query.group_by_ctx = null;
+        Descriptor.query.group_by_ctx_free = null;
 
         if (system != 0)
             QueryBuilder.MarkBuilt();
@@ -538,34 +538,34 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
 
     private UserContext* EnsureUserContext()
     {
-        if (Desc.ctx != null)
-            return (UserContext*)Desc.ctx;
+        if (Descriptor.ctx != null)
+            return (UserContext*)Descriptor.ctx;
 
-        Desc.ctx = Memory.AllocZeroed<UserContext>(1);
-        Desc.ctx_free = &Functions.UserContextFree;
-        return (UserContext*)Desc.ctx;
+        Descriptor.ctx = Memory.AllocZeroed<UserContext>(1);
+        Descriptor.ctx_free = &Functions.UserContextFree;
+        return (UserContext*)Descriptor.ctx;
     }
 
     private IteratorContext* EnsureIteratorContext()
     {
-        if (Desc.callback_ctx != null)
-            return (IteratorContext*)Desc.callback_ctx;
+        if (Descriptor.callback_ctx != null)
+            return (IteratorContext*)Descriptor.callback_ctx;
 
-        Desc.callback = &Functions.IteratorCallback;
-        Desc.callback_ctx = Memory.AllocZeroed<IteratorContext>(1);
-        Desc.callback_ctx_free = &Functions.IteratorContextFree;
-        return (IteratorContext*)Desc.callback_ctx;
+        Descriptor.callback = &Functions.IteratorCallback;
+        Descriptor.callback_ctx = Memory.AllocZeroed<IteratorContext>(1);
+        Descriptor.callback_ctx_free = &Functions.IteratorContextFree;
+        return (IteratorContext*)Descriptor.callback_ctx;
     }
 
     private RunContext* EnsureRunContext()
     {
-        if (Desc.run_ctx != null)
-            return (RunContext*)Desc.run_ctx;
+        if (Descriptor.run_ctx != null)
+            return (RunContext*)Descriptor.run_ctx;
 
-        Desc.run = &Functions.RunCallback;
-        Desc.run_ctx = Memory.AllocZeroed<RunContext>(1);
-        Desc.run_ctx_free = &Functions.RunContextFree;
-        return (RunContext*)Desc.run_ctx;
+        Descriptor.run = &Functions.RunCallback;
+        Descriptor.run_ctx = Memory.AllocZeroed<RunContext>(1);
+        Descriptor.run_ctx_free = &Functions.RunContextFree;
+        return (RunContext*)Descriptor.run_ctx;
     }
 
     /// <summary>
@@ -575,7 +575,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public bool Equals(SystemBuilder other)
     {
-        return Desc == other.Desc && QueryBuilder == other.QueryBuilder;
+        return Descriptor == other.Descriptor && QueryBuilder == other.QueryBuilder;
     }
 
     /// <summary>
@@ -594,7 +594,7 @@ public unsafe partial struct SystemBuilder : IDisposable, IEquatable<SystemBuild
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Desc.GetHashCode(), QueryBuilder.GetHashCode());
+        return HashCode.Combine(Descriptor.GetHashCode(), QueryBuilder.GetHashCode());
     }
 
     /// <summary>

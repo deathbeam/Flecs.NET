@@ -8,9 +8,10 @@ namespace Flecs.NET.Core;
 public unsafe interface IIterableBase
 {
     /// <summary>
-    ///     The world.
+    ///     Returns the world or stage the iterable runs on by default.
     /// </summary>
-    ecs_world_t* World { get; }
+    /// <returns>The world or stage.</returns>
+    internal World World();
 
     /// <summary>
     ///     Retrieves an iterator for this iterable object.

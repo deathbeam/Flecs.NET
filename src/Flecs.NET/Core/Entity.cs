@@ -17,12 +17,12 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <summary>
     ///     Reference to world.
     /// </summary>
-    public ref ecs_world_t* World => ref _id.World;
+    internal ref ecs_world_t* WorldPtr => ref _id.WorldPtr;
 
     /// <summary>
     ///     Reference to id.
     /// </summary>
-    public ref Id Id => ref _id;
+    public ref readonly Id Id => ref _id;
 
     ref Entity IEntity<Entity>.Entity => ref this;
 
@@ -116,7 +116,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool IsValid()
     {
-        return World != null && ecs_is_valid(World, Id);
+        return WorldPtr != null && ecs_is_valid(WorldPtr, Id);
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool IsAlive()
     {
-        return World != null && ecs_is_alive(World, Id);
+        return WorldPtr != null && ecs_is_alive(WorldPtr, Id);
     }
 
     /// <summary>
@@ -134,7 +134,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string Name()
     {
-        return NativeString.GetString(ecs_get_name(World, Id));
+        return NativeString.GetString(ecs_get_name(WorldPtr, Id));
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string Symbol()
     {
-        return NativeString.GetString(ecs_get_symbol(World, Id));
+        return NativeString.GetString(ecs_get_symbol(WorldPtr, Id));
     }
 
     /// <summary>
@@ -169,7 +169,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         using NativeString nativeSep = (NativeString)sep;
         using NativeString nativeInitSep = (NativeString)initSep;
 
-        return NativeString.GetStringAndFree(ecs_get_path_w_sep(World, parent, Id, nativeSep, nativeInitSep));
+        return NativeString.GetStringAndFree(ecs_get_path_w_sep(WorldPtr, parent, Id, nativeSep, nativeInitSep));
     }
 
     /// <summary>
@@ -181,7 +181,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string PathFrom<TParent>(string sep = Ecs.DefaultSeparator, string initSep = Ecs.DefaultSeparator)
     {
-        return PathFrom(Type<TParent>.Id(World), sep, initSep);
+        return PathFrom(Type<TParent>.Id(WorldPtr), sep, initSep);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled()
     {
-        return !ecs_has_id(World, Id, EcsDisabled);
+        return !ecs_has_id(WorldPtr, Id, EcsDisabled);
     }
 
     /// <summary>
@@ -200,7 +200,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled(ulong id)
     {
-        return ecs_is_enabled_id(World, Id, id);
+        return ecs_is_enabled_id(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -221,7 +221,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<T>()
     {
-        return Enabled(Type<T>.Id(World));
+        return Enabled(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -232,7 +232,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<T>(T value) where T : Enum
     {
-        return Enabled<T>(Type<T>.Id(World, value));
+        return Enabled<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -243,7 +243,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<TFirst>(ulong second)
     {
-        return Enabled(Ecs.Pair<TFirst>(second, World));
+        return Enabled(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -254,7 +254,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<TFirst, TSecond>()
     {
-        return Enabled(Ecs.Pair<TFirst, TSecond>(World));
+        return Enabled(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -266,7 +266,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Enabled<TFirst>(Type<TSecond>.Id(World, second));
+        return Enabled<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -278,7 +278,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Enabled<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return EnabledSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return EnabledSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -289,7 +289,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool EnabledSecond<TSecond>(ulong first)
     {
-        return Enabled(first, Type<TSecond>.Id(World));
+        return Enabled(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -298,7 +298,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public FlecsType Type()
     {
-        return new FlecsType(World, ecs_get_type(World, Id));
+        return new FlecsType(WorldPtr, ecs_get_type(WorldPtr, Id));
     }
 
     /// <summary>
@@ -307,7 +307,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Table Table()
     {
-        return new Table(World, ecs_get_table(World, Id));
+        return new Table(WorldPtr, ecs_get_table(WorldPtr, Id));
     }
 
     /// <summary>
@@ -316,8 +316,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Table Range()
     {
-        ecs_record_t* r = flecs_entities_get(ecs_get_world(World), Id);
-        return r != null ? new Table(World, r->table, Ecs.RecordToRow(r->row), 1) : new Table();
+        ecs_record_t* r = flecs_entities_get(ecs_get_world(WorldPtr), Id);
+        return r != null ? new Table(WorldPtr, r->table, Ecs.RecordToRow(r->row), 1) : new Table();
     }
 
     /// <summary>
@@ -342,8 +342,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
 
     private void EachId(ulong pattern, bool match, Ecs.EachIdCallback func)
     {
-        ecs_world_t* realWorld = ecs_get_world(World);
-        ecs_table_t* table = ecs_get_table(World, Id);
+        ecs_world_t* realWorld = ecs_get_world(WorldPtr);
+        ecs_table_t* table = ecs_get_table(WorldPtr, Id);
         ecs_type_t* type = table != null ? ecs_table_get_type(table) : null;
 
         if (type != null)
@@ -356,7 +356,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
 
                 while (-1 != (cur = ecs_search_offset(realWorld, table, cur, pattern, null)))
                 {
-                    func(new Id(World, ids[cur]));
+                    func(new Id(WorldPtr, ids[cur]));
                     cur++;
                 }
             }
@@ -365,7 +365,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
                 int count = type->count;
 
                 for (int i = 0; i < count; i++)
-                    func(new Id(World, ids[i]));
+                    func(new Id(WorldPtr, ids[i]));
             }
         }
 
@@ -385,7 +385,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             ecs_sparse_t* sparse = flecs_component_get_sparse(cr);
 
             if (sparse != null && flecs_sparse_has(sparse, Id))
-                func(new Id(World, id));
+                func(new Id(WorldPtr, id));
         }
     }
 
@@ -406,7 +406,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TFirst"></typeparam>
     public void Each<TFirst>(Ecs.EachEntityCallback func)
     {
-        Each(Type<TFirst>.Id(World), func);
+        Each(Type<TFirst>.Id(WorldPtr), func);
     }
 
     /// <summary>
@@ -417,7 +417,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TFirst"></typeparam>
     public void Each<TFirst>(TFirst relation, Ecs.EachEntityCallback callback) where TFirst : Enum
     {
-        Each(Type<TFirst>.Id(World, relation), callback);
+        Each(Type<TFirst>.Id(WorldPtr, relation), callback);
     }
 
     /// <summary>
@@ -430,7 +430,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         if (Id == EcsWildcard || Id == EcsAny)
             return;
 
-        ecs_iter_t it = ecs_children_w_rel(World, relation, Id);
+        ecs_iter_t it = ecs_children_w_rel(WorldPtr, relation, Id);
         while (ecs_children_next(&it))
             Invoker.Each(&it, callback);
     }
@@ -442,7 +442,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TRel"></typeparam>
     public void Children<TRel>(Ecs.EachEntityCallback callback)
     {
-        Children(Type<TRel>.Id(World), callback);
+        Children(Type<TRel>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -453,7 +453,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TFirst"></typeparam>
     public void Children<TFirst>(TFirst relation, Ecs.EachEntityCallback callback) where TFirst : Enum
     {
-        Children(Type<TFirst>.Id(World, relation), callback);
+        Children(Type<TFirst>.Id(WorldPtr, relation), callback);
     }
 
     /// <summary>
@@ -472,7 +472,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public void* GetPtr(ulong compId)
     {
-        return ecs_get_id(World, Id, compId);
+        return ecs_get_id(WorldPtr, Id, compId);
     }
 
     /// <summary>
@@ -494,7 +494,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public T* GetPtr<T>() where T : unmanaged
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (T*)ecs_get_id(World, Id, Type<T>.Id(World));
+        return (T*)ecs_get_id(WorldPtr, Id, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -508,7 +508,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
 
         if (!typeof(TFirst).IsEnum || (second != Ecs.Wildcard && second != Ecs.Any))
-            return (TFirst*)GetPtr(Ecs.Pair<TFirst>(second, World));
+            return (TFirst*)GetPtr(Ecs.Pair<TFirst>(second, WorldPtr));
 
         Entity target = Target<TFirst>();
         return target == 0 ? null : (TFirst*)target.GetPtr(EcsConstant, Type<TFirst>.UnderlyingTypeId);
@@ -526,7 +526,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TSecond : Enum
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(second, World));
+        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(second, WorldPtr));
     }
 
     /// <summary>
@@ -541,7 +541,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(first, World));
+        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -553,7 +553,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TFirst* GetFirstPtr<TFirst, TSecond>() where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -565,7 +565,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* GetSecondPtr<TFirst, TSecond>() where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -577,7 +577,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* GetSecondPtr<TSecond>(ulong first) where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetPtr(Ecs.PairSecond<TSecond>(first, World));
+        return (TSecond*)GetPtr(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -588,7 +588,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly T Get<T>()
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<T>(ecs_get_id(World, Id, Type<T>.Id(World)));
+        return ref Managed.GetTypeRef<T>(ecs_get_id(WorldPtr, Id, Type<T>.Id(WorldPtr)));
     }
 
     /// <summary>
@@ -602,7 +602,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
 
         if (!typeof(TFirst).IsEnum || (second != Ecs.Wildcard && second != Ecs.Any))
-            return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst>(second, World)));
+            return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst>(second, WorldPtr)));
 
         Entity target = Target<TFirst>();
         return ref target == 0 ? ref Unsafe.NullRef<TFirst>() : ref Managed.GetTypeRef<TFirst>(target.GetPtr(EcsConstant, Type<TFirst>.UnderlyingTypeId));
@@ -618,7 +618,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly TFirst Get<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst, TSecond>(second, World)));
+        return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst, TSecond>(second, WorldPtr)));
     }
 
     /// <summary>
@@ -631,7 +631,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly TSecond Get<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.Pair<TFirst, TSecond>(first, World)));
+        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.Pair<TFirst, TSecond>(first, WorldPtr)));
     }
 
     /// <summary>
@@ -643,7 +643,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly TFirst GetFirst<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TFirst>(GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -655,7 +655,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly TSecond GetSecond<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -667,7 +667,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly TSecond GetSecond<TSecond>(ulong first)
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.PairSecond<TSecond>(first, World)));
+        return ref Managed.GetTypeRef<TSecond>(GetPtr(Ecs.PairSecond<TSecond>(first, WorldPtr)));
     }
 
     /// <summary>
@@ -677,7 +677,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public void* GetMutPtr(ulong id)
     {
-        return ecs_get_mut_id(World, Id, id);
+        return ecs_get_mut_id(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -699,7 +699,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public T* GetMutPtr<T>() where T : unmanaged
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (T*)ecs_get_mut_id(World, Id, Type<T>.Id(World));
+        return (T*)ecs_get_mut_id(WorldPtr, Id, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -711,7 +711,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TFirst* GetMutPtr<TFirst>(ulong second) where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetMutPtr(Ecs.Pair<TFirst>(second, World));
+        return (TFirst*)GetMutPtr(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -725,7 +725,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TFirst : unmanaged
         where TSecond : Enum
     {
-        return GetMutPtr<TFirst>(Type<TSecond>.Id(World, second));
+        return GetMutPtr<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -739,7 +739,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TFirst : Enum
         where TSecond : unmanaged
     {
-        return GetMutSecondPtr<TSecond>(Type<TFirst>.Id(World, first));
+        return GetMutSecondPtr<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -751,7 +751,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TFirst* GetMutFirstPtr<TFirst, TSecond>() where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetMutPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TFirst*)GetMutPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -763,7 +763,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* GetMutSecondPtr<TFirst, TSecond>() where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetMutPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TSecond*)GetMutPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -775,7 +775,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* GetMutSecondPtr<TSecond>(ulong first) where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetMutPtr(Ecs.PairSecond<TSecond>(first, World));
+        return (TSecond*)GetMutPtr(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -786,7 +786,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref T GetMut<T>()
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<T>(ecs_get_mut_id(World, Id, Type<T>.Id(World)));
+        return ref Managed.GetTypeRef<T>(ecs_get_mut_id(WorldPtr, Id, Type<T>.Id(WorldPtr)));
     }
 
     /// <summary>
@@ -798,7 +798,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TFirst GetMut<TFirst>(ulong second)
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(GetMutPtr(Ecs.Pair<TFirst>(second, World)));
+        return ref Managed.GetTypeRef<TFirst>(GetMutPtr(Ecs.Pair<TFirst>(second, WorldPtr)));
     }
 
     /// <summary>
@@ -810,7 +810,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref TFirst GetMut<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref GetMut<TFirst>(Type<TSecond>.Id(World, second));
+        return ref GetMut<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -822,7 +822,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref TSecond GetMut<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref GetMutSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref GetMutSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -834,7 +834,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TFirst GetMutFirst<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(GetMutPtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TFirst>(GetMutPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -846,7 +846,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TSecond GetMutSecond<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(GetMutPtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TSecond>(GetMutPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -858,7 +858,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TSecond GetMutSecond<TSecond>(ulong first)
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(GetMutPtr(Ecs.PairSecond<TSecond>(first, World)));
+        return ref Managed.GetTypeRef<TSecond>(GetMutPtr(Ecs.PairSecond<TSecond>(first, WorldPtr)));
     }
 
     /// <summary>
@@ -869,7 +869,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Target(ulong relation, int index = 0)
     {
-        return new Entity(World, ecs_get_target(World, Id, relation, index));
+        return new Entity(WorldPtr, ecs_get_target(WorldPtr, Id, relation, index));
     }
 
     /// <summary>
@@ -880,7 +880,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Target<T>(int index = 0)
     {
-        return new Entity(World, ecs_get_target(World, Id, Type<T>.Id(World), index));
+        return new Entity(WorldPtr, ecs_get_target(WorldPtr, Id, Type<T>.Id(WorldPtr), index));
     }
 
     /// <summary>
@@ -891,7 +891,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity TargetFor(ulong relation, ulong id)
     {
-        return new Entity(World, ecs_get_target_for_id(World, Id, relation, id));
+        return new Entity(WorldPtr, ecs_get_target_for_id(WorldPtr, Id, relation, id));
     }
 
     /// <summary>
@@ -902,7 +902,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity TargetFor<T>(ulong relation)
     {
-        return new Entity(World, TargetFor(relation, Type<T>.Id(World)));
+        return new Entity(WorldPtr, TargetFor(relation, Type<T>.Id(WorldPtr)));
     }
 
     /// <summary>
@@ -914,8 +914,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity TargetFor<TFirst, TSecond>(ulong relation)
     {
-        ulong pair = Ecs.Pair<TFirst, TSecond>(World);
-        return new Entity(World, TargetFor(relation, pair));
+        ulong pair = Ecs.Pair<TFirst, TSecond>(WorldPtr);
+        return new Entity(WorldPtr, TargetFor(relation, pair));
     }
 
     /// <summary>
@@ -925,7 +925,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public int Depth(ulong rel)
     {
-        return ecs_get_depth(World, Id, rel);
+        return ecs_get_depth(WorldPtr, Id, rel);
     }
 
     /// <summary>
@@ -935,7 +935,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public int Depth<T>()
     {
-        return Depth(Type<T>.Id(World));
+        return Depth(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -946,7 +946,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public int Depth<T>(T value) where T : Enum
     {
-        return Depth(Type<T>.Id(World, value));
+        return Depth(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -955,7 +955,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Parent()
     {
-        return new Entity(World, ecs_get_parent(World, Id));
+        return new Entity(WorldPtr, ecs_get_parent(WorldPtr, Id));
     }
 
     /// <summary>
@@ -968,9 +968,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     {
         Ecs.Assert(Id != 0, "Invalid lookup from null handle.");
         using NativeString nativePath = (NativeString)path;
-        ulong id = ecs_lookup_path_w_sep(World, Id, nativePath,
+        ulong id = ecs_lookup_path_w_sep(WorldPtr, Id, nativePath,
             Pointers.DefaultSeparator, Pointers.DefaultSeparator, recursive);
-        return new Entity(World, id);
+        return new Entity(WorldPtr, id);
     }
 
     /// <summary>
@@ -1026,7 +1026,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has(ulong id)
     {
-        return ecs_has_id(World, Id, id);
+        return ecs_has_id(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -1047,7 +1047,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<T>()
     {
-        return ecs_has_id(World, Id, Type<T>.Id(World));
+        return ecs_has_id(WorldPtr, Id, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1058,7 +1058,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<T>(T value) where T : Enum
     {
-        return Has<T>(Type<T>.Id(World, value));
+        return Has<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1069,7 +1069,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<TFirst>(ulong second)
     {
-        return Has(Ecs.Pair<TFirst>(second, World));
+        return Has(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -1080,7 +1080,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<TFirst, TSecond>()
     {
-        return Has(Ecs.Pair<TFirst, TSecond>(World));
+        return Has(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -1092,7 +1092,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Has<TFirst>(Type<TSecond>.Id(World, second));
+        return Has<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1104,7 +1104,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return HasSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return HasSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1115,7 +1115,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool HasSecond<TSecond>(ulong first)
     {
-        return Has(first, Type<TSecond>.Id(World));
+        return Has(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1125,7 +1125,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns(ulong id)
     {
-        return ecs_owns_id(World, Id, id);
+        return ecs_owns_id(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -1146,7 +1146,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<T>()
     {
-        return Owns(Type<T>.Id(World));
+        return Owns(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1157,7 +1157,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<T>(T value) where T : Enum
     {
-        return Owns<T>(Type<T>.Id(World, value));
+        return Owns<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1168,7 +1168,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<TFirst>(ulong second)
     {
-        return Owns(Ecs.Pair<TFirst>(second, World));
+        return Owns(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -1179,7 +1179,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<TFirst, TSecond>()
     {
-        return Owns(Ecs.Pair<TFirst, TSecond>(World));
+        return Owns(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -1191,7 +1191,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Owns<TFirst>(Type<TSecond>.Id(World, second));
+        return Owns<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1203,7 +1203,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Owns<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return OwnsSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return OwnsSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1214,7 +1214,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool OwnsSecond<TSecond>(ulong first)
     {
-        return Owns(first, Type<TSecond>.Id(World));
+        return Owns(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1226,10 +1226,10 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public Entity Clone(bool cloneValue = true, ulong dstId = 0)
     {
         if (dstId == 0)
-            dstId = ecs_new(World);
+            dstId = ecs_new(WorldPtr);
 
-        Entity dst = new Entity(World, dstId);
-        ecs_clone(World, dstId, Id, cloneValue);
+        Entity dst = new Entity(WorldPtr, dstId);
+        ecs_clone(WorldPtr, dstId, Id, cloneValue);
         return dst;
     }
 
@@ -1263,9 +1263,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Stage(ref Entity entity)
     {
-        Ecs.Assert(!entity.CsWorld().IsReadOnly(),
+        Ecs.Assert(!entity.World().IsReadOnly(),
             "Cannot use entity created for readonly world/stage to create mutable handle");
-        return new Entity(Id).SetStage(entity.World);
+        return new Entity(Id).SetStage(entity.WorldPtr);
     }
 
     /// <summary>
@@ -1306,10 +1306,10 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Entity Stage()
     {
-        if (ecs_is_stage(World))
-            return new Entity(Id).SetStage(World);
+        if (ecs_is_stage(WorldPtr))
+            return new Entity(Id).SetStage(WorldPtr);
 
-        return new Entity(Id).SetStage(ecs_get_stage(World, 0));
+        return new Entity(Id).SetStage(ecs_get_stage(WorldPtr, 0));
     }
 
     private Entity SetStage(ecs_world_t* stage)
@@ -1324,9 +1324,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>A JSON string with the serialized entity data, or an empty string if failed.</returns>
     public string ToJson(in EntityToJsonDesc desc)
     {
-        fixed (ecs_entity_to_json_desc_t* ptr = &desc.Desc)
+        fixed (ecs_entity_to_json_desc_t* ptr = &desc.Descriptor)
         {
-            return NativeString.GetStringAndFree(ecs_entity_to_json(World, Id, ptr));
+            return NativeString.GetStringAndFree(ecs_entity_to_json(WorldPtr, Id, ptr));
         }
     }
 
@@ -1336,7 +1336,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>A JSON string with the serialized entity data, or an empty string if failed.</returns>
     public string ToJson()
     {
-        return NativeString.GetStringAndFree(ecs_entity_to_json(World, Id, null));
+        return NativeString.GetStringAndFree(ecs_entity_to_json(WorldPtr, Id, null));
     }
 
     /// <summary>
@@ -1345,7 +1345,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocName()
     {
-        return NativeString.GetString(ecs_doc_get_name(World, Id));
+        return NativeString.GetString(ecs_doc_get_name(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1354,7 +1354,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocBrief()
     {
-        return NativeString.GetString(ecs_doc_get_brief(World, Id));
+        return NativeString.GetString(ecs_doc_get_brief(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1363,7 +1363,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocDetail()
     {
-        return NativeString.GetString(ecs_doc_get_detail(World, Id));
+        return NativeString.GetString(ecs_doc_get_detail(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1372,7 +1372,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocLink()
     {
-        return NativeString.GetString(ecs_doc_get_link(World, Id));
+        return NativeString.GetString(ecs_doc_get_link(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1381,7 +1381,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocColor()
     {
-        return NativeString.GetString(ecs_doc_get_color(World, Id));
+        return NativeString.GetString(ecs_doc_get_color(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1390,7 +1390,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string DocUuid()
     {
-        return NativeString.GetString(ecs_doc_get_uuid(World, Id));
+        return NativeString.GetString(ecs_doc_get_uuid(WorldPtr, Id));
     }
 
     /// <summary>
@@ -1400,7 +1400,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public int AlertCount(ulong alert = 0)
     {
-        return ecs_get_alert_count(World, Id, alert);
+        return ecs_get_alert_count(WorldPtr, Id, alert);
     }
 
     /// <summary>
@@ -1421,7 +1421,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="eventId"></param>
     public void Emit(ulong eventId)
     {
-        new World(World)
+        new World(WorldPtr)
             .Event(eventId)
             .Entity(Id)
             .Emit();
@@ -1442,7 +1442,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Emit<T>()
     {
-        Emit(Type<T>.Id(World));
+        Emit(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1451,8 +1451,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Emit<T>(T payload) where T : unmanaged
     {
-        new World(World)
-            .Event(Type<T>.Id(World))
+        new World(WorldPtr)
+            .Event(Type<T>.Id(WorldPtr))
             .Entity(Id)
             .Ctx(&payload)
             .Emit();
@@ -1471,8 +1471,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             {
                 Managed.AllocGcHandle(ptr, out GCHandle handle);
 
-                new World(World)
-                    .Event(Type<T>.Id(World))
+                new World(WorldPtr)
+                    .Event(Type<T>.Id(WorldPtr))
                     .Entity(Id)
                     .Ctx(&handle)
                     .Emit();
@@ -1481,8 +1481,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             }
             else
             {
-                new World(World)
-                    .Event(Type<T>.Id(World))
+                new World(WorldPtr)
+                    .Event(Type<T>.Id(WorldPtr))
                     .Entity(Id)
                     .Ctx(ptr)
                     .Emit();
@@ -1496,7 +1496,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="eventId"></param>
     public void Enqueue(ulong eventId)
     {
-        new World(World)
+        new World(WorldPtr)
             .Event(eventId)
             .Entity(Id)
             .Enqueue();
@@ -1517,7 +1517,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Enqueue<T>()
     {
-        Enqueue(Type<T>.Id(World));
+        Enqueue(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1527,8 +1527,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Enqueue<T>(T payload) where T : unmanaged
     {
-        new World(World)
-            .Event(Type<T>.Id(World))
+        new World(WorldPtr)
+            .Event(Type<T>.Id(WorldPtr))
             .Entity(Id)
             .Ctx(&payload)
             .Enqueue();
@@ -1547,8 +1547,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             {
                 Managed.AllocGcHandle(ptr, out GCHandle handle);
 
-                new World(World)
-                    .Event(Type<T>.Id(World))
+                new World(WorldPtr)
+                    .Event(Type<T>.Id(WorldPtr))
                     .Entity(Id)
                     .Ctx(&handle)
                     .Enqueue();
@@ -1557,8 +1557,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             }
             else
             {
-                new World(World)
-                    .Event(Type<T>.Id(World))
+                new World(WorldPtr)
+                    .Event(Type<T>.Id(WorldPtr))
                     .Entity(Id)
                     .Ctx(ptr)
                     .Enqueue();
@@ -1584,7 +1584,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool IsChildOf<T>()
     {
-        return IsChildOf(Type<T>.Id(World));
+        return IsChildOf(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1595,7 +1595,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool IsChildOf<T>(T value) where T : Enum
     {
-        return IsChildOf(Type<T>.Id(World, value));
+        return IsChildOf(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1605,8 +1605,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add(ulong id)
     {
-        Ecs.Assert(ecs_id_is_valid(World, id), nameof(ECS_INVALID_OPERATION));
-        ecs_add_id(World, Id, id);
+        Ecs.Assert(ecs_id_is_valid(WorldPtr, id), nameof(ECS_INVALID_OPERATION));
+        ecs_add_id(WorldPtr, Id, id);
         return ref this;
     }
 
@@ -1628,7 +1628,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<T>()
     {
-        return ref Add(Type<T>.Id(World));
+        return ref Add(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1639,7 +1639,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<TFirst>(ulong second)
     {
-        return ref Add(Ecs.Pair<TFirst>(second, World));
+        return ref Add(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -1650,7 +1650,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<T>(T value) where T : Enum
     {
-        return ref Add<T>(Type<T>.Id(World, value));
+        return ref Add<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1661,7 +1661,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<TFirst, TSecond>()
     {
-        return ref Add<TFirst>(Type<TSecond>.Id(World));
+        return ref Add<TFirst>(Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1673,7 +1673,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Add<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Add<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1685,7 +1685,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Add<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref AddSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref AddSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1696,7 +1696,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddSecond<TSecond>(ulong first)
     {
-        return ref Add(first, Type<TSecond>.Id(World));
+        return ref Add(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1722,7 +1722,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         if (cond)
             return ref Add(first, second);
 
-        if (second == 0 || ecs_has_id(World, first, EcsExclusive))
+        if (second == 0 || ecs_has_id(WorldPtr, first, EcsExclusive))
             second = EcsWildcard;
 
         return ref Remove(first, second);
@@ -1748,7 +1748,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIf<T>(bool cond, T value) where T : Enum
     {
-        return ref AddIf<T>(cond, Type<T>.Id(World, value));
+        return ref AddIf<T>(cond, Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1760,7 +1760,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIf<TFirst>(bool cond, ulong second)
     {
-        return ref AddIf(cond, Type<TFirst>.Id(World), second);
+        return ref AddIf(cond, Type<TFirst>.Id(WorldPtr), second);
     }
 
     /// <summary>
@@ -1772,7 +1772,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIf<TFirst, TSecond>(bool cond)
     {
-        return ref AddIf<TFirst>(cond, Type<TSecond>.Id(World));
+        return ref AddIf<TFirst>(cond, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1785,7 +1785,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIf<TFirst, TSecond>(bool cond, TSecond second) where TSecond : Enum
     {
-        return ref AddIf<TFirst>(cond, Type<TSecond>.Id(World, second));
+        return ref AddIf<TFirst>(cond, Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1798,7 +1798,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIf<TFirst, TSecond>(bool cond, TFirst first) where TFirst : Enum
     {
-        return ref AddIfSecond<TSecond>(cond, Type<TFirst>.Id(World, first));
+        return ref AddIfSecond<TSecond>(cond, Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1810,7 +1810,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AddIfSecond<TSecond>(bool cond, ulong first)
     {
-        return ref AddIf(cond, first, Type<TSecond>.Id(World));
+        return ref AddIf(cond, first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1830,7 +1830,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity IsA<T>()
     {
-        return ref Add(EcsIsA, Type<T>.Id(World));
+        return ref Add(EcsIsA, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1841,7 +1841,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity IsA<T>(T value) where T : Enum
     {
-        return ref IsA(Type<T>.Id(World, value));
+        return ref IsA(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1861,7 +1861,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity ChildOf<T>()
     {
-        return ref Add(EcsChildOf, Type<T>.Id(World));
+        return ref Add(EcsChildOf, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1872,7 +1872,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity ChildOf<T>(T value) where T : Enum
     {
-        return ref ChildOf(Type<T>.Id(World, value));
+        return ref ChildOf(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1892,7 +1892,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity DependsOn<T>()
     {
-        return ref DependsOn(Type<T>.Id(World));
+        return ref DependsOn(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1903,7 +1903,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity DependsOn<T>(T value) where T : Enum
     {
-        return ref DependsOn(Type<T>.Id(World, value));
+        return ref DependsOn(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1913,7 +1913,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove(ulong id)
     {
-        ecs_remove_id(World, Id, id);
+        ecs_remove_id(WorldPtr, Id, id);
         return ref this;
     }
 
@@ -1936,7 +1936,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<T>()
     {
-        return ref Remove(Type<T>.Id(World));
+        return ref Remove(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1947,7 +1947,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<T>(T value) where T : Enum
     {
-        return ref Remove<T>(Type<T>.Id(World, value));
+        return ref Remove<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1958,7 +1958,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<TFirst>(ulong second)
     {
-        return ref Remove(Ecs.Pair<TFirst>(second, World));
+        return ref Remove(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -1969,7 +1969,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<TFirst, TSecond>()
     {
-        return ref Remove(Ecs.Pair<TFirst, TSecond>(World));
+        return ref Remove(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -1981,7 +1981,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Remove<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Remove<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1993,7 +1993,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Remove<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref RemoveSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref RemoveSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -2004,7 +2004,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity RemoveSecond<TSecond>(ulong first)
     {
-        return ref Remove(first, Type<TSecond>.Id(World));
+        return ref Remove(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2014,7 +2014,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride(ulong id)
     {
-        ecs_add_id(World, Id, ECS_AUTO_OVERRIDE | id);
+        ecs_add_id(WorldPtr, Id, ECS_AUTO_OVERRIDE | id);
         return ref this;
     }
 
@@ -2036,7 +2036,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<T>()
     {
-        return ref AutoOverride(Type<T>.Id(World));
+        return ref AutoOverride(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2047,7 +2047,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<T>(T value) where T : Enum
     {
-        return ref AutoOverride<T>(Type<T>.Id(World, value));
+        return ref AutoOverride<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -2058,7 +2058,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<TFirst>(ulong second)
     {
-        return ref AutoOverride(Ecs.Pair<TFirst>(second, World));
+        return ref AutoOverride(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -2069,7 +2069,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<TFirst, TSecond>()
     {
-        return ref AutoOverride(Ecs.Pair<TFirst, TSecond>(World));
+        return ref AutoOverride(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -2081,7 +2081,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref AutoOverride<TFirst>(Type<TSecond>.Id(World, second));
+        return ref AutoOverride<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -2093,7 +2093,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverride<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref AutoOverrideSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref AutoOverrideSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -2104,7 +2104,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity AutoOverrideSecond<TSecond>(ulong first)
     {
-        return ref AutoOverride(first, Type<TSecond>.Id(World));
+        return ref AutoOverride(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2164,7 +2164,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetAutoOverride<TFirst, TSecond>(TSecond second, in TFirst component) where TSecond : Enum
     {
-        ulong secondId = Type<TSecond>.Id(World, second);
+        ulong secondId = Type<TSecond>.Id(WorldPtr, second);
         return ref AutoOverride<TFirst>(secondId).Set(secondId, in component);
     }
 
@@ -2178,7 +2178,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetAutoOverride<TFirst, TSecond>(TFirst first, in TSecond component) where TFirst : Enum
     {
-        ulong firstId = Type<TFirst>.Id(World, first);
+        ulong firstId = Type<TFirst>.Id(WorldPtr, first);
         return ref AutoOverrideSecond<TSecond>(firstId).SetSecond(firstId, in component);
     }
 
@@ -2200,7 +2200,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable()
     {
-        ecs_enable(World, Id, true);
+        ecs_enable(WorldPtr, Id, true);
         return ref this;
     }
 
@@ -2211,7 +2211,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable(ulong id)
     {
-        ecs_enable_id(World, Id, id, true);
+        ecs_enable_id(WorldPtr, Id, id, true);
         return ref this;
     }
 
@@ -2233,7 +2233,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<T>()
     {
-        return ref Enable(Type<T>.Id(World));
+        return ref Enable(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2244,7 +2244,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<T>(T value) where T : Enum
     {
-        return ref Enable<T>(Type<T>.Id(World, value));
+        return ref Enable<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -2255,7 +2255,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<TFirst>(ulong second)
     {
-        return ref Enable(Ecs.Pair<TFirst>(second, World));
+        return ref Enable(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -2266,7 +2266,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<TFirst, TSecond>()
     {
-        return ref Enable(Ecs.Pair<TFirst, TSecond>(World));
+        return ref Enable(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -2278,7 +2278,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Enable<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Enable<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -2290,7 +2290,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Enable<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref EnableSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref EnableSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -2301,7 +2301,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity EnableSecond<TSecond>(ulong first)
     {
-        return ref Enable(first, Type<TSecond>.Id(World));
+        return ref Enable(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2310,7 +2310,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable()
     {
-        ecs_enable(World, Id, false);
+        ecs_enable(WorldPtr, Id, false);
         return ref this;
     }
 
@@ -2321,7 +2321,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable(ulong id)
     {
-        ecs_enable_id(World, Id, id, false);
+        ecs_enable_id(WorldPtr, Id, id, false);
         return ref this;
     }
 
@@ -2343,7 +2343,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<T>()
     {
-        return ref Disable(Type<T>.Id(World));
+        return ref Disable(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2354,7 +2354,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<T>(T value) where T : Enum
     {
-        return ref Disable<T>(Type<T>.Id(World, value));
+        return ref Disable<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -2365,7 +2365,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<TFirst>(ulong second)
     {
-        return ref Disable(Ecs.Pair<TFirst>(second, World));
+        return ref Disable(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -2376,7 +2376,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<TFirst, TSecond>()
     {
-        return ref Disable(Ecs.Pair<TFirst, TSecond>(World));
+        return ref Disable(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -2388,7 +2388,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Disable<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Disable<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -2400,7 +2400,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Disable<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref DisableSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref DisableSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -2411,7 +2411,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity DisableSecond<TSecond>(ulong first)
     {
-        return ref Disable(first, Type<TSecond>.Id(World));
+        return ref Disable(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2423,8 +2423,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetUntyped(ulong id, int size, void* data)
     {
-        Ecs.Assert(ecs_get_typeid(World, id) != 0, "Cannot set component data for tag ids.");
-        ecs_set_id(World, Id, id, size, data);
+        Ecs.Assert(ecs_get_typeid(WorldPtr, id) != 0, "Cannot set component data for tag ids.");
+        ecs_set_id(WorldPtr, Id, id, size, data);
         return ref this;
     }
 
@@ -2436,7 +2436,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetUntyped(ulong id, void* data)
     {
-        EcsComponent* component = (EcsComponent*)ecs_get_id(World, id, FLECS_IDEcsComponentID_);
+        EcsComponent* component = (EcsComponent*)ecs_get_id(WorldPtr, id, FLECS_IDEcsComponentID_);
         Ecs.Assert(component != null, nameof(ECS_INVALID_PARAMETER));
         return ref SetUntyped(id, component->size, data);
     }
@@ -2462,7 +2462,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<T>(T* data)
     {
-        return ref SetInternal(Type<T>.Id(World), data);
+        return ref SetInternal(Type<T>.Id(WorldPtr), data);
     }
 
     /// <summary>
@@ -2474,7 +2474,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<TFirst>(ulong second, TFirst* data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst>(second, World), data);
+        return ref SetInternal(Ecs.Pair<TFirst>(second, WorldPtr), data);
     }
 
     /// <summary>
@@ -2486,7 +2486,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<TFirst, TSecond>(TSecond* data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(World), data);
+        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(WorldPtr), data);
     }
 
     /// <summary>
@@ -2498,7 +2498,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<TFirst, TSecond>(TFirst* data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(World), data);
+        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(WorldPtr), data);
     }
 
     /// <summary>
@@ -2511,7 +2511,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<TFirst, TSecond>(TSecond second, TFirst* data) where TSecond : Enum
     {
-        return ref SetPtr(Type<TSecond>.Id(World, second), data);
+        return ref SetPtr(Type<TSecond>.Id(WorldPtr, second), data);
     }
 
     /// <summary>
@@ -2524,7 +2524,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtr<TFirst, TSecond>(TFirst first, TSecond* data) where TFirst : Enum
     {
-        return ref SetPtrSecond(Type<TFirst>.Id(World, first), data);
+        return ref SetPtrSecond(Type<TFirst>.Id(WorldPtr, first), data);
     }
 
     /// <summary>
@@ -2536,7 +2536,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetPtrSecond<TSecond>(ulong first, TSecond* data)
     {
-        return ref SetInternal(Ecs.PairSecond<TSecond>(first, World), data);
+        return ref SetInternal(Ecs.PairSecond<TSecond>(first, WorldPtr), data);
     }
 
     /// <summary>
@@ -2547,7 +2547,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<T>(in T data)
     {
-        return ref SetInternal(Type<T>.Id(World), in data);
+        return ref SetInternal(Type<T>.Id(WorldPtr), in data);
     }
 
     /// <summary>
@@ -2559,7 +2559,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<TFirst>(ulong second, in TFirst data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst>(second, World), in data);
+        return ref SetInternal(Ecs.Pair<TFirst>(second, WorldPtr), in data);
     }
 
     /// <summary>
@@ -2571,7 +2571,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<TFirst, TSecond>(in TSecond data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(World), in data);
+        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(WorldPtr), in data);
     }
 
     /// <summary>
@@ -2583,7 +2583,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<TFirst, TSecond>(in TFirst data)
     {
-        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(World), in data);
+        return ref SetInternal(Ecs.Pair<TFirst, TSecond>(WorldPtr), in data);
     }
 
     /// <summary>
@@ -2596,7 +2596,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<TFirst, TSecond>(TSecond second, in TFirst data) where TSecond : Enum
     {
-        return ref Set(Type<TSecond>.Id(World, second), in data);
+        return ref Set(Type<TSecond>.Id(WorldPtr, second), in data);
     }
 
     /// <summary>
@@ -2609,7 +2609,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Set<TFirst, TSecond>(TFirst first, in TSecond data) where TFirst : Enum
     {
-        return ref SetSecond(Type<TFirst>.Id(World, first), in data);
+        return ref SetSecond(Type<TFirst>.Id(WorldPtr, first), in data);
     }
 
     /// <summary>
@@ -2621,7 +2621,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity SetSecond<TSecond>(ulong first, in TSecond data)
     {
-        return ref SetInternal(Ecs.PairSecond<TSecond>(first, World), in data);
+        return ref SetInternal(Ecs.PairSecond<TSecond>(first, WorldPtr), in data);
     }
 
     /// <summary>
@@ -2631,9 +2631,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Scope(Action callback)
     {
-        ulong prev = ecs_set_scope(World, Id);
+        ulong prev = ecs_set_scope(WorldPtr, Id);
         callback();
-        ecs_set_scope(World, prev);
+        ecs_set_scope(WorldPtr, prev);
         return ref this;
     }
 
@@ -2644,9 +2644,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns>Reference to self.</returns>
     public ref Entity Scope(Ecs.WorldCallback callback)
     {
-        ulong prev = ecs_set_scope(World, Id);
-        callback(World);
-        ecs_set_scope(World, prev);
+        ulong prev = ecs_set_scope(WorldPtr, Id);
+        callback(WorldPtr);
+        ecs_set_scope(WorldPtr, prev);
         return ref this;
     }
 
@@ -2658,7 +2658,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetName(string name)
     {
         using NativeString nativeName = (NativeString)name;
-        ecs_set_name(World, Id, nativeName);
+        ecs_set_name(WorldPtr, Id, nativeName);
         return ref this;
     }
 
@@ -2670,7 +2670,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetAlias(string alias)
     {
         using NativeString nativeAlias = (NativeString)alias;
-        ecs_set_alias(World, Id, nativeAlias);
+        ecs_set_alias(WorldPtr, Id, nativeAlias);
         return ref this;
     }
 
@@ -2682,7 +2682,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocName(string name)
     {
         using NativeString nativeName = (NativeString)name;
-        ecs_doc_set_name(World, Id, nativeName);
+        ecs_doc_set_name(WorldPtr, Id, nativeName);
         return ref this;
     }
 
@@ -2694,7 +2694,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocBrief(string brief)
     {
         using NativeString nativeBrief = (NativeString)brief;
-        ecs_doc_set_brief(World, Id, nativeBrief);
+        ecs_doc_set_brief(WorldPtr, Id, nativeBrief);
         return ref this;
     }
 
@@ -2706,7 +2706,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocDetail(string detail)
     {
         using NativeString nativeDetail = (NativeString)detail;
-        ecs_doc_set_detail(World, Id, nativeDetail);
+        ecs_doc_set_detail(WorldPtr, Id, nativeDetail);
         return ref this;
     }
 
@@ -2718,7 +2718,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocLink(string link)
     {
         using NativeString nativeLink = (NativeString)link;
-        ecs_doc_set_link(World, Id, nativeLink);
+        ecs_doc_set_link(WorldPtr, Id, nativeLink);
         return ref this;
     }
 
@@ -2730,7 +2730,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocColor(string color)
     {
         using NativeString nativeColor = (NativeString)color;
-        ecs_doc_set_color(World, Id, nativeColor);
+        ecs_doc_set_color(WorldPtr, Id, nativeColor);
         return ref this;
     }
 
@@ -2742,7 +2742,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetDocUuid(string uuid)
     {
         using NativeString nativeUuid = (NativeString)uuid;
-        ecs_doc_set_uuid(World, Id, nativeUuid);
+        ecs_doc_set_uuid(WorldPtr, Id, nativeUuid);
         return ref this;
     }
 
@@ -2774,7 +2774,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         desc.prefix = prefix;
         desc.translation.factor = factor;
         desc.translation.power = power;
-        ecs_unit_init(World, &desc);
+        ecs_unit_init(WorldPtr, &desc);
 
         return ref this;
     }
@@ -2802,7 +2802,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         desc.prefix = prefix;
         desc.translation.factor = factor;
         desc.translation.power = power;
-        ecs_unit_init(World, &desc);
+        ecs_unit_init(WorldPtr, &desc);
 
         return ref this;
     }
@@ -2823,7 +2823,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         desc.symbol = nativeSymbol;
         desc.translation.factor = factor;
         desc.translation.power = power;
-        ecs_unit_prefix_init(World, &desc);
+        ecs_unit_prefix_init(WorldPtr, &desc);
 
         return ref this;
     }
@@ -2835,7 +2835,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Quantity(ulong quantity)
     {
-        ecs_add_id(World, Id, Ecs.Pair(EcsQuantity, quantity));
+        ecs_add_id(WorldPtr, Id, Ecs.Pair(EcsQuantity, quantity));
         return ref this;
     }
 
@@ -2846,7 +2846,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Quantity<T>()
     {
-        return ref Quantity(Type<T>.Id(World));
+        return ref Quantity(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -2855,7 +2855,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Quantity()
     {
-        ecs_add_id(World, Id, EcsQuantity);
+        ecs_add_id(WorldPtr, Id, EcsQuantity);
         return ref this;
     }
 
@@ -2868,7 +2868,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity SetJson(ulong e, string json, ecs_from_json_desc_t* desc = null)
     {
-        ulong type = ecs_get_typeid(World, e);
+        ulong type = ecs_get_typeid(WorldPtr, e);
 
         if (type == 0)
         {
@@ -2876,15 +2876,15 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
             return ref this;
         }
 
-        ecs_type_info_t* ti = ecs_get_type_info(World, type);
+        ecs_type_info_t* ti = ecs_get_type_info(WorldPtr, type);
         int size = ti != null ? ti->size : 0;
-        void* ptr = ecs_ensure_id(World, Id, e, size);
+        void* ptr = ecs_ensure_id(WorldPtr, Id, e, size);
         Ecs.Assert(ptr != null, nameof(ECS_INTERNAL_ERROR));
 
         using NativeString nativeJson = (NativeString)json;
 
-        ecs_ptr_from_json(World, type, ptr, nativeJson, desc);
-        ecs_modified_id(World, Id, e);
+        ecs_ptr_from_json(WorldPtr, type, ptr, nativeJson, desc);
+        ecs_modified_id(WorldPtr, Id, e);
 
         return ref this;
     }
@@ -2911,7 +2911,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity SetJson<T>(string json, ecs_from_json_desc_t* desc = null)
     {
-        return ref SetJson(Type<T>.Id(World), json, desc);
+        return ref SetJson(Type<T>.Id(WorldPtr), json, desc);
     }
 
     /// <summary>
@@ -2924,7 +2924,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity SetJson<TFirst>(ulong second, string json, ecs_from_json_desc_t* desc = null)
     {
-        return ref SetJson(Ecs.Pair<TFirst>(second, World), json, desc);
+        return ref SetJson(Ecs.Pair<TFirst>(second, WorldPtr), json, desc);
     }
 
     /// <summary>
@@ -2937,7 +2937,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity SetJson<TFirst, TSecond>(string json, ecs_from_json_desc_t* desc = null)
     {
-        return ref SetJson(Ecs.Pair<TFirst, TSecond>(World), json, desc);
+        return ref SetJson(Ecs.Pair<TFirst, TSecond>(WorldPtr), json, desc);
     }
 
     /// <summary>
@@ -2952,7 +2952,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetJson<TFirst, TSecond>(TSecond second, string json, ecs_from_json_desc_t* desc = null)
         where TSecond : Enum
     {
-        return ref SetJson<TFirst>(Type<TSecond>.Id(World, second), json, desc);
+        return ref SetJson<TFirst>(Type<TSecond>.Id(WorldPtr, second), json, desc);
     }
 
     /// <summary>
@@ -2967,7 +2967,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref Entity SetJson<TFirst, TSecond>(TFirst first, string json, ecs_from_json_desc_t* desc = null)
         where TFirst : Enum
     {
-        return ref SetJsonSecond<TSecond>(Type<TFirst>.Id(World, first), json, desc);
+        return ref SetJsonSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first), json, desc);
     }
 
     /// <summary>
@@ -2980,7 +2980,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity SetJsonSecond<TSecond>(ulong first, string json, ecs_from_json_desc_t* desc = null)
     {
-        return ref SetJson(first, Type<TSecond>.Id(World), json, desc);
+        return ref SetJson(first, Type<TSecond>.Id(WorldPtr), json, desc);
     }
 
     /// <summary>
@@ -3013,7 +3013,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Observe<T>(Action callback)
     {
-        return ref Observe(Type<T>.Id(World), callback);
+        return ref Observe(Type<T>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -3024,7 +3024,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Observe<T>(Ecs.ObserveEntityCallback callback)
     {
-        return ref Observe(Type<T>.Id(World), callback);
+        return ref Observe(Type<T>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -3035,7 +3035,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Observe<T>(Ecs.ObserveRefCallback<T> callback)
     {
-        return ref ObserveInternal(Type<T>.Id(World), callback, (delegate*<ecs_iter_t*, void>)&Functions.ObserveRefCallbackDelegate<T>);
+        return ref ObserveInternal(Type<T>.Id(WorldPtr), callback, (delegate*<ecs_iter_t*, void>)&Functions.ObserveRefCallbackDelegate<T>);
     }
 
     /// <summary>
@@ -3046,7 +3046,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref Entity Observe<T>(Ecs.ObserveEntityRefCallback<T> callback)
     {
-        return ref ObserveInternal(Type<T>.Id(World), callback, (delegate*<ecs_iter_t*, void>)&Functions.ObserveEntityRefCallbackDelegate<T>);
+        return ref ObserveInternal(Type<T>.Id(WorldPtr), callback, (delegate*<ecs_iter_t*, void>)&Functions.ObserveEntityRefCallbackDelegate<T>);
     }
 
     /// <summary>
@@ -3056,9 +3056,9 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public void* EnsurePtr(ulong id)
     {
-        ecs_type_info_t* ti = ecs_get_type_info(World, id);
+        ecs_type_info_t* ti = ecs_get_type_info(WorldPtr, id);
         int size = ti != null ? ti->size : 0;
-        return ecs_ensure_id(World, Id, id, size);
+        return ecs_ensure_id(WorldPtr, Id, id, size);
     }
 
     /// <summary>
@@ -3080,7 +3080,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public T* EnsurePtr<T>() where T : unmanaged
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (T*)ecs_ensure_id(World, Id, Type<T>.Id(World), Type<T>.Size);
+        return (T*)ecs_ensure_id(WorldPtr, Id, Type<T>.Id(WorldPtr), Type<T>.Size);
     }
 
     /// <summary>
@@ -3092,7 +3092,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TFirst* EnsurePtr<TFirst>(ulong second) where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)EnsurePtr(Ecs.Pair<TFirst>(second, World));
+        return (TFirst*)EnsurePtr(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -3106,7 +3106,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TFirst : unmanaged
         where TSecond : Enum
     {
-        return EnsurePtr<TFirst>(Type<TSecond>.Id(World, second));
+        return EnsurePtr<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -3120,7 +3120,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         where TFirst : Enum
         where TSecond : unmanaged
     {
-        return EnsureSecondPtr<TSecond>(Type<TFirst>.Id(World, first));
+        return EnsureSecondPtr<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -3132,7 +3132,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TFirst* EnsureFirstPtr<TFirst, TSecond>() where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)EnsurePtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TFirst*)EnsurePtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -3144,7 +3144,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* EnsureSecondPtr<TFirst, TSecond>() where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)EnsurePtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TSecond*)EnsurePtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -3156,7 +3156,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public TSecond* EnsureSecondPtr<TSecond>(ulong first) where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)EnsurePtr(Ecs.PairSecond<TSecond>(first, World));
+        return (TSecond*)EnsurePtr(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -3167,7 +3167,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref T Ensure<T>()
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<T>(ecs_ensure_id(World, Id, Type<T>.Id(World), Type<T>.Size));
+        return ref Managed.GetTypeRef<T>(ecs_ensure_id(WorldPtr, Id, Type<T>.Id(WorldPtr), Type<T>.Size));
     }
 
     /// <summary>
@@ -3179,7 +3179,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TFirst Ensure<TFirst>(ulong second)
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(EnsurePtr(Ecs.Pair<TFirst>(second, World)));
+        return ref Managed.GetTypeRef<TFirst>(EnsurePtr(Ecs.Pair<TFirst>(second, WorldPtr)));
     }
 
     /// <summary>
@@ -3191,7 +3191,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref TFirst Ensure<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Ensure<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Ensure<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -3203,7 +3203,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public ref TSecond Ensure<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref EnsureSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref EnsureSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -3215,7 +3215,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TFirst EnsureFirst<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TFirst>(EnsurePtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TFirst>(EnsurePtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -3227,7 +3227,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TSecond EnsureSecond<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(EnsurePtr(Ecs.Pair<TFirst, TSecond>(World)));
+        return ref Managed.GetTypeRef<TSecond>(EnsurePtr(Ecs.Pair<TFirst, TSecond>(WorldPtr)));
     }
 
     /// <summary>
@@ -3239,7 +3239,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref TSecond EnsureSecond<TSecond>(ulong first)
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<TSecond>(EnsurePtr(Ecs.PairSecond<TSecond>(first, World)));
+        return ref Managed.GetTypeRef<TSecond>(EnsurePtr(Ecs.PairSecond<TSecond>(first, WorldPtr)));
     }
 
     /// <summary>
@@ -3248,7 +3248,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="id"></param>
     public void Modified(ulong id)
     {
-        ecs_modified_id(World, Id, id);
+        ecs_modified_id(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -3267,7 +3267,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Modified<T>()
     {
-        Modified(Type<T>.Id(World));
+        Modified(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -3276,7 +3276,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="T"></typeparam>
     public void Modified<T>(T value) where T : Enum
     {
-        Modified<T>(Type<T>.Id(World, value));
+        Modified<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -3286,7 +3286,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TFirst"></typeparam>
     public void Modified<TFirst>(ulong second)
     {
-        Modified(Ecs.Pair<TFirst>(second, World));
+        Modified(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -3296,7 +3296,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TSecond"></typeparam>
     public void Modified<TFirst, TSecond>()
     {
-        Modified(Ecs.Pair<TFirst, TSecond>(World));
+        Modified(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -3307,7 +3307,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TSecond"></typeparam>
     public void Modified<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        Modified<TFirst>(Type<TSecond>.Id(World, second));
+        Modified<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -3318,7 +3318,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TSecond"></typeparam>
     public void Modified<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        ModifiedSecond<TSecond>(Type<TFirst>.Id(World, first));
+        ModifiedSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -3328,7 +3328,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <typeparam name="TSecond"></typeparam>
     public void ModifiedSecond<TSecond>(ulong first)
     {
-        Modified(first, Type<TSecond>.Id(World));
+        Modified(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -3338,7 +3338,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<T> GetRef<T>()
     {
-        return new Ref<T>(World, Id);
+        return new Ref<T>(WorldPtr, Id);
     }
 
     /// <summary>
@@ -3349,7 +3349,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TFirst> GetRef<TFirst>(ulong second)
     {
-        return new Ref<TFirst>(World, Id, Ecs.Pair<TFirst>(second, World));
+        return new Ref<TFirst>(WorldPtr, Id, Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -3361,7 +3361,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TFirst> GetRef<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return GetRef<TFirst>(Type<TSecond>.Id(World, second));
+        return GetRef<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -3373,7 +3373,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TSecond> GetRef<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return GetRefSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return GetRefSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -3384,7 +3384,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TFirst> GetRefFirst<TFirst, TSecond>()
     {
-        return new Ref<TFirst>(World, Id, Ecs.Pair<TFirst, TSecond>(World));
+        return new Ref<TFirst>(WorldPtr, Id, Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -3395,7 +3395,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TSecond> GetRefSecond<TFirst, TSecond>()
     {
-        return new Ref<TSecond>(World, Id, Ecs.Pair<TFirst, TSecond>(World));
+        return new Ref<TSecond>(WorldPtr, Id, Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -3406,7 +3406,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public Ref<TSecond> GetRefSecond<TSecond>(ulong first)
     {
-        return new Ref<TSecond>(World, Id, Ecs.PairSecond<TSecond>(first, World));
+        return new Ref<TSecond>(WorldPtr, Id, Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -3414,7 +3414,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     public void Clear()
     {
-        ecs_clear(World, Id);
+        ecs_clear(WorldPtr, Id);
     }
 
     /// <summary>
@@ -3422,7 +3422,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// </summary>
     public void Destruct()
     {
-        ecs_delete(World, Id);
+        ecs_delete(WorldPtr, Id);
     }
 
     /// <summary>
@@ -3433,7 +3433,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <param name="childCount">Number of children in the array.</param>
     public void SetChildOrder(ulong* children, int childCount)
     {
-        ecs_set_child_order(World, Id, children, childCount);
+        ecs_set_child_order(WorldPtr, Id, children, childCount);
     }
 
     /// <summary>
@@ -3444,7 +3444,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public string FromJson(string json)
     {
         using NativeString nativeJson = (NativeString)json;
-        return NativeString.GetString(ecs_entity_from_json(World, Id, nativeJson, null));
+        return NativeString.GetString(ecs_entity_from_json(WorldPtr, Id, nativeJson, null));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3459,11 +3459,11 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         Ecs.Assert(!Type<T>.IsTag, "Empty structs can't be used as components. Use .Add() to add them as tags instead.");
 
 #if DEBUG
-        if (Ecs.IsPair(id) && !Ecs.TypeIdIs<T>(World, id))
+        if (Ecs.IsPair(id) && !Ecs.TypeIdIs<T>(WorldPtr, id))
         {
-            Id pair = new Id(World, id);
-            Entity expected = new Entity(World, ecs_get_typeid(World, id));
-            Entity provided = new Entity(World, Type<T>.Id(World));
+            Id pair = new Id(WorldPtr, id);
+            Entity expected = new Entity(WorldPtr, ecs_get_typeid(WorldPtr, id));
+            Entity provided = new Entity(WorldPtr, Type<T>.Id(WorldPtr));
 
             Ecs.Error(expected == 0
                 ? $"Attempted to set component data for tag pair.\n[Pair]: {pair}"
@@ -3476,12 +3476,12 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
         {
             Managed.AllocGcHandle(component, out GCHandle handle);
-            ecs_set_id(World, Id, id, sizeof(GCHandle), &handle);
+            ecs_set_id(WorldPtr, Id, id, sizeof(GCHandle), &handle);
             Managed.FreeGcHandle(handle);
         }
         else
         {
-            ecs_set_id(World, Id, id, sizeof(T), component);
+            ecs_set_id(WorldPtr, Id, id, sizeof(T), component);
         }
 
         return ref this;
@@ -3500,8 +3500,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         desc.callback_ctx = iteratorContext;
         desc.callback_ctx_free = &Functions.IteratorContextFree;
 
-        ulong observer = ecs_observer_init(World, &desc);
-        ecs_add_id(World, observer, Ecs.Pair(EcsChildOf, Id));
+        ulong observer = ecs_observer_init(WorldPtr, &desc);
+        ecs_add_id(WorldPtr, observer, Ecs.Pair(EcsChildOf, Id));
 
         return ref this;
     }
@@ -3519,8 +3519,8 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
         desc.callback_ctx = iteratorContext;
         desc.callback_ctx_free = &Functions.IteratorContextFree;
 
-        ulong observer = ecs_observer_init(World, &desc);
-        ecs_add_id(World, observer, Ecs.Pair(EcsChildOf, Id));
+        ulong observer = ecs_observer_init(WorldPtr, &desc);
+        ecs_add_id(WorldPtr, observer, Ecs.Pair(EcsChildOf, Id));
 
         return ref this;
     }

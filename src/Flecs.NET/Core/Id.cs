@@ -15,12 +15,17 @@ public unsafe struct Id : IEquatable<Id>
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
-    ///     A reference to the id value.
+    ///     The id value.
     /// </summary>
-    public ref ulong Value => ref _value;
+    public ulong Value => _value;
+
+    /// <summary>
+    ///     A reference to the id value, for internal writes.
+    /// </summary>
+    internal ref ulong ValueRef => ref _value;
 
     /// <summary>
     ///     Creates an id with the provided id value.
@@ -88,7 +93,7 @@ public unsafe struct Id : IEquatable<Id>
     public Id(Id first, Id second)
     {
         Ecs.Assert(!Ecs.IsPair(first) && !Ecs.IsPair(second), "Cannot create nested pairs.");
-        _world = first.World;
+        _world = first.WorldPtr;
         _value = Ecs.Pair(first.Value, second.Value);
     }
 
@@ -100,7 +105,7 @@ public unsafe struct Id : IEquatable<Id>
     public Id(Entity first, Entity second)
     {
         Ecs.Assert(!Ecs.IsPair(first) && !Ecs.IsPair(second), "Cannot create nested pairs.");
-        _world = first.World;
+        _world = first.WorldPtr;
         _value = Ecs.Pair(first, second);
     }
 
@@ -148,7 +153,7 @@ public unsafe struct Id : IEquatable<Id>
     {
         Ecs.Assert(!IsPair());
         Ecs.Assert(Flags() == 0);
-        return new Entity(World, Value);
+        return new Entity(WorldPtr, Value);
     }
 
     /// <summary>
@@ -158,7 +163,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public Entity AddFlags(ulong flags)
     {
-        return new Entity(World, Value | flags);
+        return new Entity(WorldPtr, Value | flags);
     }
 
     /// <summary>
@@ -169,7 +174,7 @@ public unsafe struct Id : IEquatable<Id>
     public Entity RemoveFlags(ulong flags)
     {
         Ecs.Assert((Value & ECS_ID_FLAGS_MASK) == flags);
-        return new Entity(World, Value & ECS_COMPONENT_MASK);
+        return new Entity(WorldPtr, Value & ECS_COMPONENT_MASK);
     }
 
     /// <summary>
@@ -178,7 +183,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public Entity RemoveFlags()
     {
-        return new Entity(World, Value & ECS_COMPONENT_MASK);
+        return new Entity(WorldPtr, Value & ECS_COMPONENT_MASK);
     }
 
     /// <summary>
@@ -187,7 +192,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public Entity RemoveGeneration()
     {
-        return new Entity(World, (uint)Value);
+        return new Entity(WorldPtr, (uint)Value);
     }
 
     /// <summary>
@@ -196,7 +201,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public Entity TypeId()
     {
-        return new Entity(World, ecs_get_typeid(World, Value));
+        return new Entity(WorldPtr, ecs_get_typeid(WorldPtr, Value));
     }
 
     /// <summary>
@@ -224,7 +229,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public Entity Flags()
     {
-        return new Entity(World, Value & ECS_ID_FLAGS_MASK);
+        return new Entity(WorldPtr, Value & ECS_ID_FLAGS_MASK);
     }
 
     /// <summary>
@@ -248,7 +253,7 @@ public unsafe struct Id : IEquatable<Id>
     {
         Ecs.Assert(IsPair());
         ulong entity = Ecs.PairFirst(Value);
-        return World == null ? new Entity(entity) : new Entity(World, ecs_get_alive(World, entity));
+        return WorldPtr == null ? new Entity(entity) : new Entity(WorldPtr, ecs_get_alive(WorldPtr, entity));
     }
 
     /// <summary>
@@ -261,7 +266,7 @@ public unsafe struct Id : IEquatable<Id>
     public Entity Second()
     {
         ulong entity = Ecs.PairSecond(Value);
-        return World == null || IsValuePair() ? new Entity(entity) : new Entity(World, ecs_get_alive(World, entity));
+        return WorldPtr == null || IsValuePair() ? new Entity(entity) : new Entity(WorldPtr, ecs_get_alive(WorldPtr, entity));
     }
 
     /// <summary>
@@ -270,7 +275,7 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public string Str()
     {
-        return NativeString.GetStringAndFree(ecs_id_str(World, Value));
+        return NativeString.GetStringAndFree(ecs_id_str(WorldPtr, Value));
     }
 
     /// <summary>
@@ -283,12 +288,12 @@ public unsafe struct Id : IEquatable<Id>
     }
 
     /// <summary>
-    ///     Returns the C# world.
+    ///     Returns the world.
     /// </summary>
-    /// <returns></returns>
-    public World CsWorld()
+    /// <returns>The world.</returns>
+    public World World()
     {
-        return new World(World);
+        return new World(WorldPtr);
     }
 
     /// <summary>
@@ -384,6 +389,6 @@ public unsafe struct Id : IEquatable<Id>
     /// <returns></returns>
     public override string ToString()
     {
-        return World != null && Ecs.IsStageOrWorld(World) ? Str() : string.Empty;
+        return WorldPtr != null && Ecs.IsStageOrWorld(WorldPtr) ? Str() : string.Empty;
     }
 }

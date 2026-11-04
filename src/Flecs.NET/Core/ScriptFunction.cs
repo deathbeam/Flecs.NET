@@ -17,9 +17,13 @@ public unsafe readonly struct ScriptFunction
     }
 
     /// <summary>
-    ///     The world.
+    ///     Gets the world.
     /// </summary>
-    public World World => new(_ctx.world);
+    /// <returns>The world.</returns>
+    public World World()
+    {
+        return new World(_ctx.world);
+    }
 
     /// <summary>
     ///     The function entity.

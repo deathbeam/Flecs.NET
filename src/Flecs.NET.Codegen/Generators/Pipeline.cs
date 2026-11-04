@@ -41,10 +41,10 @@ public class Pipeline : GeneratorBase
                 public ref Entity Entity => ref _pipeline.Entity;
             
                 /// <inheritdoc cref="Pipeline.Id"/>
-                public ref Id Id => ref _pipeline.Id;
+                public ref readonly Id Id => ref _pipeline.Id;
             
-                /// <inheritdoc cref="Pipeline.World"/>
-                public ref ecs_world_t* World => ref _pipeline.World;
+                /// <inheritdoc cref="Pipeline.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _pipeline.WorldPtr;
                 
                 /// <summary>
                 ///     Creates a new pipeline with the provided pipeline.

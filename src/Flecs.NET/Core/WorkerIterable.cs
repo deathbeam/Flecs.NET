@@ -12,7 +12,7 @@ public partial struct WorkerIterable : IEquatable<WorkerIterable>
     /// <summary>
     ///     The iterator instance.
     /// </summary>
-    public ecs_iter_t Iterator;
+    internal ecs_iter_t Iterator;
 
     /// <summary>
     ///     The current thread index for this iterator.
@@ -92,8 +92,7 @@ public partial struct WorkerIterable : IEquatable<WorkerIterable>
 // IWorkerIterable Interface
 public unsafe partial struct WorkerIterable : IWorkerIterable
 {
-    ref WorkerIterable IWorkerIterable.Underlying => ref this;
-    ref ecs_iter_t IWorkerIterable.Iterator => ref Iterator;
+    ref readonly WorkerIterable IWorkerIterable.Underlying => ref this;
     int IWorkerIterable.ThreadIndex => ThreadIndex;
     int IWorkerIterable.ThreadCount => ThreadCount;
 }
@@ -101,8 +100,11 @@ public unsafe partial struct WorkerIterable : IWorkerIterable
 // IIterableBase Interface
 public unsafe partial struct WorkerIterable : IIterableBase
 {
-    /// <inheritdoc cref="IIterableBase.World"/>
-    ecs_world_t* IIterableBase.World => Iterator.world;
+    /// <inheritdoc cref="IIterableBase.World()"/>
+    World IIterableBase.World()
+    {
+        return Iterator.world;
+    }
 
     /// <inheritdoc cref="IIterableBase.GetIter"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -198,7 +200,7 @@ public unsafe partial struct WorkerIterable : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>
     public IterIterable Iter(Entity entity)
     {
-        return Iter(entity.CsWorld());
+        return Iter(entity.World());
     }
 
     /// <inheritdoc cref="IIterable.Count()"/>

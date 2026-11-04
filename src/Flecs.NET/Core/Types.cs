@@ -11,15 +11,21 @@ namespace Flecs.NET.Core;
 /// </summary>
 public unsafe struct FlecsType : IEnumerable<Id>, IEquatable<FlecsType>
 {
-    /// <summary>
-    ///     The world.
-    /// </summary>
-    public World World;
+    private readonly World _world;
 
     /// <summary>
     ///     The underlying <see cref="ecs_type_t"/>* pointer.
     /// </summary>
-    public ecs_type_t* Handle;
+    public readonly ecs_type_t* Handle;
+
+    /// <summary>
+    ///     Gets the world.
+    /// </summary>
+    /// <returns>The world.</returns>
+    public World World()
+    {
+        return _world;
+    }
 
     /// <summary>
     ///     Initializes a new instance of <see cref="FlecsType"/> with the provided world and handle.
@@ -28,7 +34,7 @@ public unsafe struct FlecsType : IEnumerable<Id>, IEquatable<FlecsType>
     /// <param name="handle">The <see cref="ecs_type_t"/>* pointer to wrap. </param>
     public FlecsType(World world, ecs_type_t* handle)
     {
-        World = world;
+        _world = world;
         Handle = handle;
     }
 
@@ -38,7 +44,7 @@ public unsafe struct FlecsType : IEnumerable<Id>, IEquatable<FlecsType>
     /// <returns></returns>
     public string Str()
     {
-        return NativeString.GetStringAndFree(ecs_type_str(World, Handle));
+        return NativeString.GetStringAndFree(ecs_type_str(_world, Handle));
     }
 
     /// <summary>
@@ -69,7 +75,7 @@ public unsafe struct FlecsType : IEnumerable<Id>, IEquatable<FlecsType>
         if (Handle == null)
             return default;
         Ecs.Assert(Handle->count > index, nameof(ECS_OUT_OF_RANGE));
-        return new Id(World, Handle->array[index]);
+        return new Id(_world, Handle->array[index]);
     }
 
     /// <summary>
@@ -162,6 +168,6 @@ public unsafe struct FlecsType : IEnumerable<Id>, IEquatable<FlecsType>
     /// <returns></returns>
     public override string ToString()
     {
-        return Ecs.IsStageOrWorld(World) ? Str() : string.Empty;
+        return Ecs.IsStageOrWorld(_world) ? Str() : string.Empty;
     }
 }

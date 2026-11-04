@@ -16,12 +16,12 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the event description.
     /// </summary>
-    public ref ecs_event_desc_t Desc => ref _desc;
+    internal ref ecs_event_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates an event builder.
@@ -71,7 +71,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public ref EventBuilder Id<T>()
     {
-        return ref Id(Type<T>.Id(World));
+        return ref Id(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public ref EventBuilder Id<TFirst>(ulong second)
     {
-        return ref Id(Ecs.Pair<TFirst>(second, World));
+        return ref Id(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -93,7 +93,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public ref EventBuilder Id<TFirst, TSecond>()
     {
-        return ref Id(Ecs.Pair<TFirst, TSecond>(World));
+        return ref Id(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public ref EventBuilder Entity(ulong entity)
     {
-        Desc.entity = entity;
+        Descriptor.entity = entity;
         return ref this;
     }
 
@@ -154,8 +154,8 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
         {
             _ids.array = self->_idsArray;
             _desc.ids = &self->_ids;
-            _desc.observable = ecs_get_world(World);
-            ecs_emit(World, &self->_desc);
+            _desc.observable = ecs_get_world(WorldPtr);
+            ecs_emit(WorldPtr, &self->_desc);
         }
     }
 
@@ -168,8 +168,8 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
         {
             _ids.array = self->_idsArray;
             _desc.ids = &self->_ids;
-            _desc.observable = ecs_get_world(World);
-            ecs_enqueue(World, &self->_desc);
+            _desc.observable = ecs_get_world(WorldPtr);
+            ecs_enqueue(WorldPtr, &self->_desc);
         }
     }
 
@@ -180,7 +180,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public bool Equals(EventBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ public unsafe struct EventBuilder : IEquatable<EventBuilder>
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

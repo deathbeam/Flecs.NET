@@ -13,14 +13,14 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     private ecs_app_desc_t _desc;
 
     /// <summary>
-    ///     Reference to world.
+    ///     The world.
     /// </summary>
-    public ref World World => ref _world;
+    internal World WorldPtr => _world;
 
     /// <summary>
     ///     Reference to app description.
     /// </summary>
-    public ref ecs_app_desc_t Desc => ref _desc;
+    internal ref ecs_app_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates an app builder for world.
@@ -32,10 +32,10 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
         _desc = default;
 
         ecs_world_info_t* stats = ecs_get_world_info(world);
-        Desc.target_fps = stats->target_fps;
+        Descriptor.target_fps = stats->target_fps;
 
-        if (Math.Abs(Desc.target_fps - 0) < 0.01)
-            Desc.target_fps = 60;
+        if (Math.Abs(Descriptor.target_fps - 0) < 0.01)
+            Descriptor.target_fps = 60;
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder TargetFps(float value)
     {
-        Desc.target_fps = value;
+        Descriptor.target_fps = value;
         return ref this;
     }
 
@@ -56,7 +56,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder DeltaTime(float value)
     {
-        Desc.delta_time = value;
+        Descriptor.delta_time = value;
         return ref this;
     }
 
@@ -67,7 +67,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder Threads(int value)
     {
-        Desc.threads = value;
+        Descriptor.threads = value;
         return ref this;
     }
 
@@ -78,7 +78,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder Frames(int value)
     {
-        Desc.frames = value;
+        Descriptor.frames = value;
         return ref this;
     }
 
@@ -89,8 +89,8 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder EnableRest(ushort port = 0)
     {
-        Desc.enable_rest = true;
-        Desc.port = port;
+        Descriptor.enable_rest = true;
+        Descriptor.port = port;
         return ref this;
     }
 
@@ -101,7 +101,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder EnableStats(bool value = true)
     {
-        Desc.enable_stats = value;
+        Descriptor.enable_stats = value;
         return ref this;
     }
 
@@ -112,8 +112,8 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder Init(Ecs.AppInitCallback callback)
     {
-        World.WorldContext.AppInit.Set(callback, (delegate*<World, WorldContext*, void>)&Functions.AppInitCallbackDelegate);
-        Desc.init = &Functions.AppInitCallback;
+        WorldPtr.WorldContext.AppInit.Set(callback, (delegate*<World, WorldContext*, void>)&Functions.AppInitCallbackDelegate);
+        Descriptor.init = &Functions.AppInitCallback;
         return ref this;
     }
 
@@ -124,8 +124,8 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public ref AppBuilder Init(delegate*<World, void> callback)
     {
-        World.WorldContext.AppInit.Set(callback, (delegate*<World, WorldContext*, void>)&Functions.AppInitCallbackPointer);
-        Desc.init = &Functions.AppInitCallback;
+        WorldPtr.WorldContext.AppInit.Set(callback, (delegate*<World, WorldContext*, void>)&Functions.AppInitCallbackPointer);
+        Descriptor.init = &Functions.AppInitCallback;
         return ref this;
     }
 
@@ -135,8 +135,8 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public int Run()
     {
-        fixed (ecs_app_desc_t* appDesc = &Desc)
-            return ecs_app_run(World, appDesc);
+        fixed (ecs_app_desc_t* appDesc = &Descriptor)
+            return ecs_app_run(WorldPtr, appDesc);
     }
 
     /// <summary>
@@ -146,7 +146,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public bool Equals(AppBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -165,7 +165,7 @@ public unsafe struct AppBuilder : IEquatable<AppBuilder>
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

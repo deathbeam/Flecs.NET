@@ -34,11 +34,11 @@ public class PipelineBuilder : GeneratorBase
             {
                 private PipelineBuilder _pipelineBuilder;
             
-                /// <inheritdoc cref="PipelineBuilder.World"/>
-                public ref ecs_world_t* World => ref _pipelineBuilder.World;
+                /// <inheritdoc cref="PipelineBuilder.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _pipelineBuilder.WorldPtr;
                 
-                /// <inheritdoc cref="PipelineBuilder.Desc"/>
-                public ref ecs_pipeline_desc_t Desc => ref _pipelineBuilder.Desc;
+                /// <inheritdoc cref="PipelineBuilder.Descriptor"/>
+                internal ref ecs_pipeline_desc_t Descriptor => ref _pipelineBuilder.Descriptor;
                 
                 /// <inheritdoc cref="PipelineBuilder.QueryBuilder"/>
                 public ref QueryBuilder QueryBuilder => ref _pipelineBuilder.QueryBuilder;

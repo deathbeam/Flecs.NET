@@ -22,12 +22,12 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the observer description.
     /// </summary>
-    public ref ecs_observer_desc_t Desc => ref _desc;
+    internal ref ecs_observer_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     A reference to the query builder.
@@ -60,7 +60,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
         entityDesc.sep = Pointers.DefaultSeparator;
         entityDesc.root_sep = Pointers.DefaultSeparator;
 
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
         ecs_entity_desc_t entityDesc = default;
         entityDesc.id = entity;
 
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
         if (_eventCount >= 8)
             Ecs.Error("Can't create an observer with more than 8 events.");
 
-        Desc.events[_eventCount++] = @event;
+        Descriptor.events[_eventCount++] = @event;
         return ref this;
     }
 
@@ -110,7 +110,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <returns></returns>
     public ref ObserverBuilder Event<T>()
     {
-        return ref Event(Type<T>.Id(World));
+        return ref Event(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -120,7 +120,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <returns></returns>
     public ref ObserverBuilder YieldExisting(bool value = true)
     {
-        Desc.yield_existing = value;
+        Descriptor.yield_existing = value;
         return ref this;
     }
 
@@ -131,7 +131,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <returns></returns>
     public ref ObserverBuilder ObserverFlags(uint flags)
     {
-        Desc.flags_ |= flags;
+        Descriptor.flags_ |= flags;
         return ref this;
     }
 
@@ -423,30 +423,30 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     {
         QueryBuilder.AssertReusable();
 
-        Desc.query = QueryBuilder.Desc;
+        Descriptor.query = QueryBuilder.Descriptor;
 
         ulong observer;
         Observer result;
 
-        fixed (ecs_observer_desc_t* ptr = &Desc)
+        fixed (ecs_observer_desc_t* ptr = &Descriptor)
         {
             Ecs.Assert(_eventCount != 0, "Observer cannot have zero events. Use ObserverBuilder.Event() to add events.");
-            observer = ecs_observer_init(World, ptr);
+            observer = ecs_observer_init(WorldPtr, ptr);
         }
 
-        result = new Observer(World, observer);
+        result = new Observer(WorldPtr, observer);
 
         // The observer owns the contexts after initialization, so clear them for reuse.
-        Desc.ctx = null;
-        Desc.ctx_free = null;
-        Desc.callback_ctx = null;
-        Desc.callback_ctx_free = null;
-        Desc.run_ctx = null;
-        Desc.run_ctx_free = null;
-        Desc.query.binding_ctx = null;
-        Desc.query.binding_ctx_free = null;
-        Desc.query.group_by_ctx = null;
-        Desc.query.group_by_ctx_free = null;
+        Descriptor.ctx = null;
+        Descriptor.ctx_free = null;
+        Descriptor.callback_ctx = null;
+        Descriptor.callback_ctx_free = null;
+        Descriptor.run_ctx = null;
+        Descriptor.run_ctx_free = null;
+        Descriptor.query.binding_ctx = null;
+        Descriptor.query.binding_ctx_free = null;
+        Descriptor.query.group_by_ctx = null;
+        Descriptor.query.group_by_ctx_free = null;
 
         if (observer != 0)
             QueryBuilder.MarkBuilt();
@@ -461,34 +461,34 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
 
     private UserContext* EnsureUserContext()
     {
-        if (Desc.ctx != null)
-            return (UserContext*)Desc.ctx;
+        if (Descriptor.ctx != null)
+            return (UserContext*)Descriptor.ctx;
 
-        Desc.ctx = Memory.AllocZeroed<UserContext>(1);
-        Desc.ctx_free = &Functions.UserContextFree;
-        return (UserContext*)Desc.ctx;
+        Descriptor.ctx = Memory.AllocZeroed<UserContext>(1);
+        Descriptor.ctx_free = &Functions.UserContextFree;
+        return (UserContext*)Descriptor.ctx;
     }
 
     private IteratorContext* EnsureIteratorContext()
     {
-        if (Desc.callback_ctx != null)
-            return (IteratorContext*)Desc.callback_ctx;
+        if (Descriptor.callback_ctx != null)
+            return (IteratorContext*)Descriptor.callback_ctx;
 
-        Desc.callback = &Functions.IteratorCallback;
-        Desc.callback_ctx = Memory.AllocZeroed<IteratorContext>(1);
-        Desc.callback_ctx_free = &Functions.IteratorContextFree;
-        return (IteratorContext*)Desc.callback_ctx;
+        Descriptor.callback = &Functions.IteratorCallback;
+        Descriptor.callback_ctx = Memory.AllocZeroed<IteratorContext>(1);
+        Descriptor.callback_ctx_free = &Functions.IteratorContextFree;
+        return (IteratorContext*)Descriptor.callback_ctx;
     }
 
     private RunContext* EnsureRunContext()
     {
-        if (Desc.run_ctx != null)
-            return (RunContext*)Desc.run_ctx;
+        if (Descriptor.run_ctx != null)
+            return (RunContext*)Descriptor.run_ctx;
 
-        Desc.run = &Functions.RunCallback;
-        Desc.run_ctx = Memory.AllocZeroed<RunContext>(1);
-        Desc.run_ctx_free = &Functions.RunContextFree;
-        return (RunContext*)Desc.run_ctx;
+        Descriptor.run = &Functions.RunCallback;
+        Descriptor.run_ctx = Memory.AllocZeroed<RunContext>(1);
+        Descriptor.run_ctx_free = &Functions.RunContextFree;
+        return (RunContext*)Descriptor.run_ctx;
     }
 
     /// <summary>
@@ -498,7 +498,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <returns></returns>
     public bool Equals(ObserverBuilder other)
     {
-        return Desc == other.Desc && QueryBuilder == other.QueryBuilder;
+        return Descriptor == other.Descriptor && QueryBuilder == other.QueryBuilder;
     }
 
     /// <summary>
@@ -517,7 +517,7 @@ public unsafe partial struct ObserverBuilder : IDisposable, IEquatable<ObserverB
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

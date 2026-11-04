@@ -18,12 +18,12 @@ public unsafe partial struct Alert : IEquatable<Alert>, IEntity<Alert>
     /// <summary>
     ///     Reference to entity.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     Reference to world.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Creates an alert with the provided world and entity id.

@@ -15,7 +15,7 @@ public class SparseQuery : GeneratorBase
     private static string GenerateSparseQuery(int i)
     {
         string typeIds = string.Join(Separator.Comma,
-            Enumerable.Range(0, i + 1).Select(f => $"Type<T{f}>.Id(World)"));
+            Enumerable.Range(0, i + 1).Select(f => $"Type<T{f}>.Id(WorldPtr)"));
 
         string refArguments = string.Join(Separator.Comma,
             Enumerable.Range(0, i + 1).Select(f => $"ref Managed.GetTypeRef<T{f}>(ptrs[{f}])"));
@@ -35,7 +35,7 @@ public class SparseQuery : GeneratorBase
                 public void Each({{Generator.EachRefCallbackDelegate[i]}} callback)
                 {
                     ulong* ids = stackalloc ulong[] { {{typeIds}} };
-                    SparseQuery.Each(World, ids, {{i + 1}}, &callback, &EachRefCallbackDelegate);
+                    SparseQuery.Each(WorldPtr, ids, {{i + 1}}, &callback, &EachRefCallbackDelegate);
                 }
 
                 /// <summary>
@@ -45,7 +45,7 @@ public class SparseQuery : GeneratorBase
                 public void Each({{Generator.EachEntityRefCallbackDelegate[i]}} callback)
                 {
                     ulong* ids = stackalloc ulong[] { {{typeIds}} };
-                    SparseQuery.Each(World, ids, {{i + 1}}, &callback, &EachEntityRefCallbackDelegate);
+                    SparseQuery.Each(WorldPtr, ids, {{i + 1}}, &callback, &EachEntityRefCallbackDelegate);
                 }
 
                 /// <summary>
@@ -55,7 +55,7 @@ public class SparseQuery : GeneratorBase
                 public void Each({{Generator.EachRefCallbackPointer[i]}} callback)
                 {
                     ulong* ids = stackalloc ulong[] { {{typeIds}} };
-                    SparseQuery.Each(World, ids, {{i + 1}}, callback, &EachRefCallbackPointer);
+                    SparseQuery.Each(WorldPtr, ids, {{i + 1}}, callback, &EachRefCallbackPointer);
                 }
 
                 /// <summary>
@@ -65,7 +65,7 @@ public class SparseQuery : GeneratorBase
                 public void Each({{Generator.EachEntityRefCallbackPointer[i]}} callback)
                 {
                     ulong* ids = stackalloc ulong[] { {{typeIds}} };
-                    SparseQuery.Each(World, ids, {{i + 1}}, callback, &EachEntityRefCallbackPointer);
+                    SparseQuery.Each(WorldPtr, ids, {{i + 1}}, callback, &EachEntityRefCallbackPointer);
                 }
 
                 private static void EachRefCallbackDelegate(void* context, ecs_world_t* world, ulong entity, void** ptrs)
@@ -110,9 +110,18 @@ public class SparseQuery : GeneratorBase
                 private ecs_world_t* _world;
 
                 /// <summary>
-                ///     A reference to the world.
+                ///     The world pointer.
                 /// </summary>
-                public ecs_world_t* World => _world;
+                internal ecs_world_t* WorldPtr => _world;
+
+                /// <summary>
+                ///     Returns the world.
+                /// </summary>
+                /// <returns>The world.</returns>
+                public World World()
+                {
+                    return new World(_world);
+                }
 
                 /// <summary>
                 ///     Creates a sparse query from the provided world.
@@ -134,7 +143,7 @@ public class SparseQuery : GeneratorBase
                 public int Count()
                 {
                     ulong* ids = stackalloc ulong[] { {{typeIds}} };
-                    return SparseQuery.Each(World, ids, {{i + 1}}, null, null);
+                    return SparseQuery.Each(WorldPtr, ids, {{i + 1}}, null, null);
                 }
 
                 /// <summary>
@@ -143,7 +152,7 @@ public class SparseQuery : GeneratorBase
                 /// <returns>The query.</returns>
                 public {{Generator.GetTypeName(Type.Query, i)}} ToQuery()
                 {
-                    return new {{Generator.GetTypeName(Type.QueryBuilder, i)}}(World).Build();
+                    return new {{Generator.GetTypeName(Type.QueryBuilder, i)}}(WorldPtr).Build();
                 }
             }
             """;

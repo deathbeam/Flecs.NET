@@ -912,7 +912,7 @@ namespace Flecs.NET.Tests.Cpp
                 .Each((Entity e, ref Position p) =>
                 {
                     e.Set(new EntityWrapper(
-                        e.CsWorld().Entity().Add<Velocity>()
+                        e.World().Entity().Add<Velocity>()
                     ));
                 });
 

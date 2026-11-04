@@ -30,10 +30,10 @@ public class IterIterable : GeneratorBase
             public unsafe partial struct {{Generator.GetTypeName(Type.IterIterable, i)}} : IEquatable<{{Generator.GetTypeName(Type.IterIterable, i)}}>
             {
                 /// <inheritdoc cref="IIterIterable.Underlying"/>
-                public IterIterable Underlying;
+                internal IterIterable Underlying;
                 
-                /// <inheritdoc cref="IIterIterable.Iterator"/>
-                public ref ecs_iter_t Iterator => ref Underlying.Iterator;
+                /// <inheritdoc cref="IterIterable.Iterator"/>
+                internal ref ecs_iter_t Iterator => ref Underlying.Iterator;
                 
                 /// <inheritdoc cref="IIterIterable.IterableType"/>
                 public readonly IterableType IterableType => Underlying.IterableType;
@@ -162,14 +162,17 @@ public class IterIterable : GeneratorBase
             // IIterIterable Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.IterIterable, i)}} : IIterIterable
             {
-                ref IterIterable IIterIterable.Underlying => ref Underlying;
+                ref readonly IterIterable IIterIterable.Underlying => ref Underlying;
             }
 
             // IIterableBase Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.IterIterable, i)}} : IIterableBase
             {
-                /// <inheritdoc cref="IIterableBase.World"/>
-                ecs_world_t* IIterableBase.World => Iterator.world;
+                /// <inheritdoc cref="IIterableBase.World()"/>
+                World IIterableBase.World()
+                {
+                    return Iterator.world;
+                }
                 
                 /// <inheritdoc cref="IIterableBase.GetIter"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

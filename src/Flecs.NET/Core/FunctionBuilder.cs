@@ -24,12 +24,12 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <summary>
     ///     Reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     Reference to the desc.
     /// </summary>
-    public ref ecs_function_desc_t Desc => ref _desc;
+    internal ref ecs_function_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates a <see cref="FunctionBuilder"/> with the provided world and function name.
@@ -48,8 +48,8 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
         _paramNames = Memory.AllocZeroed<NativeString>(MaxParams);
         _context = Memory.AllocZeroed<ScriptFunctionContext>(1);
 
-        Desc.name = _name;
-        Desc.parent = parent != 0 ? parent : ecs_get_scope(world);
+        Descriptor.name = _name;
+        Descriptor.parent = parent != 0 ? parent : ecs_get_scope(world);
     }
 
     /// <summary>
@@ -84,7 +84,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns>Reference to self.</returns>
     public ref FunctionBuilder Parent(ulong value)
     {
-        Desc.parent = value;
+        Descriptor.parent = value;
         return ref this;
     }
 
@@ -95,7 +95,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns>Reference to self.</returns>
     public ref FunctionBuilder ReturnType(ulong type)
     {
-        Desc.return_type = type;
+        Descriptor.return_type = type;
         return ref this;
     }
 
@@ -106,7 +106,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns>Reference to self.</returns>
     public ref FunctionBuilder ReturnType<T>()
     {
-        return ref ReturnType(Type<T>.Id(World));
+        return ref ReturnType(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -122,7 +122,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
         NativeString nativeName = (NativeString)name;
         _paramNames[_paramCount] = nativeName;
 
-        Desc.@params[_paramCount] = new ecs_script_parameter_t { name = nativeName, type = type };
+        Descriptor.@params[_paramCount] = new ecs_script_parameter_t { name = nativeName, type = type };
         _paramCount++;
 
         return ref this;
@@ -136,7 +136,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns>Reference to self.</returns>
     public ref FunctionBuilder Param<T>(string name)
     {
-        return ref Param(name, Type<T>.Id(World));
+        return ref Param(name, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -147,7 +147,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     public ref FunctionBuilder Callback(Ecs.ScriptFunctionCallback value)
     {
         _context->Callback.Set(value, null);
-        Desc.callback = &Functions.ScriptFunctionCallback;
+        Descriptor.callback = &Functions.ScriptFunctionCallback;
         return ref this;
     }
 
@@ -176,7 +176,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns>Reference to self.</returns>
     public ref FunctionBuilder VectorCallback(ulong type, Ecs.ScriptVectorFunctionCallback value)
     {
-        EcsPrimitive* primitive = (EcsPrimitive*)ecs_get_id(World, type, FLECS_IDEcsPrimitiveID_);
+        EcsPrimitive* primitive = (EcsPrimitive*)ecs_get_id(WorldPtr, type, FLECS_IDEcsPrimitiveID_);
         Ecs.Assert(primitive != null, "Vector element type is not a primitive");
         return ref VectorCallback(primitive->kind, value);
     }
@@ -201,14 +201,14 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
         ulong component = _isMethod ? FLECS_IDEcsScriptMethodID_ : FLECS_IDEcsScriptFunctionID_;
 
         ulong result;
-        fixed (ecs_function_desc_t* desc = &Desc)
-            result = _isMethod ? ecs_method_init(World, desc) : ecs_function_init(World, desc);
+        fixed (ecs_function_desc_t* desc = &Descriptor)
+            result = _isMethod ? ecs_method_init(WorldPtr, desc) : ecs_function_init(WorldPtr, desc);
 
         // The binding context owns the delegate so flecs frees it; ctx->ctx is the raw pointer flecs passes back.
         if (result != 0 && _context != null)
         {
             ecs_script_function_t* function = (ecs_script_function_t*)ecs_ensure_id(
-                World, result, component, sizeof(ecs_script_function_t));
+                WorldPtr, result, component, sizeof(ecs_script_function_t));
 
             function->ctx = _context;
             function->binding_ctx = _context;
@@ -216,7 +216,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
             _context = null;
         }
 
-        Entity entity = new Entity(World, result);
+        Entity entity = new Entity(WorldPtr, result);
         Dispose();
         return entity;
     }
@@ -269,7 +269,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns></returns>
     public bool Equals(FunctionBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -288,7 +288,7 @@ public unsafe struct FunctionBuilder : IEquatable<FunctionBuilder>, IDisposable
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

@@ -19,7 +19,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     private int _termCount;
     private bool _built;
     private TermIdType _termIdType;
-    private ref ecs_term_t CurrentTerm => ref Desc.terms[_termIndex];
+    private ref ecs_term_t CurrentTerm => ref Descriptor.terms[_termIndex];
     private ref ecs_term_ref_t CurrentTermId
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,12 +47,12 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the query description.
     /// </summary>
-    public ref ecs_query_desc_t Desc => ref _desc;
+    internal ref ecs_query_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates a query builder for the provided world.
@@ -76,7 +76,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <param name="entity">The query entity.</param>
     public QueryBuilder(ecs_world_t* world, ulong entity) : this(world)
     {
-        Desc.entity = entity;
+        Descriptor.entity = entity;
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
         desc.name = nativeName;
         desc.sep = Pointers.DefaultSeparator;
         desc.root_sep = Pointers.DefaultSeparator;
-        Desc.entity = ecs_entity_init(World, &desc);
+        Descriptor.entity = ecs_entity_init(WorldPtr, &desc);
     }
 
     /// <summary>
@@ -119,8 +119,8 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
 
         Query result;
 
-        fixed (ecs_query_desc_t* ptr = &Desc)
-            result = new Query(ecs_query_init(World, ptr));
+        fixed (ecs_query_desc_t* ptr = &Descriptor)
+            result = new Query(ecs_query_init(WorldPtr, ptr));
 
         // The query owns the contexts after a successful initialization; on failure Dispose frees them.
         if (result.Handle != null)
@@ -135,15 +135,15 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     internal void ClearContexts()
     {
         // ecs_query_init always takes ownership of the binding context.
-        Desc.binding_ctx = null;
-        Desc.binding_ctx_free = null;
+        Descriptor.binding_ctx = null;
+        Descriptor.binding_ctx_free = null;
 
         // ecs_query_init only takes the group by context when a group by callback or id is set.
-        if (Desc.group_by_callback == null && Desc.group_by == 0)
+        if (Descriptor.group_by_callback == null && Descriptor.group_by == 0)
             return;
 
-        Desc.group_by_ctx = null;
-        Desc.group_by_ctx_free = null;
+        Descriptor.group_by_ctx = null;
+        Descriptor.group_by_ctx_free = null;
     }
 
     /// <summary>
@@ -164,11 +164,11 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
         if (!_built)
             return;
 
-        bool transferred = Desc.expr != null || Desc.group_by_callback != null || Desc.order_by_callback != null;
+        bool transferred = Descriptor.expr != null || Descriptor.group_by_callback != null || Descriptor.order_by_callback != null;
 
         for (int i = 0; !transferred && i < _termCount; i++)
         {
-            ref ecs_term_t term = ref Desc.terms[i];
+            ref ecs_term_t term = ref Descriptor.terms[i];
             transferred = term.first.name != null || term.second.name != null || term.src.name != null;
         }
 
@@ -312,7 +312,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Src<T>()
     {
-        return ref Src(Type<T>.Id(World));
+        return ref Src(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -323,7 +323,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Src<T>(T value) where T : Enum
     {
-        return ref Src(Type<T>.Id(World, value));
+        return ref Src(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -355,7 +355,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder First<T>()
     {
-        return ref First(Type<T>.Id(World));
+        return ref First(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -366,7 +366,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder First<T>(T value) where T : Enum
     {
-        return ref First(Type<T>.Id(World, value));
+        return ref First(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -398,7 +398,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Second<T>()
     {
-        return ref Second(Type<T>.Id(World));
+        return ref Second(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -409,7 +409,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Second<T>(T value) where T : Enum
     {
-        return ref Second(Type<T>.Id(World, value));
+        return ref Second(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -453,7 +453,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Up<T>()
     {
-        return ref Up(Type<T>.Id(World));
+        return ref Up(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -466,7 +466,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Up<T>(T value) where T : Enum
     {
-        return ref Up(Type<T>.Id(World, value));
+        return ref Up(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -496,7 +496,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Cascade<T>()
     {
-        return ref Cascade(Type<T>.Id(World));
+        return ref Cascade(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -508,14 +508,14 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Cascade<T>(T value) where T : Enum
     {
-        return ref Cascade(Type<T>.Id(World, value));
+        return ref Cascade(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
     ///     Use with cascade to iterate results in descending (bottom -> top) order
     /// </summary>
     /// <returns></returns>
-    public ref QueryBuilder Descend()
+    public ref QueryBuilder Desc()
     {
         AssertTermId();
         CurrentTermId.id |= EcsDesc;
@@ -553,7 +553,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Trav<T>(uint flags = 0)
     {
-        return ref Trav(Type<T>.Id(World), flags);
+        return ref Trav(Type<T>.Id(WorldPtr), flags);
     }
 
     /// <summary>
@@ -565,7 +565,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Trav<T>(T value, uint flags = 0) where T : Enum
     {
-        return ref Trav(Type<T>.Id(World, value), flags);
+        return ref Trav(Type<T>.Id(WorldPtr, value), flags);
     }
 
     /// <summary>
@@ -769,7 +769,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
             singletonId = CurrentTerm.first.id;
 
         Ecs.Assert(singletonId != 0, nameof(ECS_INVALID_PARAMETER));
-        CurrentTerm.src.id = !Ecs.IsPair(singletonId) ? singletonId : Ecs.PairFirst(World, singletonId);
+        CurrentTerm.src.id = !Ecs.IsPair(singletonId) ? singletonId : Ecs.PairFirst(WorldPtr, singletonId);
 
         return ref this;
     }
@@ -791,7 +791,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder QueryFlags(uint flags)
     {
-        Desc.flags |= flags;
+        Descriptor.flags |= flags;
         return ref this;
     }
 
@@ -802,7 +802,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder CacheKind(ecs_query_cache_kind_t kind)
     {
-        Desc.cache_kind = kind;
+        Descriptor.cache_kind = kind;
         return ref this;
     }
 
@@ -821,7 +821,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder DetectChanges()
     {
-        Desc.flags |= EcsQueryDetectChanges;
+        Descriptor.flags |= EcsQueryDetectChanges;
         return ref this;
     }
 
@@ -832,12 +832,12 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Expr(string expr)
     {
-        Ecs.Assert(Desc.expr == null, "QueryBuilder.Expr() cannot be called more than once");
+        Ecs.Assert(Descriptor.expr == null, "QueryBuilder.Expr() cannot be called more than once");
 
         NativeString nativeExpr = (NativeString)expr;
         QueryContext.Strings.Add(nativeExpr);
 
-        Desc.expr = nativeExpr;
+        Descriptor.expr = nativeExpr;
 
         return ref this;
     }
@@ -944,7 +944,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder With<T>()
     {
         Term();
-        SetTermId(Type<T>.Id(World));
+        SetTermId(Type<T>.Id(WorldPtr));
         return ref this;
     }
 
@@ -956,7 +956,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<T>(T value) where T : Enum
     {
-        return ref With<T>(Type<T>.Id(World, value));
+        return ref With<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -967,7 +967,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst>(ulong second)
     {
-        return ref With(Type<TFirst>.Id(World), second);
+        return ref With(Type<TFirst>.Id(WorldPtr), second);
     }
 
     /// <summary>
@@ -978,7 +978,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst>(string second)
     {
-        return ref With(Type<TFirst>.Id(World)).Second(second);
+        return ref With(Type<TFirst>.Id(WorldPtr)).Second(second);
     }
 
     /// <summary>
@@ -989,7 +989,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst, TSecond>()
     {
-        return ref With<TFirst>(Type<TSecond>.Id(World));
+        return ref With<TFirst>(Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1001,7 +1001,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref With<TFirst>(Type<TSecond>.Id(World, second));
+        return ref With<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1013,7 +1013,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref WithSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref WithSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1025,7 +1025,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TFirst>(TFirst first, string second) where TFirst : Enum
     {
-        return ref With(Type<TFirst>.Id(World, first), second);
+        return ref With(Type<TFirst>.Id(WorldPtr, first), second);
     }
 
     /// <summary>
@@ -1037,7 +1037,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder With<TSecond>(string first, TSecond second) where TSecond : Enum
     {
-        return ref With(first, Type<TSecond>.Id(World, second));
+        return ref With(first, Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1048,7 +1048,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder WithSecond<TSecond>(ulong first)
     {
-        ulong pair = Ecs.PairSecond<TSecond>(first, World);
+        ulong pair = Ecs.PairSecond<TSecond>(first, WorldPtr);
         return ref With(pair);
     }
 
@@ -1060,7 +1060,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder WithSecond<TSecond>(string first)
     {
-        return ref With(first, Type<TSecond>.Id(World));
+        return ref With(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1200,7 +1200,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Without<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Without<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Without<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1212,7 +1212,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Without<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref WithoutSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref WithoutSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1224,7 +1224,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Without<TFirst>(TFirst first, string second) where TFirst : Enum
     {
-        return ref Without(Type<TFirst>.Id(World, first), second);
+        return ref Without(Type<TFirst>.Id(WorldPtr, first), second);
     }
 
     /// <summary>
@@ -1236,7 +1236,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Without<TSecond>(string first, TSecond second) where TSecond : Enum
     {
-        return ref Without(first, Type<TSecond>.Id(World, second));
+        return ref Without(first, Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1398,7 +1398,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Write<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Write<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Write<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1410,7 +1410,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Write<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref WriteSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref WriteSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1422,7 +1422,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Write<TFirst>(TFirst first, string second) where TFirst : Enum
     {
-        return ref Write(Type<TFirst>.Id(World, first), second);
+        return ref Write(Type<TFirst>.Id(WorldPtr, first), second);
     }
 
     /// <summary>
@@ -1434,7 +1434,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Write<TSecond>(string first, TSecond second) where TSecond : Enum
     {
-        return ref Write(first, Type<TSecond>.Id(World, second));
+        return ref Write(first, Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1596,7 +1596,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Read<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ref Read<TFirst>(Type<TSecond>.Id(World, second));
+        return ref Read<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1608,7 +1608,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Read<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ref ReadSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ref ReadSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1620,7 +1620,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Read<TFirst>(TFirst first, string second) where TFirst : Enum
     {
-        return ref Read(Type<TFirst>.Id(World, first), second);
+        return ref Read(Type<TFirst>.Id(WorldPtr, first), second);
     }
 
     /// <summary>
@@ -1632,7 +1632,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder Read<TSecond>(string first, TSecond second) where TSecond : Enum
     {
-        return ref Read(first, Type<TSecond>.Id(World, second));
+        return ref Read(first, Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1696,7 +1696,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
         for (int i = 0; i < _termCount; i++)
         {
             ecs_term_t term = _desc.terms[i];
-            if (Ecs.TypeIdIs<T>(World, term.id) || Ecs.TypeIdIs<T>(World, Ecs.Pair(term.first.id, term.second.id)))
+            if (Ecs.TypeIdIs<T>(WorldPtr, term.id) || Ecs.TypeIdIs<T>(WorldPtr, Ecs.Pair(term.first.id, term.second.id)))
                 return ref TermAt(i);
         }
         Ecs.Error("Term not found.");
@@ -1729,7 +1729,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder TermAt<T>(int termIndex)
     {
         ref QueryBuilder @this = ref TermAt(termIndex);
-        Ecs.Assert(Ecs.TypeIdIs<T>(World, CurrentTerm.id) || Ecs.TypeIdIs<T>(World, Ecs.Pair(CurrentTerm.first.id, CurrentTerm.second.id)), "Term type does not match.");
+        Ecs.Assert(Ecs.TypeIdIs<T>(WorldPtr, CurrentTerm.id) || Ecs.TypeIdIs<T>(WorldPtr, Ecs.Pair(CurrentTerm.first.id, CurrentTerm.second.id)), "Term type does not match.");
         return ref @this;
     }
 
@@ -1742,8 +1742,8 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder OrderBy(ulong component, Ecs.OrderByCallback callback)
     {
         QueryContext.OrderBy.Set(callback, null);
-        Desc.order_by_callback = (delegate* unmanaged<ulong, void*, ulong, void*, int>)Marshal.GetFunctionPointerForDelegate(callback);
-        Desc.order_by = component;
+        Descriptor.order_by_callback = (delegate* unmanaged<ulong, void*, ulong, void*, int>)Marshal.GetFunctionPointerForDelegate(callback);
+        Descriptor.order_by = component;
         return ref this;
     }
 
@@ -1755,7 +1755,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder OrderBy<T>(Ecs.OrderByCallback callback)
     {
-        return ref OrderBy(Type<T>.Id(World), callback);
+        return ref OrderBy(Type<T>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -1765,8 +1765,8 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder GroupBy(ulong component)
     {
-        Desc.group_by_callback = default;
-        Desc.group_by = component;
+        Descriptor.group_by_callback = default;
+        Descriptor.group_by = component;
         return ref this;
     }
 
@@ -1779,8 +1779,8 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder GroupBy(ulong component, Ecs.GroupByCallback callback)
     {
         GroupByContext.GroupBy.Set(callback, (delegate*<ecs_world_t*, ecs_table_t*, ulong, GroupByContext*, ulong>)&Functions.GroupByCallbackDelegate);
-        Desc.group_by_callback = &Functions.GroupByCallback;
-        Desc.group_by = component;
+        Descriptor.group_by_callback = &Functions.GroupByCallback;
+        Descriptor.group_by = component;
         return ref this;
     }
 
@@ -1794,8 +1794,8 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder GroupBy<TContext>(ulong component, Ecs.GroupByCallback<TContext> callback)
     {
         GroupByContext.GroupBy.Set(callback, (delegate*<ecs_world_t*, ecs_table_t*, ulong, GroupByContext*, ulong>)&Functions.GroupByCallbackDelegate<TContext>);
-        Desc.group_by_callback = &Functions.GroupByCallback;
-        Desc.group_by = component;
+        Descriptor.group_by_callback = &Functions.GroupByCallback;
+        Descriptor.group_by = component;
         return ref this;
     }
 
@@ -1806,7 +1806,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder GroupBy<T>()
     {
-        return ref GroupBy(Type<T>.Id(World));
+        return ref GroupBy(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1817,7 +1817,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder GroupBy<T>(Ecs.GroupByCallback callback)
     {
-        return ref GroupBy(Type<T>.Id(World), callback);
+        return ref GroupBy(Type<T>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -1829,7 +1829,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public ref QueryBuilder GroupBy<T, TContext>(Ecs.GroupByCallback<TContext> callback)
     {
-        return ref GroupBy(Type<T>.Id(World), callback);
+        return ref GroupBy(Type<T>.Id(WorldPtr), callback);
     }
 
     /// <summary>
@@ -1878,7 +1878,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder OnGroupCreate(Ecs.GroupCreateCallback callback)
     {
         GroupByContext.GroupCreate.Set(callback, (delegate*<ecs_world_t*, ulong, GroupByContext*, void*>)&Functions.GroupCreateCallbackDelegate);
-        Desc.on_group_create = &Functions.GroupCreateCallback;
+        Descriptor.on_group_create = &Functions.GroupCreateCallback;
         return ref this;
     }
 
@@ -1891,7 +1891,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder OnGroupCreate<T>(Ecs.GroupCreateCallback<T> callback)
     {
         GroupByContext.GroupCreate.Set(callback, (delegate*<ecs_world_t*, ulong, GroupByContext*, void*>)&Functions.GroupCreateCallbackDelegate<T>);
-        Desc.on_group_create = &Functions.GroupCreateCallback;
+        Descriptor.on_group_create = &Functions.GroupCreateCallback;
         return ref this;
     }
 
@@ -1903,7 +1903,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder OnGroupDelete(Ecs.GroupDeleteCallback callback)
     {
         GroupByContext.GroupDelete.Set(callback, (delegate*<ecs_world_t*, ulong, UserContext*, GroupByContext*, void>)&Functions.GroupDeleteCallbackDelegate);
-        Desc.on_group_delete = &Functions.GroupDeleteCallback;
+        Descriptor.on_group_delete = &Functions.GroupDeleteCallback;
         return ref this;
     }
 
@@ -1916,7 +1916,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     public ref QueryBuilder OnGroupDelete<T>(Ecs.GroupDeleteCallback<T> callback)
     {
         GroupByContext.GroupDelete.Set(callback, (delegate*<ecs_world_t*, ulong, UserContext*, GroupByContext*, void>)&Functions.GroupDeleteCallbackDelegate<T>);
-        Desc.on_group_delete = &Functions.GroupDeleteCallback;
+        Descriptor.on_group_delete = &Functions.GroupDeleteCallback;
         return ref this;
     }
 
@@ -1983,7 +1983,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public bool Equals(QueryBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -2002,7 +2002,7 @@ public unsafe struct QueryBuilder : IDisposable, IEquatable<QueryBuilder>, IQuer
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

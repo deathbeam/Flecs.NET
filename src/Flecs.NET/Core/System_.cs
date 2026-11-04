@@ -22,12 +22,12 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <summary>
     ///     A reference to the entity.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Creates a system from world and id.
@@ -64,7 +64,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(T value)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value)
             .Build();
     }
@@ -79,7 +79,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(T value, Ecs.UserContextFinish<T> callback)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -94,7 +94,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(T value, delegate*<ref T, void> callback)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -107,7 +107,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(ref T value)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value)
             .Build();
     }
@@ -122,7 +122,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(ref T value, Ecs.UserContextFinish<T> callback)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -137,7 +137,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public void Ctx<T>(ref T value, delegate*<ref T, void> callback)
     {
-        new SystemBuilder(World, Entity)
+        new SystemBuilder(WorldPtr, Entity)
             .Ctx(ref value, callback)
             .Build();
     }
@@ -148,7 +148,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public ref T Ctx<T>()
     {
-        UserContext* context = (UserContext*)ecs_system_get(World, Entity)->ctx;
+        UserContext* context = (UserContext*)ecs_system_get(WorldPtr, Entity)->ctx;
         return ref context->Get<T>();
     }
 
@@ -158,7 +158,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public Query Query()
     {
-        return new Query(ecs_system_get(World, Entity)->query);
+        return new Query(ecs_system_get(WorldPtr, Entity)->query);
     }
 
     /// <summary>
@@ -167,7 +167,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="deltaTime"></param>
     public void Run(float deltaTime = 0)
     {
-        ecs_run(World, Id, deltaTime, null);
+        ecs_run(WorldPtr, Id, deltaTime, null);
     }
 
     /// <summary>
@@ -175,9 +175,9 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// </summary>
     /// <param name="deltaTime"></param>
     /// <param name="param"></param>
-    public void RunWithParam(float deltaTime = 0, void* param = null)
+    public void Run(float deltaTime, void* param)
     {
-        ecs_run(World, Id, deltaTime, param);
+        ecs_run(WorldPtr, Id, deltaTime, param);
     }
 
     /// <summary>
@@ -188,7 +188,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="deltaTime"></param>
     public void RunWorker(int stageCurrent, int stageCount, float deltaTime = 0)
     {
-        RunWorkerWithParam(stageCurrent, stageCount, deltaTime, null);
+        RunWorker(stageCurrent, stageCount, deltaTime, null);
     }
 
     /// <summary>
@@ -198,12 +198,12 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="stageCount"></param>
     /// <param name="deltaTime"></param>
     /// <param name="param"></param>
-    public void RunWorkerWithParam(int stageCurrent, int stageCount, float deltaTime = 0, void* param = null)
+    public void RunWorker(int stageCurrent, int stageCount, float deltaTime, void* param)
     {
         if (stageCount != 0)
-            ecs_run_worker(World, Id, stageCurrent, stageCount, deltaTime, param);
+            ecs_run_worker(WorldPtr, Id, stageCurrent, stageCount, deltaTime, param);
         else
-            ecs_run(World, Id, deltaTime, param);
+            ecs_run(WorldPtr, Id, deltaTime, param);
 
     }
 
@@ -213,7 +213,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="interval"></param>
     public void Interval(float interval)
     {
-        ecs_set_interval(World, Entity, interval);
+        ecs_set_interval(WorldPtr, Entity, interval);
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public float Interval()
     {
-        return ecs_get_interval(World, Entity);
+        return ecs_get_interval(WorldPtr, Entity);
     }
 
     /// <summary>
@@ -231,7 +231,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="timeout"></param>
     public void Timeout(float timeout)
     {
-        ecs_set_timeout(World, Entity, timeout);
+        ecs_set_timeout(WorldPtr, Entity, timeout);
     }
 
     /// <summary>
@@ -240,7 +240,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <returns></returns>
     public float Timeout()
     {
-        return ecs_get_timeout(World, Entity);
+        return ecs_get_timeout(WorldPtr, Entity);
     }
 
     /// <summary>
@@ -249,7 +249,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="rate"></param>
     public void Rate(int rate)
     {
-        ecs_set_rate(World, Entity, rate, 0);
+        ecs_set_rate(WorldPtr, Entity, rate, 0);
     }
 
     /// <summary>
@@ -257,15 +257,15 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// </summary>
     public void Start()
     {
-        ecs_start_timer(World, Entity);
+        ecs_start_timer(WorldPtr, Entity);
     }
 
     /// <summary>
     ///     Stops the timer.
     /// </summary>
-    public void StopTimer()
+    public void Stop()
     {
-        ecs_stop_timer(World, Entity);
+        ecs_stop_timer(WorldPtr, Entity);
     }
 
     /// <summary>
@@ -274,7 +274,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="entity"></param>
     public void SetTickSource(ulong entity)
     {
-        ecs_set_tick_source(World, Entity, entity);
+        ecs_set_tick_source(WorldPtr, Entity, entity);
     }
 
     /// <summary>
@@ -283,7 +283,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <param name="timerEntity"></param>
     public void SetTickSource(TimerEntity timerEntity)
     {
-        ecs_set_tick_source(World, Entity, timerEntity.Entity);
+        ecs_set_tick_source(WorldPtr, Entity, timerEntity.Entity);
     }
 
     /// <summary>
@@ -292,7 +292,7 @@ public unsafe partial struct System_ : IDisposable, IEquatable<System_>, IEntity
     /// <typeparam name="T"></typeparam>
     public void SetTickSource<T>()
     {
-        ecs_set_tick_source(World, Entity, Type<T>.Id(World));
+        ecs_set_tick_source(WorldPtr, Entity, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>

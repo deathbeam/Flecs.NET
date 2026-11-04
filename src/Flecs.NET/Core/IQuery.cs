@@ -10,7 +10,7 @@ public unsafe interface IQuery
     /// <summary>
     ///     The underlying <see cref="Query"/> instance.
     /// </summary>
-    public ref Query Underlying { get; }
+    public ref readonly Query Underlying { get; }
 
     /// <summary>
     ///     The underlying <see cref="ecs_query_t"/>* handle.

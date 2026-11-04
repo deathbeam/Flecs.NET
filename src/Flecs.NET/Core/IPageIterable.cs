@@ -1,5 +1,3 @@
-using static Flecs.NET.Bindings.flecs;
-
 namespace Flecs.NET.Core;
 
 /// <summary>
@@ -10,12 +8,7 @@ public interface IPageIterable
     /// <summary>
     ///     The underlying <see cref="PageIterable"/> instance.
     /// </summary>
-    public ref PageIterable Underlying { get; }
-
-    /// <summary>
-    ///     The iterator instance.
-    /// </summary>
-    public ref ecs_iter_t Iterator { get; }
+    public ref readonly PageIterable Underlying { get; }
 
     /// <summary>
     ///     The number of entities to skip.

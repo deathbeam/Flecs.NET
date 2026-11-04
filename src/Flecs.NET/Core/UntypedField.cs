@@ -12,7 +12,7 @@ public readonly unsafe struct UntypedField : IEquatable<UntypedField>
     /// <summary>
     ///     The field pointer.
     /// </summary>
-    public readonly void* Data;
+    internal readonly void* Data;
 
     /// <summary>
     ///     The size of each field element.

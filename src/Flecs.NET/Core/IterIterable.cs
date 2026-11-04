@@ -13,7 +13,7 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
     /// <summary>
     ///     The iterator instance.
     /// </summary>
-    public ecs_iter_t Iterator;
+    internal ecs_iter_t Iterator;
 
     /// <summary>
     ///     The iterable type.
@@ -122,9 +122,9 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
     public ref IterIterable SetVar(string name, Table value)
     {
         ecs_table_range_t range;
-        range.table = value.GetTable();
-        range.offset = value.Offset;
-        range.count = value.Count;
+        range.table = value.Handle;
+        range.offset = value.Offset();
+        range.count = value.Count();
         return ref SetVar(name, range);
     }
 
@@ -136,7 +136,7 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
     public string ToJson(in IterToJsonDesc desc)
     {
         fixed (ecs_iter_t* it = &Iterator)
-        fixed (ecs_iter_to_json_desc_t* ptr = &desc.Desc)
+        fixed (ecs_iter_to_json_desc_t* ptr = &desc.Descriptor)
         {
             return NativeString.GetStringAndFree(ecs_iter_to_json(it, ptr));
         }
@@ -289,16 +289,18 @@ public unsafe partial struct IterIterable : IEquatable<IterIterable>
 // IIterIterable Interface
 public unsafe partial struct IterIterable : IIterIterable
 {
-    ref IterIterable IIterIterable.Underlying => ref this;
-    ref ecs_iter_t IIterIterable.Iterator => ref Iterator;
+    ref readonly IterIterable IIterIterable.Underlying => ref this;
     IterableType IIterIterable.IterableType => IterableType;
 }
 
 // IIterableBase Interface
 public unsafe partial struct IterIterable : IIterableBase
 {
-    /// <inheritdoc cref="IIterableBase.World"/>
-    ecs_world_t* IIterableBase.World => Iterator.world;
+    /// <inheritdoc cref="IIterableBase.World()"/>
+    World IIterableBase.World()
+    {
+        return Iterator.world;
+    }
 
     /// <inheritdoc cref="IIterableBase.GetIter"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -402,7 +404,7 @@ public unsafe partial struct IterIterable : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>
     public IterIterable Iter(Entity entity)
     {
-        return Iter(entity.CsWorld());
+        return Iter(entity.World());
     }
 
     /// <inheritdoc cref="IIterable.SetVar(int, ulong)"/>

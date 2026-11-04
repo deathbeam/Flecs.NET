@@ -108,7 +108,7 @@ public unsafe class TableTests
         world.Entity().Set(new Position(30, 40));
 
         Table table = e.Table();
-        Assert.Equal(3, table.Count);
+        Assert.Equal(3, table.Count());
     }
 
     [Fact]
@@ -697,7 +697,7 @@ public unsafe class TableTests
         Assert.True(e2.IsAlive());
 
         Table table = e1.Table();
-        Assert.Equal(2, table.Count);
+        Assert.Equal(2, table.Count());
         Assert.Equal(2, table.Size());
 
         table.ClearEntities();
@@ -705,8 +705,8 @@ public unsafe class TableTests
         Assert.False(e1.IsAlive());
         Assert.False(e2.IsAlive());
 
-        // Table.Count is a snapshot taken when the table was obtained, so query the live count.
-        Assert.Equal(0, ecs_table_count(table));
+        // A whole-table Table reports the live table count, matching C++ table::count().
+        Assert.Equal(0, table.Count());
         Assert.Equal(2, table.Size());
     }
 

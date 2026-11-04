@@ -3857,7 +3857,7 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     /// <returns>A JSON string with the serialized world data, or an empty string if failed.</returns>
     public string ToJson(in WorldToJsonDesc desc)
     {
-        fixed (ecs_world_to_json_desc_t* ptr = &desc.Desc)
+        fixed (ecs_world_to_json_desc_t* ptr = &desc.Descriptor)
             return NativeString.GetStringAndFree(ecs_world_to_json(Handle, ptr));
     }
 
@@ -4613,7 +4613,7 @@ public unsafe partial struct World
     /// <returns>The number of deleted tables.</returns>
     public int DeleteEmptyTables(in DeleteEmptyTablesDesc desc)
     {
-        fixed (ecs_delete_empty_tables_desc_t* ptr = &desc.Desc)
+        fixed (ecs_delete_empty_tables_desc_t* ptr = &desc.Descriptor)
             return ecs_delete_empty_tables(Handle, ptr);
     }
 }

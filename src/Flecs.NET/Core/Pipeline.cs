@@ -18,12 +18,12 @@ public unsafe partial struct Pipeline : IEquatable<Pipeline>, IEntity<Pipeline>
     /// <summary>
     ///     A reference to the entity.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Creates a pipeline from the provided world and entity id.

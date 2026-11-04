@@ -18,9 +18,9 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     private ulong _id;
 
     /// <summary>
-    ///     A reference to the world.
+    ///     The world pointer.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     Creates a ref.
@@ -42,6 +42,15 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     }
 
     /// <summary>
+    ///     Returns the world associated with the reference.
+    /// </summary>
+    /// <returns>The world.</returns>
+    public World World()
+    {
+        return new World(_world);
+    }
+
+    /// <summary>
     ///     Gets a pointer to the ref component.
     /// </summary>
     /// <returns></returns>
@@ -53,7 +62,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
 
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            return (T*)ecs_ref_get_id(World, refPtr, _id);
+            return (T*)ecs_ref_get_id(WorldPtr, refPtr, _id);
         }
     }
 
@@ -65,7 +74,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     {
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            void* data = ecs_ref_get_id(World, refPtr, _id);
+            void* data = ecs_ref_get_id(WorldPtr, refPtr, _id);
             return ref Managed.GetTypeRef<T>(data);
         }
     }
@@ -76,7 +85,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     /// <returns></returns>
     public T* TryGetPtr()
     {
-        if (World == null || _ref.entity == 0)
+        if (WorldPtr == null || _ref.entity == 0)
             return null;
 
         return GetPtr();
@@ -88,7 +97,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     /// <returns></returns>
     public ref T TryGet()
     {
-        if (World == null || _ref.entity == 0)
+        if (WorldPtr == null || _ref.entity == 0)
             return ref Unsafe.NullRef<T>();
 
         return ref Get();
@@ -100,12 +109,12 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     /// <returns></returns>
     public bool Has()
     {
-        if (World == null || _ref.entity == 0)
+        if (WorldPtr == null || _ref.entity == 0)
             return false;
 
         fixed (ecs_ref_t* refPtr = &_ref)
         {
-            return ecs_ref_get_id(World, refPtr, _id) != null;
+            return ecs_ref_get_id(WorldPtr, refPtr, _id) != null;
         }
     }
 
@@ -115,7 +124,7 @@ public unsafe struct Ref<T> : IEquatable<Ref<T>>
     /// <returns></returns>
     public Entity Entity()
     {
-        return new Entity(World, _ref.entity);
+        return new Entity(WorldPtr, _ref.entity);
     }
 
     /// <summary>

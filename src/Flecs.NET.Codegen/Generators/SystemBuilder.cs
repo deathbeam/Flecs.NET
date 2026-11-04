@@ -34,11 +34,11 @@ public class SystemBuilder : GeneratorBase
             {
                 private SystemBuilder _systemBuilder;
             
-                /// <inheritdoc cref="SystemBuilder.World"/>
-                public ref ecs_world_t* World => ref _systemBuilder.World;
+                /// <inheritdoc cref="SystemBuilder.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _systemBuilder.WorldPtr;
             
-                /// <inheritdoc cref="SystemBuilder.Desc"/>
-                public ref ecs_system_desc_t Desc => ref _systemBuilder.Desc;
+                /// <inheritdoc cref="SystemBuilder.Descriptor"/>
+                internal ref ecs_system_desc_t Descriptor => ref _systemBuilder.Descriptor;
             
                 /// <inheritdoc cref="SystemBuilder.QueryBuilder"/>
                 public ref QueryBuilder QueryBuilder => ref _systemBuilder.QueryBuilder;
@@ -274,7 +274,7 @@ public class SystemBuilder : GeneratorBase
                 /// <inheritdoc cref="SystemBuilder.GetHashCode()"/>
                 public override int GetHashCode()
                 {
-                    return HashCode.Combine(Desc.GetHashCode(), QueryBuilder.GetHashCode());
+                    return HashCode.Combine(Descriptor.GetHashCode(), QueryBuilder.GetHashCode());
                 }
             
                 /// <inheritdoc cref="SystemBuilder.op_Equality"/>

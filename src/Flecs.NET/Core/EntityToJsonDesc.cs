@@ -10,7 +10,7 @@ public unsafe record struct EntityToJsonDesc()
     /// <summary>
     ///     The underlying <see cref="ecs_entity_to_json_desc_t"/> instance.
     /// </summary>
-    public ecs_entity_to_json_desc_t Desc = new()
+    public ecs_entity_to_json_desc_t Descriptor = new()
     {
         serialize_entity_id =  false,
         serialize_doc =        false,
@@ -30,58 +30,58 @@ public unsafe record struct EntityToJsonDesc()
     /// <param name="desc">The <see cref="ecs_entity_to_json_desc_t"/> instance to wrap.</param>
     public EntityToJsonDesc(ecs_entity_to_json_desc_t desc) : this()
     {
-        Desc = desc;
+        Descriptor = desc;
     }
 
     /// <summary>
     ///     Serialize entity id.
     /// </summary>
-    public ref bool SerializeEntityId => ref Desc.serialize_entity_id;
+    public ref bool SerializeEntityId => ref Descriptor.serialize_entity_id;
 
     /// <summary>
     ///     Serialize doc attributes.
     /// </summary>
-    public ref bool SerializeDoc => ref Desc.serialize_doc;
+    public ref bool SerializeDoc => ref Descriptor.serialize_doc;
 
     /// <summary>
     ///     Serialize full paths for tags, components and pairs.
     /// </summary>
-    public ref bool SerializeFullPaths => ref Desc.serialize_full_paths;
+    public ref bool SerializeFullPaths => ref Descriptor.serialize_full_paths;
 
     /// <summary>
     ///     Serialize base components.
     /// </summary>
-    public ref bool SerializeInherited => ref Desc.serialize_inherited;
+    public ref bool SerializeInherited => ref Descriptor.serialize_inherited;
 
     /// <summary>
     ///     Serialize component values.
     /// </summary>
-    public ref bool SerializeValues => ref Desc.serialize_values;
+    public ref bool SerializeValues => ref Descriptor.serialize_values;
 
     /// <summary>
     ///     Serialize built-in data as components. (e.g. "name", "parent")
     /// </summary>
-    public ref bool SerializeBuiltIn => ref Desc.serialize_builtin;
+    public ref bool SerializeBuiltIn => ref Descriptor.serialize_builtin;
 
     /// <summary>
     ///     Serialize type info. (requires serialize_values)
     /// </summary>
-    public ref bool SerializeTypeInfo => ref Desc.serialize_type_info;
+    public ref bool SerializeTypeInfo => ref Descriptor.serialize_type_info;
 
     /// <summary>
     ///     Serialize active alerts for entity.
     /// </summary>
-    public ref bool SerializeAlerts => ref Desc.serialize_alerts;
+    public ref bool SerializeAlerts => ref Descriptor.serialize_alerts;
 
     /// <summary>
     ///     Serialize references (incoming edges) for relationship.
     /// </summary>
-    public ref ulong SerializeRefs => ref Desc.serialize_refs;
+    public ref ulong SerializeRefs => ref Descriptor.serialize_refs;
 
     /// <summary>
     ///     Serialize which queries entity matches with.
     /// </summary>
-    public ref bool SerializeMatches => ref Desc.serialize_matches;
+    public ref bool SerializeMatches => ref Descriptor.serialize_matches;
 
     /// <summary>
     ///     Implicitly converts an <see cref="ecs_entity_to_json_desc_t"/> instance to a <see cref="EntityToJsonDesc"/>.
@@ -100,6 +100,6 @@ public unsafe record struct EntityToJsonDesc()
     /// <returns>A new <see cref="ecs_entity_to_json_desc_t"/> instance initialized with the given description.</returns>
     public static implicit operator ecs_entity_to_json_desc_t(EntityToJsonDesc desc)
     {
-        return desc.Desc;
+        return desc.Descriptor;
     }
 }

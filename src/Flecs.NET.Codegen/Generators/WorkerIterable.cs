@@ -30,10 +30,10 @@ public class WorkerIterable : GeneratorBase
             public unsafe partial struct {{Generator.GetTypeName(Type.WorkerIterable, i)}} : IEquatable<{{Generator.GetTypeName(Type.WorkerIterable, i)}}>, {{Generator.GetTypeName(Type.IIterable, i)}}
             {
                 /// <inheritdoc cref="IWorkerIterable.Underlying"/>
-                public WorkerIterable Underlying;
+                internal WorkerIterable Underlying;
                 
-                /// <inheritdoc cref="IWorkerIterable.Iterator"/>
-                public ref ecs_iter_t Iterator => ref Underlying.Iterator;
+                /// <inheritdoc cref="WorkerIterable.Iterator"/>
+                internal ref ecs_iter_t Iterator => ref Underlying.Iterator;
                 
                 /// <inheritdoc cref="IWorkerIterable.ThreadIndex"/>
                 public int ThreadIndex => Underlying.ThreadIndex;
@@ -90,14 +90,17 @@ public class WorkerIterable : GeneratorBase
             // IWorkerIterable Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.WorkerIterable, i)}} : IWorkerIterable
             {
-                ref WorkerIterable IWorkerIterable.Underlying => ref Underlying;
+                ref readonly WorkerIterable IWorkerIterable.Underlying => ref Underlying;
             }
 
             // IIterableBase Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.WorkerIterable, i)}} : IIterableBase
             {
-                /// <inheritdoc cref="IIterableBase.World"/>
-                ecs_world_t* IIterableBase.World => Iterator.world;
+                /// <inheritdoc cref="IIterableBase.World()"/>
+                World IIterableBase.World()
+                {
+                    return Iterator.world;
+                }
                 
                 /// <inheritdoc cref="IIterableBase.GetIter"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

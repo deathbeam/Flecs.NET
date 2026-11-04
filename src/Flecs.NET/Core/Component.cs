@@ -23,7 +23,7 @@ public unsafe partial struct Component<TComponent> : IEquatable<Component<TCompo
     /// <summary>
     ///     Reference to world.
     /// </summary>
-    public ref ecs_world_t* World => ref _untypedComponent.World;
+    internal ref ecs_world_t* WorldPtr => ref _untypedComponent.WorldPtr;
 
     /// <summary>
     ///     Reference to entity.
@@ -33,7 +33,7 @@ public unsafe partial struct Component<TComponent> : IEquatable<Component<TCompo
     /// <summary>
     ///     Reference to id.
     /// </summary>
-    public ref Id Id => ref Entity.Id;
+    public ref readonly Id Id => ref Entity.Id;
 
     /// <summary>
     ///     Registers this type with the provided world or returns an existing id if found.
@@ -72,7 +72,7 @@ public unsafe partial struct Component<TComponent> : IEquatable<Component<TCompo
     /// <returns>Reference to self.</returns>
     public ref Component<TComponent> Opaque(Action<Ecs.OpaqueBuilder<TComponent, byte>> builder)
     {
-        Ecs.OpaqueBuilder<TComponent, byte> opaque = new(World, Id);
+        Ecs.OpaqueBuilder<TComponent, byte> opaque = new(WorldPtr, Id);
         builder(opaque);
         opaque.Commit();
         return ref this;
@@ -87,7 +87,7 @@ public unsafe partial struct Component<TComponent> : IEquatable<Component<TCompo
     /// <returns>Reference to self.</returns>
     public ref Component<TComponent> Opaque<TElement>(Action<Ecs.OpaqueBuilder<TComponent, TElement>> builder) where TElement : unmanaged
     {
-        Ecs.OpaqueBuilder<TComponent, TElement> opaque = new(World, Id);
+        Ecs.OpaqueBuilder<TComponent, TElement> opaque = new(WorldPtr, Id);
         builder(opaque);
         opaque.Commit();
         return ref this;
@@ -430,7 +430,7 @@ public unsafe partial struct Component<TComponent>
 
     internal void GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context)
     {
-        ecs_type_hooks_t* existingHooks = ecs_get_hooks_id(World, Id);
+        ecs_type_hooks_t* existingHooks = ecs_get_hooks_id(WorldPtr, Id);
         hooks = existingHooks == null ? default : *existingHooks;
 
         context = (TypeHooksContext*)hooks.binding_ctx;
@@ -458,7 +458,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCtorCallbackDelegate<TComponent>
             : (delegate*<TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCtorCallbackDelegate<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -476,7 +476,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCtorCallbackPointer<TComponent>
             : (delegate*<TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCtorCallbackPointer<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -494,7 +494,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedDtorCallbackDelegate<TComponent>
             : (delegate*<TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedDtorCallbackDelegate<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -512,7 +512,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedDtorCallbackPointer<TComponent>
             : (delegate*<TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedDtorCallbackPointer<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -530,7 +530,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedMoveCallbackDelegate<TComponent>
             : (delegate*<TComponent*, TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedMoveCallbackDelegate<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -548,7 +548,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedMoveCallbackPointer<TComponent>
             : (delegate*<TComponent*, TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedMoveCallbackPointer<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -566,7 +566,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCopyCallbackDelegate<TComponent>
             : (delegate*<TComponent*, TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCopyCallbackDelegate<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -584,7 +584,7 @@ public unsafe partial struct Component<TComponent>
             ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCopyCallbackPointer<TComponent>
             : (delegate*<TComponent*, TComponent*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCopyCallbackPointer<TComponent>);
 
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
 
         return ref this;
     }
@@ -1204,7 +1204,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_add = &Functions.OnAddCallback;
         context->OnAdd.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1213,7 +1213,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_set = &Functions.OnSetCallback;
         context->OnSet.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1222,7 +1222,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_remove = &Functions.OnRemoveCallback;
         context->OnRemove.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1231,7 +1231,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_add = &Functions.OnAddCallback;
         context->OnAdd.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1240,7 +1240,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_set = &Functions.OnSetCallback;
         context->OnSet.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1249,7 +1249,7 @@ public unsafe partial struct Component<TComponent>
         GetHooksAndContext(out ecs_type_hooks_t hooks, out TypeHooksContext* context);
         hooks.on_remove = &Functions.OnRemoveCallback;
         context->OnRemove.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1259,7 +1259,7 @@ public unsafe partial struct Component<TComponent>
         hooks.cmp = &Functions.OnCompareCallback;
         hooks.flags &= ~(ECS_TYPE_HOOK_CMP_ILLEGAL | ECS_TYPE_HOOK_EQUALS_ILLEGAL);
         context->OnCompare.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1269,7 +1269,7 @@ public unsafe partial struct Component<TComponent>
         hooks.cmp = &Functions.OnCompareCallback;
         hooks.flags &= ~(ECS_TYPE_HOOK_CMP_ILLEGAL | ECS_TYPE_HOOK_EQUALS_ILLEGAL);
         context->OnCompare.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1279,7 +1279,7 @@ public unsafe partial struct Component<TComponent>
         hooks.equals = Functions.OnEqualsHook;
         hooks.flags &= ~ECS_TYPE_HOOK_EQUALS_ILLEGAL;
         context->OnEquals.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 
@@ -1289,7 +1289,7 @@ public unsafe partial struct Component<TComponent>
         hooks.equals = Functions.OnEqualsHook;
         hooks.flags &= ~ECS_TYPE_HOOK_EQUALS_ILLEGAL;
         context->OnEquals.Set(callback, invoker);
-        ecs_set_hooks_id(World, Id, &hooks);
+        ecs_set_hooks_id(WorldPtr, Id, &hooks);
         return ref this;
     }
 }

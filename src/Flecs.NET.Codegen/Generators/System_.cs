@@ -44,10 +44,10 @@ public class System_ : GeneratorBase
                 public ref Entity Entity => ref _system.Entity;
             
                 /// <inheritdoc cref="System_.Id"/>
-                public ref Id Id => ref _system.Id;
+                public ref readonly Id Id => ref _system.Id;
             
-                /// <inheritdoc cref="System_.World"/>
-                public ref ecs_world_t* World => ref _system.World;
+                /// <inheritdoc cref="System_.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _system.WorldPtr;
             
                 /// <summary>
                 ///     Creates a new system with the provided system.
@@ -124,7 +124,7 @@ public class System_ : GeneratorBase
                 /// <inheritdoc cref="System_.Query()"/>
                 public Query<T0> Query()
                 {
-                    return new Query<T0>(ecs_system_get(World, Entity)->query);
+                    return new Query<T0>(ecs_system_get(WorldPtr, Entity)->query);
                 }
             
                 /// <inheritdoc cref="System_.Run(float)"/>
@@ -133,22 +133,22 @@ public class System_ : GeneratorBase
                     _system.Run(deltaTime);
                 }
             
-                /// <inheritdoc cref="System_.RunWithParam"/>
-                public void RunWithParam(float deltaTime = 0, void* param = null)
+                /// <inheritdoc cref="System_.Run(float, void*)"/>
+                public void Run(float deltaTime, void* param)
                 {
-                    _system.RunWithParam(deltaTime, param);
+                    _system.Run(deltaTime, param);
                 }
             
-                /// <inheritdoc cref="System_.RunWorker"/>
+                /// <inheritdoc cref="System_.RunWorker(int, int, float)"/>
                 public void RunWorker(int stageCurrent, int stageCount, float deltaTime = 0)
                 {
                     _system.RunWorker(stageCurrent, stageCount, deltaTime);
                 }
             
-                /// <inheritdoc cref="System_.RunWorkerWithParam"/>
-                public void RunWorkerWithParam(int stageCurrent, int stageCount, float deltaTime = 0, void* param = null)
+                /// <inheritdoc cref="System_.RunWorker(int, int, float, void*)"/>
+                public void RunWorker(int stageCurrent, int stageCount, float deltaTime, void* param)
                 {
-                    _system.RunWorkerWithParam(stageCurrent, stageCount, deltaTime, param);
+                    _system.RunWorker(stageCurrent, stageCount, deltaTime, param);
                 }
             
                 /// <inheritdoc cref="System_.Interval(float)"/>
@@ -187,10 +187,10 @@ public class System_ : GeneratorBase
                     _system.Start();
                 }
             
-                /// <inheritdoc cref="System_.StopTimer()"/>
-                public void StopTimer()
+                /// <inheritdoc cref="System_.Stop()"/>
+                public void Stop()
                 {
-                    _system.StopTimer();
+                    _system.Stop();
                 }
             
                 /// <inheritdoc cref="System_.SetTickSource(ulong)"/>

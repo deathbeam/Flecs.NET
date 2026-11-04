@@ -41,7 +41,7 @@ public static unsafe class StructReflection
 
         try
         {
-            UntypedComponent component = new UntypedComponent(type.World, type.Id);
+            UntypedComponent component = new UntypedComponent(type.WorldPtr, type.Id);
             component.Add<EcsStruct>();
             registrar(component);
         }

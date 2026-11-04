@@ -11,10 +11,12 @@ namespace Flecs.NET.Core;
 /// </summary>
 public unsafe partial struct Query : IEquatable<Query>, IDisposable
 {
+    private ecs_query_t* _handle;
+
     /// <summary>
     ///     The underlying <see cref="ecs_query_t"/>* handle.
     /// </summary>
-    public ecs_query_t* Handle;
+    public ref readonly ecs_query_t* Handle => ref _handle;
 
     /// <summary>
     ///     Creates a query from a handle.
@@ -22,7 +24,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
     /// <param name="query">The query pointer.</param>
     public Query(ecs_query_t* query)
     {
-        Handle = query;
+        _handle = query;
     }
 
     /// <summary>
@@ -46,13 +48,13 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
 
             if (poly != null)
             {
-                Handle = (ecs_query_t*)poly->poly;
+                _handle = (ecs_query_t*)poly->poly;
                 return;
             }
         }
 
         ecs_query_desc_t desc = default;
-        Handle = ecs_query_init(entity.World, &desc);
+        _handle = ecs_query_init(entity.WorldPtr, &desc);
     }
 
     /// <summary>
@@ -72,7 +74,7 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
             return;
 
         ecs_query_fini(Handle);
-        Handle = null;
+        _handle = null;
     }
 
     /// <summary>
@@ -82,15 +84,6 @@ public unsafe partial struct Query : IEquatable<Query>, IDisposable
     public Entity Entity()
     {
         return new Entity(Handle->stage, Handle->entity);
-    }
-
-    /// <summary>
-    ///     Returns the query handle.
-    /// </summary>
-    /// <returns></returns>
-    public ecs_query_t* CPtr()
-    {
-        return Handle;
     }
 
     /// <summary>
@@ -294,7 +287,7 @@ public unsafe partial struct Query
     /// <summary>
     ///     Gets the query's world.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The world.</returns>
     public World World()
     {
         return Handle->world;
@@ -303,7 +296,7 @@ public unsafe partial struct Query
     /// <summary>
     ///     Gets the query's world or stage.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>The world or stage.</returns>
     public World Stage()
     {
         return Handle->stage;
@@ -313,7 +306,7 @@ public unsafe partial struct Query
 // IQuery Interface
 public unsafe partial struct Query : IQuery
 {
-    ref Query IQuery.Underlying => ref this;
+    ref readonly Query IQuery.Underlying => ref this;
     ecs_query_t* IQuery.Handle => Handle;
 }
 
@@ -321,8 +314,11 @@ public unsafe partial struct Query : IQuery
 // IIterableBase Interface
 public unsafe partial struct Query : IIterableBase
 {
-    /// <inheritdoc cref="IIterableBase.World"/>
-    ecs_world_t* IIterableBase.World => Handle->stage;
+    /// <inheritdoc cref="IIterableBase.World()"/>
+    World IIterableBase.World()
+    {
+        return Handle->stage;
+    }
 
     /// <inheritdoc cref="IIterableBase.GetIter"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -422,7 +418,7 @@ public unsafe partial struct Query : IIterable
     /// <inheritdoc cref="IIterable.Iter(Flecs.NET.Core.Entity)"/>
     public IterIterable Iter(Entity entity)
     {
-        return Iter(entity.CsWorld());
+        return Iter(entity.World());
     }
 
     /// <inheritdoc cref="IIterable.Count()"/>

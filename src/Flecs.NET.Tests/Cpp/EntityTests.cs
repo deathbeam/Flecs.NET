@@ -2770,8 +2770,8 @@ public unsafe class EntityTests
         Table table = e.Stage(stage).Range();
 
         Assert.True(table.Handle != null);
-        Assert.Equal(1, table.Count);
-        Assert.Equal(1, table.Offset);
+        Assert.Equal(1, table.Count());
+        Assert.Equal(1, table.Offset());
     }
 
     [Fact]
@@ -2874,7 +2874,7 @@ public unsafe class EntityTests
 
         Entity e = Entity.Null(world);
         Assert.True(e.Id == 0);
-        Assert.True(e.World == world);
+        Assert.True(e.World() == world);
     }
 
     [Fact]
@@ -2882,7 +2882,7 @@ public unsafe class EntityTests
     {
         Entity e = new Entity(0);
         Assert.True(e.Id == 0);
-        Assert.True(e.World == null);
+        Assert.True(e.World().Handle == null);
     }
 
     [Fact]
@@ -2892,7 +2892,7 @@ public unsafe class EntityTests
 
         Entity e = Entity.Null(world);
         Assert.True(e.Id == 0);
-        Assert.True(e.World == world);
+        Assert.True(e.World() == world);
     }
 
     [Fact]
@@ -3265,14 +3265,14 @@ public unsafe class EntityTests
         Id id1 = world.Id(e);
         Assert.True(id1 != 0);
         Assert.True(id1 == e);
-        Assert.True(id1.World == world);
+        Assert.True(id1.World() == world);
         Assert.False(id1.IsPair());
         Assert.False(id1.IsWildCard());
 
         Id id2 = world.Id(Ecs.Wildcard);
         Assert.True(id2 != 0);
         Assert.True(id2 == Ecs.Wildcard);
-        Assert.True(id2.World == world);
+        Assert.True(id2.World() == world);
         Assert.False(id2.IsPair());
         Assert.True(id2.IsWildCard());
     }
@@ -3292,7 +3292,7 @@ public unsafe class EntityTests
         Assert.True(id1 != 0);
         Assert.True(id1.First() == rel);
         Assert.True(id1.Second() == obj);
-        Assert.True(id1.World == world);
+        Assert.True(id1.World() == world);
         Assert.True(id1.IsPair());
         Assert.False(id1.IsWildCard());
 
@@ -3300,7 +3300,7 @@ public unsafe class EntityTests
         Assert.True(id2 != 0);
         Assert.True(id2.First() == rel);
         Assert.True(id2.Second() == Ecs.Wildcard);
-        Assert.True(id2.World == world);
+        Assert.True(id2.World() == world);
         Assert.True(id2.IsPair());
         Assert.True(id2.IsWildCard());
     }
@@ -3413,7 +3413,7 @@ public unsafe class EntityTests
         world.ReadonlyBegin();
 
         Entity ew = e.Stage();
-        Assert.True(ew.World == world.GetStage(0));
+        Assert.True(ew.World() == world.GetStage(0));
 
         ew.Set(new Position(10, 20));
         Assert.False(ew.Has<Position>());
@@ -3439,7 +3439,7 @@ public unsafe class EntityTests
         world.ReadonlyBegin();
 
         Entity s = world.GetStage(0).Entity(e.Id).Stage();
-        Assert.True(s.World == world.GetStage(0));
+        Assert.True(s.World() == world.GetStage(0));
 
         s.Set(new Position(10, 20));
         Assert.False(e.Has<Position>());
@@ -3469,7 +3469,7 @@ public unsafe class EntityTests
 
         World stage1 = world.GetStage(1);
         Entity s = stage1.Entity(e.Id).Stage();
-        Assert.True(s.World == stage1);
+        Assert.True(s.World() == stage1);
 
         s.Set(new Position(10, 20));
         Assert.False(e.Has<Position>());
@@ -4490,7 +4490,7 @@ public unsafe class EntityTests
 
         Id id1 = world.Id(Ecs.ValuePair(rel, 10));
         Assert.True(id1 != 0);
-        Assert.True(id1.World == world);
+        Assert.True(id1.World() == world);
         Assert.True(id1.IsPair());
         Assert.Equal(id1.IsPair(), Ecs.IsPair(id1.Value));
         Assert.False(id1.IsWildCard());

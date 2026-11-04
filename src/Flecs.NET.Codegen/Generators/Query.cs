@@ -32,7 +32,7 @@ public class Query : GeneratorBase
             public unsafe partial struct {{Generator.GetTypeName(Type.Query, i)}} : IDisposable, IEquatable<{{Generator.GetTypeName(Type.Query, i)}}>
             {
                 /// <inheritdoc cref="IQuery.Underlying"/>
-                public Query Underlying;
+                internal Query Underlying;
             
                 /// <inheritdoc cref="Query.Handle"/>
                 public ecs_query_t* Handle => Underlying.Handle;
@@ -74,12 +74,6 @@ public class Query : GeneratorBase
                 public Entity Entity()
                 {
                     return Underlying.Entity();
-                }
-            
-                /// <inheritdoc cref="Query.CPtr()"/>
-                public ecs_query_t* CPtr()
-                {
-                    return Underlying.CPtr();
                 }
             
                 /// <inheritdoc cref="Query.Changed()"/>
@@ -216,14 +210,17 @@ public class Query : GeneratorBase
             // IPageIterable Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.Query, i)}} : IQuery
             {
-                ref Query IQuery.Underlying => ref Underlying;
+                ref readonly Query IQuery.Underlying => ref Underlying;
             }
 
             // IIterableBase Interface
             public unsafe partial struct {{Generator.GetTypeName(Type.Query, i)}} : IIterableBase
             {
-                /// <inheritdoc cref="IIterableBase.World"/>
-                ecs_world_t* IIterableBase.World => Handle->stage;
+                /// <inheritdoc cref="IIterableBase.World()"/>
+                World IIterableBase.World()
+                {
+                    return Handle->stage;
+                }
                 
                 /// <inheritdoc cref="IIterableBase.GetIter"/>
                 [MethodImpl(MethodImplOptions.AggressiveInlining)]

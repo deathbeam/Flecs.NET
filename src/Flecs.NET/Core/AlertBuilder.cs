@@ -18,12 +18,12 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     A reference to the alert description.
     /// </summary>
-    public ref ecs_alert_desc_t Desc => ref _desc;
+    internal ref ecs_alert_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     A reference to the query builder.
@@ -49,7 +49,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <param name="entity">The alert entity.</param>
     public AlertBuilder(ecs_world_t* world, ulong entity) : this(world)
     {
-        Desc.entity = entity;
+        Descriptor.entity = entity;
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
         desc.name = nativeName;
         desc.sep = Pointers.DefaultSeparator;
         desc.root_sep = Pointers.DefaultSeparator;
-        Desc.entity = ecs_entity_init(World, &desc);
+        Descriptor.entity = ecs_entity_init(WorldPtr, &desc);
     }
 
     /// <summary>
@@ -88,11 +88,11 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     {
         QueryBuilder.AssertReusable();
 
-        fixed (ecs_alert_desc_t* alertDesc = &Desc)
+        fixed (ecs_alert_desc_t* alertDesc = &Descriptor)
         {
-            alertDesc->query = QueryBuilder.Desc;
+            alertDesc->query = QueryBuilder.Descriptor;
 
-            Entity entity = new Entity(World, ecs_alert_init(World, alertDesc));
+            Entity entity = new Entity(WorldPtr, ecs_alert_init(WorldPtr, alertDesc));
 
             if (entity == 0)
                 Ecs.Error("Alert failed to init.");
@@ -114,7 +114,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
         NativeString nativeMessage = (NativeString)message;
         QueryBuilder.QueryContext.Strings.Add(nativeMessage);
 
-        Desc.message = nativeMessage;
+        Descriptor.message = nativeMessage;
         return ref this;
     }
 
@@ -128,7 +128,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
         NativeString nativeBrief = (NativeString)brief;
         QueryBuilder.QueryContext.Strings.Add(nativeBrief);
 
-        Desc.brief = nativeBrief;
+        Descriptor.brief = nativeBrief;
         return ref this;
     }
 
@@ -142,7 +142,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
         NativeString nativeDocName = (NativeString)docName;
         QueryBuilder.QueryContext.Strings.Add(nativeDocName);
 
-        Desc.doc_name = nativeDocName;
+        Descriptor.doc_name = nativeDocName;
         return ref this;
     }
 
@@ -153,7 +153,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder RetainPeriod(float period)
     {
-        Desc.retain_period = period;
+        Descriptor.retain_period = period;
         return ref this;
     }
 
@@ -164,7 +164,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder Severity(ulong kind)
     {
-        Desc.severity = kind;
+        Descriptor.severity = kind;
         return ref this;
     }
 
@@ -175,7 +175,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder Severity<T>()
     {
-        return ref Severity(Type<T>.Id(World));
+        return ref Severity(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
         Ecs.Assert(_severityFilterCount < ECS_ALERT_MAX_SEVERITY_FILTERS,
             "Maximum number of severity filters reached");
 
-        ref ecs_alert_severity_filter_t filter = ref Desc.severity_filters[_severityFilterCount++];
+        ref ecs_alert_severity_filter_t filter = ref Descriptor.severity_filters[_severityFilterCount++];
         filter.severity = kind;
         filter.with = with;
 
@@ -206,7 +206,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder SeverityFilter<TSeverity>(ulong with, string var = "")
     {
-        return ref SeverityFilter(Type<TSeverity>.Id(World), with, var);
+        return ref SeverityFilter(Type<TSeverity>.Id(WorldPtr), with, var);
     }
 
     /// <summary>
@@ -218,7 +218,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder SeverityFilter<TSeverity, TWith>(string var = "")
     {
-        return ref SeverityFilter(Type<TSeverity>.Id(World), Type<TWith>.Id(World), var);
+        return ref SeverityFilter(Type<TSeverity>.Id(WorldPtr), Type<TWith>.Id(WorldPtr), var);
     }
 
     /// <summary>
@@ -232,7 +232,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     public ref AlertBuilder SeverityFilter<TSeverity, TWithEnum>(TWithEnum withEnum, string var = "")
         where TWithEnum : Enum
     {
-        return ref SeverityFilter(Type<TSeverity>.Id(World), Type<TWithEnum>.Id(World, withEnum), var);
+        return ref SeverityFilter(Type<TSeverity>.Id(WorldPtr), Type<TWithEnum>.Id(WorldPtr, withEnum), var);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder Member(ulong member)
     {
-        Desc.member = member;
+        Descriptor.member = member;
         return ref this;
     }
 
@@ -257,8 +257,8 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     {
         using NativeString nativeMember = (NativeString)member;
 
-        ulong id = Type<T>.Id(World);
-        ulong memberId = ecs_lookup_path_w_sep(World, id, nativeMember,
+        ulong id = Type<T>.Id(WorldPtr);
+        ulong memberId = ecs_lookup_path_w_sep(WorldPtr, id, nativeMember,
             Pointers.DefaultSeparator, Pointers.DefaultSeparator, false);
 
         AlertVar(var);
@@ -274,7 +274,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public ref AlertBuilder AlertId(ulong id)
     {
-        Desc.id = id;
+        Descriptor.id = id;
         return ref this;
     }
 
@@ -290,7 +290,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
 
         NativeString nativeVar = (NativeString)var;
         QueryBuilder.QueryContext.Strings.Add(nativeVar);
-        Desc.var = nativeVar;
+        Descriptor.var = nativeVar;
 
         return ref this;
     }
@@ -302,7 +302,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public bool Equals(AlertBuilder other)
     {
-        return Desc == other.Desc && QueryBuilder == other.QueryBuilder;
+        return Descriptor == other.Descriptor && QueryBuilder == other.QueryBuilder;
     }
 
     /// <summary>
@@ -321,7 +321,7 @@ public unsafe partial struct AlertBuilder : IDisposable, IEquatable<AlertBuilder
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(Desc.GetHashCode(), QueryBuilder.GetHashCode());
+        return HashCode.Combine(Descriptor.GetHashCode(), QueryBuilder.GetHashCode());
     }
 
     /// <summary>

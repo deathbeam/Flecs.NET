@@ -10,7 +10,7 @@ public unsafe record struct IterToJsonDesc
     /// <summary>
     ///     The underlying <see cref="ecs_iter_to_json_desc_t"/> instance.
     /// </summary>
-    public ecs_iter_to_json_desc_t Desc = new()
+    public ecs_iter_to_json_desc_t Descriptor = new()
     {
         serialize_entity_ids =      false,
         serialize_values =          true,
@@ -38,98 +38,98 @@ public unsafe record struct IterToJsonDesc
     /// <param name="desc">The <see cref="ecs_iter_to_json_desc_t"/> instance to wrap.</param>
     public IterToJsonDesc(ecs_iter_to_json_desc_t desc)
     {
-        Desc = desc;
+        Descriptor = desc;
     }
 
     /// <summary>
     ///     Serialize entity ids.
     /// </summary>
-    public ref bool SerializeEntityIds => ref Desc.serialize_entity_ids;
+    public ref bool SerializeEntityIds => ref Descriptor.serialize_entity_ids;
 
     /// <summary>
     ///     Serialize component values.
     /// </summary>
-    public ref bool SerializeValues => ref Desc.serialize_values;
+    public ref bool SerializeValues => ref Descriptor.serialize_values;
 
     /// <summary>
     ///     Serialize builtin data as components. (e.g. "name", "parent")
     /// </summary>
-    public ref bool SerializeBuiltIn => ref Desc.serialize_builtin;
+    public ref bool SerializeBuiltIn => ref Descriptor.serialize_builtin;
 
     /// <summary>
     ///     Serialize doc attributes.
     /// </summary>
-    public ref bool SerializeDoc => ref Desc.serialize_doc;
+    public ref bool SerializeDoc => ref Descriptor.serialize_doc;
 
     /// <summary>
     ///     Serialize full paths for tags, components and pairs.
     /// </summary>
-    public ref bool SerializeFullPaths => ref Desc.serialize_full_paths;
+    public ref bool SerializeFullPaths => ref Descriptor.serialize_full_paths;
 
     /// <summary>
     ///     Serialize field data.
     /// </summary>
-    public ref bool SerializeFields => ref Desc.serialize_fields;
+    public ref bool SerializeFields => ref Descriptor.serialize_fields;
 
     /// <summary>
     ///     Serialize inherited components.
     /// </summary>
-    public ref bool SerializeInherited => ref Desc.serialize_inherited;
+    public ref bool SerializeInherited => ref Descriptor.serialize_inherited;
 
     /// <summary>
     ///     Serialize entire table vs. matched components.
     /// </summary>
-    public ref bool SerializeTable => ref Desc.serialize_table;
+    public ref bool SerializeTable => ref Descriptor.serialize_table;
 
     /// <summary>
     ///     Serialize type information.
     /// </summary>
-    public ref bool SerializeTypeInfo => ref Desc.serialize_type_info;
+    public ref bool SerializeTypeInfo => ref Descriptor.serialize_type_info;
 
     /// <summary>
     ///     Serialize metadata for fields returned by query.
     /// </summary>
-    public ref bool SerializeFieldInfo => ref Desc.serialize_field_info;
+    public ref bool SerializeFieldInfo => ref Descriptor.serialize_field_info;
 
     /// <summary>
     ///     Serialize query terms.
     /// </summary>
-    public ref bool SerializeQueryInfo => ref Desc.serialize_query_info;
+    public ref bool SerializeQueryInfo => ref Descriptor.serialize_query_info;
 
     /// <summary>
     ///     Serialize query plan.
     /// </summary>
-    public ref bool SerializeQueryPlan => ref Desc.serialize_query_plan;
+    public ref bool SerializeQueryPlan => ref Descriptor.serialize_query_plan;
 
     /// <summary>
     ///     Profile query performance.
     /// </summary>
-    public ref bool SerializeQueryProfile => ref Desc.serialize_query_profile;
+    public ref bool SerializeQueryProfile => ref Descriptor.serialize_query_profile;
 
     /// <summary>
     ///     If true, query won't be evaluated.
     /// </summary>
-    public ref bool DontSerializeResults => ref Desc.dont_serialize_results;
+    public ref bool DontSerializeResults => ref Descriptor.dont_serialize_results;
 
     /// <summary>
     ///     Serialize active alerts for entity.
     /// </summary>
-    public ref bool SerializeAlerts => ref Desc.serialize_alerts;
+    public ref bool SerializeAlerts => ref Descriptor.serialize_alerts;
 
     /// <summary>
     ///     Serialize references (incoming edges) for relationship.
     /// </summary>
-    public ref ulong SerializeRefs => ref Desc.serialize_refs;
+    public ref ulong SerializeRefs => ref Descriptor.serialize_refs;
 
     /// <summary>
     ///     Serialize which queries entity matches with
     /// </summary>
-    public ref bool SerializeMatches => ref Desc.serialize_matches;
+    public ref bool SerializeMatches => ref Descriptor.serialize_matches;
 
     /// <summary>
     ///     Query object (required for serialize_query_[plan|profile]).
     /// </summary>
-    public ref void* Query => ref Desc.query;
+    public ref void* Query => ref Descriptor.query;
 
     /// <summary>
     ///     Implicitly converts an <see cref="ecs_iter_to_json_desc_t"/> instance to a <see cref="IterToJsonDesc"/>.
@@ -148,6 +148,6 @@ public unsafe record struct IterToJsonDesc
     /// <returns>A new <see cref="ecs_iter_to_json_desc_t"/> instance initialized with the given description.</returns>
     public static implicit operator ecs_iter_to_json_desc_t(IterToJsonDesc desc)
     {
-        return desc.Desc;
+        return desc.Descriptor;
     }
 }

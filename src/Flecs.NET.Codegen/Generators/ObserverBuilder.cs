@@ -36,11 +36,11 @@ public class ObserverBuilder : GeneratorBase
             {
                 private ObserverBuilder _observerBuilder;
             
-                /// <inheritdoc cref="ObserverBuilder.World"/>
-                public ref ecs_world_t* World => ref _observerBuilder.World;
+                /// <inheritdoc cref="ObserverBuilder.WorldPtr"/>
+                internal ref ecs_world_t* WorldPtr => ref _observerBuilder.WorldPtr;
             
-                /// <inheritdoc cref="ObserverBuilder.Desc"/>
-                public ref ecs_observer_desc_t Desc => ref _observerBuilder.Desc;
+                /// <inheritdoc cref="ObserverBuilder.Descriptor"/>
+                internal ref ecs_observer_desc_t Descriptor => ref _observerBuilder.Descriptor;
             
                 /// <inheritdoc cref="ObserverBuilder.QueryBuilder"/>
                 public ref QueryBuilder QueryBuilder => ref _observerBuilder.QueryBuilder;

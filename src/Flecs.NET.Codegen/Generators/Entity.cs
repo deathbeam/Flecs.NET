@@ -39,7 +39,7 @@ public class Entity : GeneratorBase
                 /// <returns>True if the entity has the specified components.</returns>
                 public bool {{Generator.GetInvokerName(callback)}}<{{Generator.TypeParameters[i]}}>({{Generator.GetCallbackType(callback, i)}} callback)
                 {
-                    return Invoker.{{Generator.GetInvokerName(callback)}}(World, Id, callback);
+                    return Invoker.{{Generator.GetInvokerName(callback)}}(WorldPtr, Id, callback);
                 }
             """);
 
@@ -64,7 +64,7 @@ public class Entity : GeneratorBase
                 /// <returns>Reference to self.</returns>
                 public ref {{type}} {{Generator.GetInvokerName(callback)}}<{{Generator.TypeParameters[i]}}>({{Generator.GetCallbackType(callback, i)}} callback)
                 {
-                    Invoker.{{Generator.GetInvokerName(callback)}}(World, Id, callback);
+                    Invoker.{{Generator.GetInvokerName(callback)}}(WorldPtr, Id, callback);
                     return ref this;
                 }
             """);

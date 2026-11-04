@@ -8,14 +8,9 @@ namespace Flecs.NET.Core;
 public unsafe interface IId
 {
     /// <summary>
-    ///     A reference to the world.
-    /// </summary>
-    public ref ecs_world_t* World { get; }
-
-    /// <summary>
     ///     A reference to the id.
     /// </summary>
-    public ref Id Id { get; }
+    public ref readonly Id Id { get; }
 
     /// <inheritdoc cref="Id.IsPair()"/>
     public bool IsPair();
@@ -68,6 +63,6 @@ public unsafe interface IId
     /// <inheritdoc cref="Id.FlagsStr()"/>
     public string FlagsStr();
 
-    /// <inheritdoc cref="Id.CsWorld()"/>
-    public World CsWorld();
+    /// <inheritdoc cref="Id.World()"/>
+    public World World();
 }

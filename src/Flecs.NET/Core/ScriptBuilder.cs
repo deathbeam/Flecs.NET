@@ -19,12 +19,12 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     /// <summary>
     ///     Reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
     ///     Reference to the desc.
     /// </summary>
-    public ref ecs_script_desc_t Desc => ref _desc;
+    internal ref ecs_script_desc_t Descriptor => ref _desc;
 
     /// <summary>
     ///     Creates a <see cref="ScriptBuilder"/> with the provided world.
@@ -57,7 +57,7 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
         entityDesc.sep = Pointers.DefaultSeparator;
         entityDesc.root_sep = Pointers.DefaultSeparator;
 
-        Desc.entity = ecs_entity_init(world, &entityDesc);
+        Descriptor.entity = ecs_entity_init(world, &entityDesc);
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     {
         _code.Dispose();
         _code = (NativeString)str;
-        Desc.code = _code;
+        Descriptor.code = _code;
         return ref this;
     }
 
@@ -94,7 +94,7 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     {
         _fileName.Dispose();
         _fileName = (NativeString)str;
-        Desc.filename = _fileName;
+        Descriptor.filename = _fileName;
         return ref this;
     }
 
@@ -104,9 +104,9 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     /// <returns>The entity associated with the script.</returns>
     public Entity Run()
     {
-        fixed (ecs_script_desc_t* desc = &Desc)
+        fixed (ecs_script_desc_t* desc = &Descriptor)
         {
-            Entity entity = new Entity(World, ecs_script_init(World, desc));
+            Entity entity = new Entity(WorldPtr, ecs_script_init(WorldPtr, desc));
             Dispose();
             return entity;
         }
@@ -119,7 +119,7 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     /// <returns></returns>
     public bool Equals(ScriptBuilder other)
     {
-        return Desc == other.Desc;
+        return Descriptor == other.Descriptor;
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public unsafe struct ScriptBuilder : IEquatable<ScriptBuilder>, IDisposable
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return Desc.GetHashCode();
+        return Descriptor.GetHashCode();
     }
 
     /// <summary>

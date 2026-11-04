@@ -14,7 +14,7 @@ public readonly unsafe struct Field<T> : IEquatable<Field<T>>
     /// <summary>
     ///     The field pointer.
     /// </summary>
-    public readonly void* Data;
+    internal readonly void* Data;
 
     /// <summary>
     ///     The number of elements in the field.

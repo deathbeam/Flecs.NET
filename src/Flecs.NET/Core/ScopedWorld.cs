@@ -14,12 +14,21 @@ public unsafe struct ScopedWorld : IDisposable, IEquatable<ScopedWorld>
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
 
     /// <summary>
-    ///     A reference to the previous scope entity.
+    ///     Gets the world.
     /// </summary>
-    public ref ulong PrevScope => ref _prevScope;
+    /// <returns>The world.</returns>
+    public World World()
+    {
+        return new World(_world);
+    }
+
+    /// <summary>
+    ///     The previous scope entity.
+    /// </summary>
+    internal ulong PrevScope => _prevScope;
 
     /// <summary>
     ///     Creates a scoped world in the scope of an entity.
@@ -47,7 +56,7 @@ public unsafe struct ScopedWorld : IDisposable, IEquatable<ScopedWorld>
     /// <returns></returns>
     public bool Equals(ScopedWorld other)
     {
-        return World == other.World && PrevScope == other.PrevScope;
+        return WorldPtr == other.WorldPtr && PrevScope == other.PrevScope;
     }
 
     /// <summary>

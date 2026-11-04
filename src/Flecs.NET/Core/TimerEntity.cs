@@ -18,12 +18,12 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <summary>
     ///     A reference to the id.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Creates a timer from the entity id.
@@ -70,7 +70,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <returns></returns>
     public ref TimerEntity Interval(float interval)
     {
-        ecs_set_interval(Entity.World, Entity, interval);
+        ecs_set_interval(Entity.WorldPtr, Entity, interval);
         return ref this;
     }
 
@@ -80,7 +80,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <returns></returns>
     public float Interval()
     {
-        return ecs_get_interval(Entity.World, Entity);
+        return ecs_get_interval(Entity.WorldPtr, Entity);
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <returns></returns>
     public ref TimerEntity Timeout(float timeout)
     {
-        ecs_set_timeout(Entity.World, Entity, timeout);
+        ecs_set_timeout(Entity.WorldPtr, Entity, timeout);
         return ref this;
     }
 
@@ -100,7 +100,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <returns></returns>
     public float Timeout()
     {
-        return ecs_get_timeout(Entity.World, Entity);
+        return ecs_get_timeout(Entity.WorldPtr, Entity);
     }
 
     /// <summary>
@@ -111,7 +111,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// <returns></returns>
     public ref TimerEntity Rate(int rate, ulong tickSource = 0)
     {
-        ecs_set_rate(Entity.World, Entity, rate, tickSource);
+        ecs_set_rate(Entity.WorldPtr, Entity, rate, tickSource);
         return ref this;
     }
 
@@ -120,7 +120,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// </summary>
     public void Start()
     {
-        ecs_start_timer(Entity.World, Entity);
+        ecs_start_timer(Entity.WorldPtr, Entity);
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public unsafe partial struct TimerEntity : IEquatable<TimerEntity>, IEntity<Time
     /// </summary>
     public void Stop()
     {
-        ecs_stop_timer(Entity.World, Entity);
+        ecs_stop_timer(Entity.WorldPtr, Entity);
     }
 
     /// <summary>

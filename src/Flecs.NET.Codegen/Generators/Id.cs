@@ -113,10 +113,10 @@ public static class Id
                     return Id.FlagsStr();
                 }
                 
-                /// <inheritdoc cref="Id.CsWorld()"/>
-                public World CsWorld()
+                /// <inheritdoc cref="Id.World()"/>
+                public World World()
                 {
-                    return Id.CsWorld();
+                    return Id.World();
                 }
             }
             """;

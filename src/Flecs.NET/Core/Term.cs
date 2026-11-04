@@ -14,7 +14,16 @@ public unsafe struct Term : IEquatable<Term>
     /// <summary>
     ///     A reference to the world.
     /// </summary>
-    public ref ecs_world_t* World => ref _world;
+    internal ref ecs_world_t* WorldPtr => ref _world;
+
+    /// <summary>
+    ///     Gets the world.
+    /// </summary>
+    /// <returns>The world.</returns>
+    public World World()
+    {
+        return new World(_world);
+    }
 
     /// <summary>
     ///     A reference to the value.
@@ -94,7 +103,7 @@ public unsafe struct Term : IEquatable<Term>
     /// <returns></returns>
     public Id Id()
     {
-        return new Id(World, Value.id);
+        return new Id(WorldPtr, Value.id);
     }
 
     /// <summary>
@@ -121,7 +130,7 @@ public unsafe struct Term : IEquatable<Term>
     /// <returns></returns>
     public Entity GetSrc()
     {
-        return new Entity(World, Ecs.TermRefId(ref Value.src));
+        return new Entity(WorldPtr, Ecs.TermRefId(ref Value.src));
     }
 
     /// <summary>
@@ -130,7 +139,7 @@ public unsafe struct Term : IEquatable<Term>
     /// <returns></returns>
     public Entity GetFirst()
     {
-        return new Entity(World, Ecs.TermRefId(ref Value.first));
+        return new Entity(WorldPtr, Ecs.TermRefId(ref Value.first));
     }
 
     /// <summary>
@@ -139,7 +148,7 @@ public unsafe struct Term : IEquatable<Term>
     /// <returns></returns>
     public Entity GetSecond()
     {
-        return new Entity(World, Ecs.TermRefId(ref Value.second));
+        return new Entity(WorldPtr, Ecs.TermRefId(ref Value.second));
     }
 
     /// <summary>

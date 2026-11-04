@@ -103,7 +103,7 @@ public static class GameMechanics_InventorySystem
     // Find Item kind of entity
     private static Entity ItemKind(Entity item)
     {
-        World world = item.CsWorld();
+        World world = item.World();
         Entity result = default;
 
         item.Each((Id id) =>
@@ -135,7 +135,7 @@ public static class GameMechanics_InventorySystem
     // returns a more user-friendly name, like "WoodenSword" vs. just "Sword"
     private static string ItemName(Entity item)
     {
-        World world = item.CsWorld();
+        World world = item.World();
         string result = "";
 
         item.Each((Id id) =>
@@ -168,7 +168,7 @@ public static class GameMechanics_InventorySystem
     // Iterate all items in an inventory
     private static void ForEachItem(Entity container, Ecs.EachEntityCallback func)
     {
-        World world = container.CsWorld();
+        World world = container.World();
 
         using Query query = world.QueryBuilder()
             .With<ContainedBy>(container)
@@ -235,7 +235,7 @@ public static class GameMechanics_InventorySystem
         Console.WriteLine($">> Transfer items from {src} to {dst}\n");
 
         // Use a stage, because we're adding/removing components while we're iterating
-        World stage = dst.CsWorld().GetStage(0);
+        World stage = dst.World().GetStage(0);
         dst = GetContainer(dst); // Make sure to replace players with container
         src = GetContainer(src);
 
@@ -250,7 +250,7 @@ public static class GameMechanics_InventorySystem
     // Attack player
     private static void AttackPlayer(Entity player, Entity weapon)
     {
-        World ecs = player.CsWorld();
+        World ecs = player.World();
 
         Console.WriteLine($">> {player} is attacked with a {ItemName(weapon)}!");
 

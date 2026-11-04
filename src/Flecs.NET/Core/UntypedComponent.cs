@@ -16,7 +16,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <summary>
     ///     Reference to id.
     /// </summary>
-    public ref Id Id => ref _entity.Id;
+    public ref readonly Id Id => ref _entity.Id;
 
     /// <summary>
     ///     Reference to entity.
@@ -26,7 +26,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <summary>
     ///     Reference to world pointer.
     /// </summary>
-    public ref ecs_world_t* World => ref _entity.World;
+    internal ref ecs_world_t* WorldPtr => ref _entity.WorldPtr;
 
     /// <summary>
     ///     Constructs component from entity id.
@@ -83,10 +83,10 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
         desc.name = nativeName;
         desc.parent = Entity;
 
-        ulong id = ecs_entity_init(World, &desc);
+        ulong id = ecs_entity_init(WorldPtr, &desc);
         Ecs.Assert(id != 0, nameof(ECS_INTERNAL_ERROR));
 
-        Entity entity = new Entity(World, id);
+        Entity entity = new Entity(WorldPtr, id);
 
         EcsMember member = default;
         member.type = typeId;
@@ -121,7 +121,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Member<T>(string name, int count = 0, int offset = 0)
     {
-        return ref Member(Type<T>.Id(World), name, count, offset);
+        return ref Member(Type<T>.Id(WorldPtr), name, count, offset);
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Member<T>(ulong unit, string name, int count = 0, int offset = 0)
     {
-        return ref Member(Type<T>.Id(World), unit, name, count, offset);
+        return ref Member(Type<T>.Id(WorldPtr), unit, name, count, offset);
     }
 
     /// <summary>
@@ -149,7 +149,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Member<T, TUnit>(string name, int count = 0, int offset = 0)
     {
-        return ref Member(Type<T>.Id(World), Type<TUnit>.Id(World), name, count, offset);
+        return ref Member(Type<T>.Id(WorldPtr), Type<TUnit>.Id(WorldPtr), name, count, offset);
     }
 
     /// <summary>
@@ -160,7 +160,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Constant(string name, int value)
     {
-        ecs_add_id(World, Id, Type<EcsEnum>.Id(World));
+        ecs_add_id(WorldPtr, Id, Type<EcsEnum>.Id(WorldPtr));
 
         using NativeString nativeName = (NativeString)name;
 
@@ -168,10 +168,10 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
         desc.name = nativeName;
         desc.parent = Entity;
 
-        ulong id = ecs_entity_init(World, &desc);
+        ulong id = ecs_entity_init(WorldPtr, &desc);
         Ecs.Assert(id != 0, nameof(ECS_INTERNAL_ERROR));
 
-        ecs_set_id(World, id, Ecs.Pair(EcsConstant, FLECS_IDecs_i32_tID_), (IntPtr)sizeof(int), &value);
+        ecs_set_id(WorldPtr, id, Ecs.Pair(EcsConstant, FLECS_IDecs_i32_tID_), (IntPtr)sizeof(int), &value);
         return ref this;
     }
 
@@ -191,7 +191,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
         ecs_entity_desc_t desc = default;
         desc.name = nativeName;
         desc.parent = Id;
-        Entity eId = new Entity(World, ecs_entity_init(World, &desc));
+        Entity eId = new Entity(WorldPtr, ecs_entity_init(WorldPtr, &desc));
 
         Ecs.Assert(eId != 0, nameof(ECS_INTERNAL_ERROR));
 
@@ -211,7 +211,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Bit(string name, uint value)
     {
-        ecs_add_id(World, Id, Type<EcsBitmask>.Id(World));
+        ecs_add_id(WorldPtr, Id, Type<EcsBitmask>.Id(WorldPtr));
 
         using NativeString nativeName = (NativeString)name;
 
@@ -219,10 +219,10 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
         desc.name = nativeName;
         desc.parent = Entity;
 
-        ulong id = ecs_entity_init(World, &desc);
+        ulong id = ecs_entity_init(WorldPtr, &desc);
         Ecs.Assert(id != 0, nameof(ECS_INTERNAL_ERROR));
 
-        ecs_set_id(World, id, Ecs.Pair(EcsConstant, FLECS_IDecs_u32_tID_), (IntPtr)sizeof(uint), &value);
+        ecs_set_id(WorldPtr, id, Ecs.Pair(EcsConstant, FLECS_IDecs_u32_tID_), (IntPtr)sizeof(uint), &value);
         return ref this;
     }
 
@@ -234,12 +234,12 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Range(double min, double max)
     {
-        ecs_member_t* m = ecs_cpp_last_member(World, Entity);
+        ecs_member_t* m = ecs_cpp_last_member(WorldPtr, Entity);
 
         if (m == null)
             return ref this;
 
-        World w = new World(World);
+        World w = new World(WorldPtr);
         Entity me = w.Entity(m->member);
         ref EcsMemberRanges mr = ref me.Ensure<EcsMemberRanges>();
         mr.value.min = min;
@@ -256,12 +256,12 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent WarningRange(double min, double max)
     {
-        ecs_member_t* m = ecs_cpp_last_member(World, Entity);
+        ecs_member_t* m = ecs_cpp_last_member(WorldPtr, Entity);
 
         if (m == null)
             return ref this;
 
-        World w = new World(World);
+        World w = new World(WorldPtr);
         Entity me = w.Entity(m->member);
         ref EcsMemberRanges mr = ref me.Ensure<EcsMemberRanges>();
         mr.warning.min = min;
@@ -278,12 +278,12 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent ErrorRange(double min, double max)
     {
-        ecs_member_t* m = ecs_cpp_last_member(World, Entity);
+        ecs_member_t* m = ecs_cpp_last_member(WorldPtr, Entity);
 
         if (m == null)
             return ref this;
 
-        World w = new World(World);
+        World w = new World(WorldPtr);
         Entity me = w.Entity(m->member);
         ref EcsMemberRanges mr = ref me.Ensure<EcsMemberRanges>();
         mr.error.min = min;
@@ -302,9 +302,9 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns></returns>
     public ref UntypedComponent Metric<T>(ulong parent = 0, string brief = "", string name = "")
     {
-        World world = new World(World);
+        World world = new World(WorldPtr);
 
-        ecs_member_t* m = ecs_cpp_last_member(World, Id);
+        ecs_member_t* m = ecs_cpp_last_member(WorldPtr, Id);
 
         if (m == null)
             return ref this;
@@ -352,7 +352,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
     /// <returns>The type hooks, or empty hooks if none are set.</returns>
     public ecs_type_hooks_t GetHooks()
     {
-        ecs_type_hooks_t* hooks = ecs_get_hooks_id(World, Id);
+        ecs_type_hooks_t* hooks = ecs_get_hooks_id(WorldPtr, Id);
         return hooks == null ? default : *hooks;
     }
 
@@ -369,7 +369,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
             "Cannot set a type hook binding context without a binding context free function.");
 
         fixed (ecs_type_hooks_t* ptr = &hooks)
-            ecs_set_hooks_id(World, Id, ptr);
+            ecs_set_hooks_id(WorldPtr, Id, ptr);
     }
 
     /// <summary>
@@ -410,7 +410,7 @@ public unsafe partial struct UntypedComponent : IEquatable<UntypedComponent>, IE
 
     private TypeHooksContext* GetHooksAndContext(out ecs_type_hooks_t hooks)
     {
-        ecs_type_hooks_t* existingHooks = ecs_get_hooks_id(World, Id);
+        ecs_type_hooks_t* existingHooks = ecs_get_hooks_id(WorldPtr, Id);
         hooks = existingHooks == null ? default : *existingHooks;
 
         TypeHooksContext* context = (TypeHooksContext*)hooks.binding_ctx;
@@ -556,6 +556,6 @@ public unsafe partial struct UntypedComponent
     /// <returns></returns>
     public TypeInfo TypeInfo()
     {
-        return new TypeInfo(ecs_get_type_info(World, Id));
+        return new TypeInfo(ecs_get_type_info(WorldPtr, Id));
     }
 }

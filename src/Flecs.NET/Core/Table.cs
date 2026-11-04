@@ -10,24 +10,40 @@ namespace Flecs.NET.Core;
 public readonly unsafe partial struct Table : IEquatable<Table>
 {
     /// <summary>
-    ///     A reference to the world.
+    ///     The world pointer.
     /// </summary>
-    public ecs_world_t* World { get; }
+    internal ecs_world_t* WorldPtr { get; }
 
     /// <summary>
     ///     A reference to the handle.
     /// </summary>
     public ecs_table_t* Handle { get; }
 
+    private readonly int _offset;
+    private readonly int _count;
+    private readonly bool _isRange;
+
     /// <summary>
     ///     The offset from the start of the table.
     /// </summary>
-    public int Offset { get; }
+    /// <returns>The row offset of the table range.</returns>
+    public int Offset()
+    {
+        return _offset;
+    }
 
     /// <summary>
-    ///     The number of column indexes in the table range.
+    ///     The number of entities in the table range.
     /// </summary>
-    public int Count { get; }
+    /// <remarks>
+    ///     For a range, this is the count captured at construction. For a whole table, this is the live table
+    ///     count, matching C++ table::count().
+    /// </remarks>
+    /// <returns>The number of entities in the table range.</returns>
+    public int Count()
+    {
+        return _isRange ? _count : Handle == null ? 0 : ecs_table_count(Handle);
+    }
 
     /// <summary>
     ///     Creates a table from the provided world and handle.
@@ -35,10 +51,11 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <param name="world"></param>
     public Table(ecs_world_t* world)
     {
-        World = world;
+        WorldPtr = world;
         Handle = null;
-        Offset = 0;
-        Count = 0;
+        _offset = 0;
+        _count = 0;
+        _isRange = false;
     }
 
     /// <summary>
@@ -47,10 +64,11 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <param name="table"></param>
     public Table(ecs_table_t* table)
     {
-        World = null;
+        WorldPtr = null;
         Handle = table;
-        Offset = 0;
-        Count = 0;
+        _offset = 0;
+        _count = 0;
+        _isRange = false;
     }
 
     /// <summary>
@@ -60,10 +78,11 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <param name="table"></param>
     public Table(ecs_world_t* world, ecs_table_t* table)
     {
-        World = world;
+        WorldPtr = world;
         Handle = table;
-        Offset = 0;
-        Count = table == null ? 0 : ecs_table_count(table);
+        _offset = 0;
+        _count = 0;
+        _isRange = false;
     }
 
     /// <summary>
@@ -75,10 +94,11 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <param name="count"></param>
     public Table(ecs_world_t* world, ecs_table_t* table, int offset, int count)
     {
-        World = world;
+        WorldPtr = world;
         Handle = table;
-        Offset = offset;
-        Count = count;
+        _offset = offset;
+        _count = count;
+        _isRange = true;
     }
 
     /// <summary>
@@ -87,7 +107,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public string Str()
     {
-        return NativeString.GetStringAndFree(ecs_table_str(World, Handle));
+        return NativeString.GetStringAndFree(ecs_table_str(WorldPtr, Handle));
     }
 
     /// <summary>
@@ -96,7 +116,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public FlecsType Type()
     {
-        return new FlecsType(World, ecs_table_get_type(Handle));
+        return new FlecsType(WorldPtr, ecs_table_get_type(Handle));
     }
 
     /// <summary>
@@ -122,7 +142,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// </summary>
     public void ClearEntities()
     {
-        ecs_table_clear_entities(World, Handle);
+        ecs_table_clear_entities(WorldPtr, Handle);
     }
 
     /// <summary>
@@ -132,7 +152,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex(ulong id)
     {
-        return ecs_table_get_type_index(World, Handle, id);
+        return ecs_table_get_type_index(WorldPtr, Handle, id);
     }
 
     /// <summary>
@@ -154,7 +174,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<T>()
     {
-        return TypeIndex(Type<T>.Id(World));
+        return TypeIndex(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -165,7 +185,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<T>(T value) where T : Enum
     {
-        return TypeIndex<T>(Type<T>.Id(World, value));
+        return TypeIndex<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -176,7 +196,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<TFirst>(ulong second)
     {
-        return TypeIndex(Type<TFirst>.Id(World), second);
+        return TypeIndex(Type<TFirst>.Id(WorldPtr), second);
     }
 
     /// <summary>
@@ -187,7 +207,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<TFirst, TSecond>()
     {
-        return TypeIndex(Type<TFirst>.Id(World), Type<TSecond>.Id(World));
+        return TypeIndex(Type<TFirst>.Id(WorldPtr), Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -199,7 +219,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return TypeIndex<TFirst>(Type<TSecond>.Id(World, second));
+        return TypeIndex<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -211,7 +231,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndex<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return TypeIndexSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return TypeIndexSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -222,7 +242,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int TypeIndexSecond<TSecond>(ulong first)
     {
-        return TypeIndex(first, Type<TSecond>.Id(World));
+        return TypeIndex(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -232,7 +252,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex(ulong id)
     {
-        return ecs_table_get_column_index(World, Handle, id);
+        return ecs_table_get_column_index(WorldPtr, Handle, id);
     }
 
     /// <summary>
@@ -254,7 +274,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<T>()
     {
-        return ColumnIndex(Type<T>.Id(World));
+        return ColumnIndex(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -265,7 +285,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<T>(T value) where T : Enum
     {
-        return ColumnIndex<T>(Type<T>.Id(World, value));
+        return ColumnIndex<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -276,7 +296,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<TFirst>(ulong second)
     {
-        ulong pair = Ecs.Pair<TFirst>(second, World);
+        ulong pair = Ecs.Pair<TFirst>(second, WorldPtr);
         return ColumnIndex(pair);
     }
 
@@ -288,7 +308,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<TFirst, TSecond>()
     {
-        ulong pair = Ecs.Pair<TFirst, TSecond>(World);
+        ulong pair = Ecs.Pair<TFirst, TSecond>(WorldPtr);
         return ColumnIndex(pair);
     }
 
@@ -301,7 +321,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return ColumnIndex<TFirst>(Type<TSecond>.Id(World, second));
+        return ColumnIndex<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -313,7 +333,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndex<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return ColumnIndexSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return ColumnIndexSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -324,7 +344,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int ColumnIndexSecond<TSecond>(ulong first)
     {
-        ulong pair = Ecs.PairSecond<TSecond>(first, World);
+        ulong pair = Ecs.PairSecond<TSecond>(first, WorldPtr);
         return ColumnIndex(pair);
     }
 
@@ -368,7 +388,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public bool Has<T>(T value) where T : Enum
     {
-        return Has<T>(Type<T>.Id(World, value));
+        return Has<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -402,7 +422,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public bool Has<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Has<TFirst>(Type<TSecond>.Id(World, second));
+        return Has<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -414,7 +434,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public bool Has<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return HasSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return HasSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -435,7 +455,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public void* GetColumn(int index)
     {
-        return ecs_table_get_column(Handle, index, Offset);
+        return ecs_table_get_column(Handle, index, Offset());
     }
 
     /// <summary>
@@ -469,7 +489,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public T* GetPtr<T>() where T : unmanaged
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (T*)GetPtr(Type<T>.Id(World));
+        return (T*)GetPtr(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -481,7 +501,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public TFirst* GetPtr<TFirst>(ulong second) where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetPtr(Ecs.Pair<TFirst>(second, World));
+        return (TFirst*)GetPtr(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -495,7 +515,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
         where TFirst : unmanaged
         where TSecond : Enum
     {
-        return GetPtr<TFirst>(Type<TSecond>.Id(World, second));
+        return GetPtr<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -509,7 +529,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
         where TFirst : Enum
         where TSecond : unmanaged
     {
-        return GetSecondPtr<TSecond>(Type<TFirst>.Id(World, first));
+        return GetSecondPtr<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -521,7 +541,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public TFirst* GetFirstPtr<TFirst, TSecond>() where TFirst : unmanaged
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TFirst*)GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -533,7 +553,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public TSecond* GetSecondPtr<TFirst, TSecond>() where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(World));
+        return (TSecond*)GetPtr(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -545,7 +565,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public TSecond* GetSecondPtr<TSecond>(ulong first) where TSecond : unmanaged
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (TSecond*)GetPtr(Ecs.PairSecond<TSecond>(first, World));
+        return (TSecond*)GetPtr(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -556,7 +576,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public Field<T> Get<T>()
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return new Field<T>(GetPtr(Type<T>.Id(World)), ColumnSize(ColumnIndex<T>()));
+        return new Field<T>(GetPtr(Type<T>.Id(WorldPtr)), ColumnSize(ColumnIndex<T>()));
     }
 
     /// <summary>
@@ -568,7 +588,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public Field<TFirst> Get<TFirst>(ulong second)
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        ulong pair = Ecs.Pair<TFirst>(second, World);
+        ulong pair = Ecs.Pair<TFirst>(second, WorldPtr);
         return new Field<TFirst>(GetPtr(pair), ColumnSize(ColumnIndex<TFirst>()));
     }
 
@@ -583,7 +603,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
         where TFirst : unmanaged
         where TSecond : Enum
     {
-        return Get<TFirst>(Type<TSecond>.Id(World, second));
+        return Get<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -597,7 +617,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
         where TFirst : Enum
         where TSecond : unmanaged
     {
-        return GetSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return GetSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -609,7 +629,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public Field<TFirst> GetFirst<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TFirst>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        ulong pair = Ecs.Pair<TFirst, TSecond>(World);
+        ulong pair = Ecs.Pair<TFirst, TSecond>(WorldPtr);
         return new Field<TFirst>(GetPtr(pair), ColumnSize(ColumnIndex<TFirst, TSecond>()));
     }
 
@@ -622,7 +642,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public Field<TSecond> GetSecond<TFirst, TSecond>()
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        ulong pair = Ecs.Pair<TFirst, TSecond>(World);
+        ulong pair = Ecs.Pair<TFirst, TSecond>(WorldPtr);
         return new Field<TSecond>(GetPtr(pair), ColumnSize(ColumnIndex<TFirst, TSecond>()));
     }
 
@@ -635,7 +655,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public Field<TSecond> GetSecond<TSecond>(ulong first)
     {
         Ecs.Assert(Type<TSecond>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        ulong pair = Ecs.PairSecond<TSecond>(first, World);
+        ulong pair = Ecs.PairSecond<TSecond>(first, WorldPtr);
         return new Field<TSecond>(GetPtr(pair), ColumnSize(ColumnIndexSecond<TSecond>(first)));
     }
 
@@ -656,7 +676,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int Depth(ulong rel)
     {
-        return ecs_table_get_depth(World, Handle, rel);
+        return ecs_table_get_depth(WorldPtr, Handle, rel);
     }
 
     /// <summary>
@@ -666,7 +686,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int Depth<T>()
     {
-        return Depth(Type<T>.Id(World));
+        return Depth(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -677,7 +697,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public int Depth<T>(T value) where T : Enum
     {
-        return Depth(Type<T>.Id(World, value));
+        return Depth(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -703,7 +723,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// </summary>
     public void Lock()
     {
-        ecs_table_lock(World, Handle);
+        ecs_table_lock(WorldPtr, Handle);
     }
 
     /// <summary>
@@ -711,7 +731,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// </summary>
     public void Unlock()
     {
-        ecs_table_unlock(World, Handle);
+        ecs_table_unlock(WorldPtr, Handle);
     }
 
     /// <summary>
@@ -722,15 +742,6 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     public bool HasFlags(uint flags)
     {
         return ecs_table_has_flags(Handle, flags);
-    }
-
-    /// <summary>
-    ///     Get table.
-    /// </summary>
-    /// <returns>The table.</returns>
-    public ecs_table_t* GetTable()
-    {
-        return Handle;
     }
 
     /// <summary>
@@ -779,7 +790,7 @@ public readonly unsafe partial struct Table : IEquatable<Table>
     /// <returns></returns>
     public override string ToString()
     {
-        return Ecs.IsStageOrWorld(World) ? Str() : string.Empty;
+        return Ecs.IsStageOrWorld(WorldPtr) ? Str() : string.Empty;
     }
 
     /// <summary>
@@ -844,7 +855,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add(ulong id)
     {
-        return new Table(World, ecs_table_add_id(World, Handle, id));
+        return new Table(WorldPtr, ecs_table_add_id(WorldPtr, Handle, id));
     }
 
     /// <summary>
@@ -865,7 +876,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<T>()
     {
-        return Add(Type<T>.Id(World));
+        return Add(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -876,7 +887,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<TFirst>(ulong second)
     {
-        return Add(Ecs.Pair<TFirst>(second, World));
+        return Add(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -887,7 +898,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<T>(T value) where T : Enum
     {
-        return Add<T>(Type<T>.Id(World, value));
+        return Add<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -898,7 +909,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<TFirst, TSecond>()
     {
-        return Add(Ecs.Pair<TFirst, TSecond>(World));
+        return Add(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -910,7 +921,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Add<TFirst>(Type<TSecond>.Id(World, second));
+        return Add<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -922,7 +933,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Add<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return AddSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return AddSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -933,7 +944,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table AddSecond<TSecond>(ulong first)
     {
-        return Add(first, Type<TSecond>.Id(World));
+        return Add(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -943,7 +954,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove(ulong id)
     {
-        return new Table(World, ecs_table_remove_id(World, Handle, id));
+        return new Table(WorldPtr, ecs_table_remove_id(WorldPtr, Handle, id));
     }
 
     /// <summary>
@@ -964,7 +975,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<T>()
     {
-        return Remove(Type<T>.Id(World));
+        return Remove(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -975,7 +986,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<TFirst>(ulong second)
     {
-        return Remove(Ecs.Pair<TFirst>(second, World));
+        return Remove(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -986,7 +997,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<T>(T value) where T : Enum
     {
-        return Remove<T>(Type<T>.Id(World, value));
+        return Remove<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -997,7 +1008,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<TFirst, TSecond>()
     {
-        return Remove(Ecs.Pair<TFirst, TSecond>(World));
+        return Remove(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -1009,7 +1020,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Remove<TFirst>(Type<TSecond>.Id(World, second));
+        return Remove<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1021,7 +1032,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table Remove<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return RemoveSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return RemoveSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1032,7 +1043,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public Table RemoveSecond<TSecond>(ulong first)
     {
-        return Remove(first, Type<TSecond>.Id(World));
+        return Remove(first, Type<TSecond>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1042,7 +1053,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search(ulong id)
     {
-        return ecs_search(World, Handle, id, null);
+        return ecs_search(WorldPtr, Handle, id, null);
     }
 
     /// <summary>
@@ -1063,7 +1074,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>()
     {
-        return Search(Type<T>.Id(World));
+        return Search(Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -1074,7 +1085,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst>(ulong second)
     {
-        return Search(Ecs.Pair<TFirst>(second, World));
+        return Search(Ecs.Pair<TFirst>(second, WorldPtr));
     }
 
     /// <summary>
@@ -1085,7 +1096,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>(T value) where T : Enum
     {
-        return Search<T>(Type<T>.Id(World, value));
+        return Search<T>(Type<T>.Id(WorldPtr, value));
     }
 
     /// <summary>
@@ -1096,7 +1107,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>()
     {
-        return Search(Ecs.Pair<TFirst, TSecond>(World));
+        return Search(Ecs.Pair<TFirst, TSecond>(WorldPtr));
     }
 
     /// <summary>
@@ -1108,7 +1119,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TSecond second) where TSecond : Enum
     {
-        return Search<TFirst>(Type<TSecond>.Id(World, second));
+        return Search<TFirst>(Type<TSecond>.Id(WorldPtr, second));
     }
 
     /// <summary>
@@ -1120,7 +1131,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TFirst first) where TFirst : Enum
     {
-        return SearchSecond<TSecond>(Type<TFirst>.Id(World, first));
+        return SearchSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first));
     }
 
     /// <summary>
@@ -1131,7 +1142,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int SearchSecond<TSecond>(ulong first)
     {
-        return Search(Ecs.PairSecond<TSecond>(first, World));
+        return Search(Ecs.PairSecond<TSecond>(first, WorldPtr));
     }
 
     /// <summary>
@@ -1144,7 +1155,7 @@ public readonly unsafe partial struct Table
     {
         fixed (ulong* ptr = &idOut)
         {
-            return ecs_search(World, Handle, id, ptr);
+            return ecs_search(WorldPtr, Handle, id, ptr);
         }
     }
 
@@ -1168,7 +1179,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>(out ulong idOut)
     {
-        return Search(Type<T>.Id(World), out idOut);
+        return Search(Type<T>.Id(WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1180,7 +1191,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst>(ulong second, out ulong idOut)
     {
-        return Search(Ecs.Pair<TFirst>(second, World), out idOut);
+        return Search(Ecs.Pair<TFirst>(second, WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1192,7 +1203,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>(T value, out ulong idOut) where T : Enum
     {
-        return Search<T>(Type<T>.Id(World, value), out idOut);
+        return Search<T>(Type<T>.Id(WorldPtr, value), out idOut);
     }
 
     /// <summary>
@@ -1204,7 +1215,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(out ulong idOut)
     {
-        return Search(Ecs.Pair<TFirst, TSecond>(World), out idOut);
+        return Search(Ecs.Pair<TFirst, TSecond>(WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1217,7 +1228,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TSecond second, out ulong inOut) where TSecond : Enum
     {
-        return Search<TFirst>(Type<TSecond>.Id(World, second), out inOut);
+        return Search<TFirst>(Type<TSecond>.Id(WorldPtr, second), out inOut);
     }
 
     /// <summary>
@@ -1230,7 +1241,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TFirst first, out ulong inOut) where TFirst : Enum
     {
-        return SearchSecond<TSecond>(Type<TFirst>.Id(World, first), out inOut);
+        return SearchSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first), out inOut);
     }
 
     /// <summary>
@@ -1242,7 +1253,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int SearchSecond<TSecond>(ulong first, out ulong idOut)
     {
-        return Search(first, Type<TSecond>.Id(World), out idOut);
+        return Search(first, Type<TSecond>.Id(WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1253,8 +1264,8 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search(ulong id, out Id idOut)
     {
-        idOut = new Id(World);
-        return Search(id, out idOut.Value);
+        idOut = new Id(WorldPtr);
+        return Search(id, out idOut.ValueRef);
     }
 
     /// <summary>
@@ -1277,7 +1288,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>(out Id idOut)
     {
-        return Search(Type<T>.Id(World), out idOut);
+        return Search(Type<T>.Id(WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1289,7 +1300,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<T>(T value, out Id idOut) where T : Enum
     {
-        return Search<T>(Type<T>.Id(World, value), out idOut);
+        return Search<T>(Type<T>.Id(WorldPtr, value), out idOut);
     }
 
     /// <summary>
@@ -1301,7 +1312,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst>(ulong second, out Id idOut)
     {
-        return Search(Ecs.Pair<TFirst>(second, World), out idOut);
+        return Search(Ecs.Pair<TFirst>(second, WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1313,7 +1324,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(out Id idOut)
     {
-        return Search(Ecs.Pair<TFirst, TSecond>(World), out idOut);
+        return Search(Ecs.Pair<TFirst, TSecond>(WorldPtr), out idOut);
     }
 
     /// <summary>
@@ -1326,7 +1337,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TSecond second, out Id inOut) where TSecond : Enum
     {
-        return Search<TFirst>(Type<TSecond>.Id(World, second), out inOut);
+        return Search<TFirst>(Type<TSecond>.Id(WorldPtr, second), out inOut);
     }
 
     /// <summary>
@@ -1339,7 +1350,7 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int Search<TFirst, TSecond>(TFirst first, out Id inOut) where TFirst : Enum
     {
-        return SearchSecond<TSecond>(Type<TFirst>.Id(World, first), out inOut);
+        return SearchSecond<TSecond>(Type<TFirst>.Id(WorldPtr, first), out inOut);
     }
 
     /// <summary>
@@ -1351,6 +1362,6 @@ public readonly unsafe partial struct Table
     /// <returns></returns>
     public int SearchSecond<TSecond>(ulong first, out Id idOut)
     {
-        return Search(first, Type<TSecond>.Id(World), out idOut);
+        return Search(first, Type<TSecond>.Id(WorldPtr), out idOut);
     }
 }

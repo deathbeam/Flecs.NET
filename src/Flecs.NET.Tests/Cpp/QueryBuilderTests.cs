@@ -2972,7 +2972,7 @@ public unsafe class QueryBuilderTests
         Entity e3 = world.Entity().IsA(e2);
 
         using Query q = world.QueryBuilder()
-            .With(tag).Cascade(Ecs.IsA).Descend()
+            .With(tag).Cascade(Ecs.IsA).Desc()
             .Cached()
             .Build();
 
