@@ -142,6 +142,34 @@ public static unsafe partial class Ecs
         }
 
         /// <summary>
+        ///     Serializes a UTF-8 string value without transcoding it.
+        /// </summary>
+        /// <param name="value">The null-terminated UTF-8 bytes to serialize.</param>
+        internal int ValueUtf8(ReadOnlySpan<byte> value)
+        {
+            if (value.Length <= StackBufferSize)
+            {
+                byte* buffer = stackalloc byte[value.Length + 1];
+                WriteUtf8(buffer, value);
+                return _serializer->value(_serializer, Ecs.String, &buffer);
+            }
+
+            byte[] rented = ArrayPool<byte>.Shared.Rent(value.Length + 1);
+            try
+            {
+                fixed (byte* buffer = rented)
+                {
+                    WriteUtf8(buffer, value);
+                    return _serializer->value(_serializer, Ecs.String, &buffer);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(rented);
+            }
+        }
+
+        /// <summary>
         ///     Serializes a value of a type registered with the world.
         /// </summary>
         /// <param name="value">The value to serialize.</param>
@@ -193,6 +221,15 @@ public static unsafe partial class Ecs
         {
             int written = Encoding.UTF8.GetBytes(value, new Span<byte>(buffer, byteCount + 1));
             buffer[written] = 0;
+        }
+
+        /// <summary>
+        ///     Writes the provided UTF-8 bytes and a null terminator to the buffer.
+        /// </summary>
+        private static void WriteUtf8(byte* buffer, ReadOnlySpan<byte> value)
+        {
+            value.CopyTo(new Span<byte>(buffer, value.Length));
+            buffer[value.Length] = 0;
         }
     }
 }

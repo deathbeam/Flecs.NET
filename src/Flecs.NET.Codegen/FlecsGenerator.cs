@@ -17,6 +17,8 @@ public class FlecsGenerator : IIncrementalGenerator
             Generate<BindingContext>(context);
             Generate<Ecs>(context);
             Generate<Entity>(context);
+            Generate<FlecsArray>(context);
+            Generate<FlecsString>(context);
             Generate<IIterable>(context);
             Generate<Invoker>(context);
             Generate<IterIterable>(context);

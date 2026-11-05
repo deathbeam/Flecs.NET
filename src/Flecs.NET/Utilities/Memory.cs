@@ -6,7 +6,7 @@ namespace Flecs.NET.Utilities;
 /// <summary>
 ///     Static class for allocating and freeing memory.
 /// </summary>
-public static unsafe class Memory
+internal static unsafe class Memory
 {
     /// <summary>
     ///     Allocates memory for type.

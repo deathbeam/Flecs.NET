@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
-using Flecs.NET.Collections;
 using Flecs.NET.Core.BindingContext;
 using Flecs.NET.Core.Hooks;
 using Flecs.NET.Utilities;
@@ -417,6 +416,10 @@ public static unsafe class Type<T>
 
         if (typeof(IFlecsStruct).IsAssignableFrom(typeof(T)))
             StructReflection.Apply<T>(world, world.Entity(component));
+
+        // Registers opaque reflection for types like FlecsString64 and FlecsArray8<T>
+        if (typeof(IFlecsOpaqueType).IsAssignableFrom(typeof(T)))
+            ((IFlecsOpaqueType)default(T)!).RegisterOpaque(world, world.Entity(component));
 
         return component;
     }

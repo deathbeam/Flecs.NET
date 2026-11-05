@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Flecs.NET.Collections;
+using Flecs.NET.Utilities;
 using Xunit;
 
-namespace Flecs.NET.Tests.CSharp.Collections;
+namespace Flecs.NET.Tests.CSharp.Utilities;
 
 public unsafe class NativeListTests
 {

@@ -7,7 +7,7 @@ namespace Flecs.NET.Utilities;
 /// <summary>
 ///     Helper macros for working with flecs.
 /// </summary>
-public static unsafe class Utils
+internal static unsafe class Utils
 {
     /// <summary>
     ///     Checks if specific bit is set.

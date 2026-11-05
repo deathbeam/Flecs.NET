@@ -8,7 +8,7 @@ namespace Flecs.NET.Utilities;
 /// <summary>
 ///     Static class for working with managed memory in flecs.
 /// </summary>
-public static unsafe class Managed
+internal static unsafe class Managed
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static void AllocGcHandle<T>(T* comp, out GCHandle handle)

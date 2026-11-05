@@ -3,15 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Flecs.NET.Utilities;
 
-namespace Flecs.NET.Collections;
+namespace Flecs.NET.Utilities;
 
 /// <summary>
 ///     An unmanaged alternative to <see cref="List{T}"/>.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<NativeList<T>> where T : unmanaged
+internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<NativeList<T>> where T : unmanaged
 {
     /// <summary>
     ///     Data storage for the <see cref="NativeList{T}"/>.

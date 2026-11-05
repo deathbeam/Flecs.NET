@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.InteropServices;
-using Flecs.NET.Collections;
 using Flecs.NET.Utilities;
 
 namespace Flecs.NET.Core.BindingContext;

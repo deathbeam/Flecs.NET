@@ -1,15 +1,14 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Flecs.NET.Utilities;
 
-namespace Flecs.NET.Collections;
+namespace Flecs.NET.Utilities;
 
 /// <summary>
 ///     A unmanaged alternative to arrays.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public unsafe struct NativeArray<T> : IEnumerable<T>, IDisposable, IEquatable<NativeArray<T>> where T : unmanaged
+internal unsafe struct NativeArray<T> : IEnumerable<T>, IDisposable, IEquatable<NativeArray<T>> where T : unmanaged
 {
     /// <summary>
     ///     Data storage for the <see cref="NativeArray{T}"/>.
