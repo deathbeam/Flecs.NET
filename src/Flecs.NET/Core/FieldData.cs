@@ -56,6 +56,9 @@ internal unsafe struct FieldData<T>()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly T* PointerManaged(int row)
     {
+        if (Pointer == null)
+            return null;
+
         if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             return (T*)&((GCHandle*)Pointer)[row];
 

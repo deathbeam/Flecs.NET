@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using Flecs.NET.Core;
 using Xunit;
 
@@ -2630,5 +2631,42 @@ public unsafe class SystemTests
         system.Run();
         Assert.Equal(20, system.Ctx<UnmanagedStruct>().Value);
         system.Ctx<UnmanagedStruct>().Value = 30;
+    }
+
+    [Fact]
+    private void EachOptionalManagedComponent()
+    {
+        using World world = World.Create();
+
+        Entity managed = world.Entity("managed")
+            .Set(new Position(1, 2))
+            .Set(new ManagedStruct(10));
+
+        // Same table, so the optional managed component is missing at row 0 and row 1.
+        world.Entity("unmanaged0").Set(new Position(3, 4));
+        world.Entity("unmanaged1").Set(new Position(5, 6));
+
+        int count = 0;
+
+        world.System<Position, ManagedStruct>()
+            .TermAt(1).Optional()
+            .Each((Entity e, ref Position p, ref ManagedStruct m) =>
+            {
+                count++;
+                Assert.Equal(e.Get<Position>(), p);
+
+                if (e == managed)
+                {
+                    Assert.False(Unsafe.IsNullRef(ref m));
+                    Assert.Equal(10, m.Value);
+                }
+                else
+                {
+                    Assert.True(Unsafe.IsNullRef(ref m));
+                }
+            })
+            .Run();
+
+        Assert.Equal(3, count);
     }
 }

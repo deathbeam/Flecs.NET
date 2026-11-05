@@ -40,6 +40,9 @@ internal static unsafe class Managed
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref T GetTypeRef<T>(void* data)
     {
+        if (data == null)
+            return ref Unsafe.NullRef<T>();
+
         if (!RuntimeHelpers.IsReferenceOrContainsReferences<T>())
             return ref Unsafe.AsRef<T>(data);
 
