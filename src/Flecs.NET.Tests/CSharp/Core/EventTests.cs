@@ -1,3 +1,4 @@
+using System;
 using Flecs.NET.Core;
 using Xunit;
 
@@ -5,6 +6,11 @@ namespace Flecs.NET.Tests.CSharp.Core;
 
 public class EventTests
 {
+    private struct ManagedPayload
+    {
+        public string Value;
+    }
+
     [Fact]
     public void EntityEmitEventWithManagedPayload()
     {
@@ -50,6 +56,39 @@ public class EventTests
         string str = "Test";
 
         entity.Stage(stage).Enqueue(ref str);
+
+        Assert.Equal(0, count);
+
+        stage.Merge();
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public void EnqueueEntityEventWithManagedStructPayload()
+    {
+        using World world = World.Create();
+
+        int count = 0;
+
+        Entity id = world.Entity();
+        Entity entity = world.Entity().Add(id);
+
+        entity.Observe((ref ManagedPayload payload) =>
+        {
+            Assert.Equal("Test", payload.Value);
+            count++;
+        });
+
+        World stage = world.GetStage(0);
+
+        ManagedPayload payload = new() { Value = "Test" };
+        entity.Stage(stage).Enqueue(ref payload);
+
+        payload.Value = "Changed";
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
 
         Assert.Equal(0, count);
 

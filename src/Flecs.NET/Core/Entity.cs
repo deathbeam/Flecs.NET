@@ -166,6 +166,10 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public string PathFrom(ulong parent, string sep = Ecs.DefaultSeparator, string initSep = Ecs.DefaultSeparator)
     {
+        if (sep == Ecs.DefaultSeparator && initSep == Ecs.DefaultSeparator)
+            return NativeString.GetStringAndFree(ecs_get_path_w_sep(
+                WorldPtr, parent, Id, Pointers.DefaultSeparator, Pointers.DefaultSeparator));
+
         using NativeString nativeSep = (NativeString)sep;
         using NativeString nativeInitSep = (NativeString)initSep;
 
@@ -472,7 +476,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public void* GetPtr(ulong compId)
     {
-        return ecs_get_id(WorldPtr, Id, compId);
+        return ecs_get_id_fast(WorldPtr, Id, compId);
     }
 
     /// <summary>
@@ -494,7 +498,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public T* GetPtr<T>() where T : unmanaged
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return (T*)ecs_get_id(WorldPtr, Id, Type<T>.Id(WorldPtr));
+        return (T*)ecs_get_id_fast(WorldPtr, Id, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>
@@ -588,7 +592,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     public ref readonly T Get<T>()
     {
         Ecs.Assert(Type<T>.Size != 0, nameof(ECS_INVALID_PARAMETER));
-        return ref Managed.GetTypeRef<T>(ecs_get_id(WorldPtr, Id, Type<T>.Id(WorldPtr)));
+        return ref Managed.GetTypeRef<T>(ecs_get_id_fast(WorldPtr, Id, Type<T>.Id(WorldPtr)));
     }
 
     /// <summary>
@@ -1026,7 +1030,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has(ulong id)
     {
-        return ecs_has_id(WorldPtr, Id, id);
+        return ecs_has_id_fast(WorldPtr, Id, id);
     }
 
     /// <summary>
@@ -1047,7 +1051,7 @@ public unsafe partial struct Entity : IEquatable<Entity>, IEntity<Entity>
     /// <returns></returns>
     public bool Has<T>()
     {
-        return ecs_has_id(WorldPtr, Id, Type<T>.Id(WorldPtr));
+        return ecs_has_id_fast(WorldPtr, Id, Type<T>.Id(WorldPtr));
     }
 
     /// <summary>

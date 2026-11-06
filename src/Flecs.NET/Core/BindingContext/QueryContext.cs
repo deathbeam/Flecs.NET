@@ -15,7 +15,7 @@ internal unsafe struct QueryContext : IDisposable
         OrderBy.Dispose();
         ContextFree.Dispose();
 
-        if (Strings == default)
+        if (Strings.IsNull)
             return;
 
         for (int i = 0; i < Strings.Count; i++)

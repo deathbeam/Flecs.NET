@@ -42,8 +42,11 @@ public static unsafe partial class Invoker
 
         Ecs.TableLock(iter->stage, iter->table);
         try {
+            ecs_world_t* stage = iter->stage;
+            ulong* entities = iter->entities;
+
             for (int i = 0; i < iter->count; i++)
-                callback(new Entity(iter->stage, iter->entities[i]));
+                callback(new Entity(stage, entities[i]));
         } finally { Ecs.TableUnlock(iter->stage, iter->table); }
     }
 

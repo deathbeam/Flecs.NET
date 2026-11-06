@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace Flecs.NET.Utilities;
 
@@ -10,7 +9,7 @@ namespace Flecs.NET.Utilities;
 ///     An unmanaged alternative to <see cref="List{T}"/>.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<NativeList<T>> where T : unmanaged
+internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable where T : unmanaged
 {
     /// <summary>
     ///     Data storage for the <see cref="NativeList{T}"/>.
@@ -31,11 +30,6 @@ internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<N
     ///     Represents whether or not the <see cref="NativeList{T}"/> is null.
     /// </summary>
     public readonly bool IsNull => Data == null;
-
-    /// <summary>
-    ///     Returns a span of the <see cref="NativeList{T}"/>.
-    /// </summary>
-    public Span<T> Span => new Span<T>(Data, Count);
 
     /// <summary>
     ///     Creates an <see cref="NativeList{T}"/> with the specified capacity.
@@ -97,88 +91,6 @@ internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<N
     }
 
     /// <summary>
-    ///     Adds the elements of the specified span to the end of the <see cref="NativeList{T}"/>
-    /// </summary>
-    /// <param name="span"></param>
-    public void AddRange(Span<T> span)
-    {
-        int oldCount = Count;
-        EnsureCapacity(Count += span.Length);
-        span.CopyTo(MemoryMarshal.CreateSpan(ref Data[oldCount], span.Length));
-    }
-
-    /// <summary>
-    ///     Adds the elements of the specified array to the end of the <see cref="NativeList{T}"/>
-    /// </summary>
-    /// <param name="array"></param>
-    public void AddRange(T[] array)
-    {
-        Span<T> span = new Span<T>(array);
-        AddRange(span);
-    }
-
-    /// <summary>
-    ///     Adds the elements of the specified enumerable to the end of the <see cref="NativeList{T}"/>.
-    /// </summary>
-    /// <param name="enumerable"></param>
-    public void AddRange(IEnumerable<T> enumerable)
-    {
-        foreach (T item in enumerable)
-            Add(item);
-    }
-
-    /// <summary>
-    ///    Adds a span of items starting at the provided managed reference to the end of the <see cref="NativeList{T}"/>.
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="count"></param>
-    public void AddRange(ref T start, int count)
-    {
-        AddRange(MemoryMarshal.CreateSpan(ref start, count));
-    }
-
-    /// <summary>
-    ///    Adds a span of items starting at the pointer to the end of the <see cref="NativeList{T}"/>.
-    /// </summary>
-    /// <param name="start"></param>
-    /// <param name="count"></param>
-    public void AddRange(T* start, int count)
-    {
-        AddRange(new Span<T>(start, count));
-    }
-
-    /// <summary>
-    ///     Adds the provided item a repeated number of times to the end of the <see cref="NativeList{T}"/>.
-    /// </summary>
-    /// <param name="item"></param>
-    /// <param name="count"></param>
-    public void AddRepeated(T item, int count)
-    {
-        EnsureCapacity(Capacity + count);
-
-        for (int i = 0; i < count; i++)
-            Data[Count++] = item;
-    }
-
-    /// <summary>
-    ///     Sets the count of the list to 0.
-    /// </summary>
-    public void Clear()
-    {
-        Count = 0;
-    }
-
-    /// <summary>
-    ///     Determines whether an element is in the <see cref="NativeList{T}"/>.
-    /// </summary>
-    /// <param name="item"></param>
-    /// <returns></returns>
-    public bool Contains(T item)
-    {
-        return IndexOf(item) != -1;
-    }
-
-    /// <summary>
     ///     Ensures that the list has the specified capacity.
     /// </summary>
     /// <param name="newCapacity"></param>
@@ -222,54 +134,18 @@ internal unsafe struct NativeList<T> : IEnumerable<T>, IDisposable, IEquatable<N
     }
 
     /// <summary>
-    ///     Determines whether the specified object is equal to the current object.
+    ///     Removes the first occurrence of a value from the <see cref="NativeList{T}"/> by replacing it with the last item.
     /// </summary>
-    /// <param name="other"></param>
+    /// <param name="item"></param>
     /// <returns></returns>
-    public bool Equals(NativeList<T> other)
+    public bool Remove(T item)
     {
-        return Data == other.Data;
-    }
+        int index = IndexOf(item);
+        if (index == -1)
+            return false;
 
-    /// <summary>
-    ///     Determines whether the specified object is equal to the current object.
-    /// </summary>
-    /// <param name="obj"></param>
-    /// <returns></returns>
-    public override bool Equals(object? obj)
-    {
-        return obj is NativeList<T> other && Equals(other);
-    }
-
-    /// <summary>
-    ///     Tests whether two objects are equal.
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static bool operator ==(NativeList<T> left, NativeList<T> right)
-    {
-        return left.Equals(right);
-    }
-
-    /// <summary>
-    ///     Tests whether two objects are not equal.
-    /// </summary>
-    /// <param name="left"></param>
-    /// <param name="right"></param>
-    /// <returns></returns>
-    public static bool operator !=(NativeList<T> left, NativeList<T> right)
-    {
-        return !(left == right);
-    }
-
-    /// <summary>
-    ///     Returns the hash code for this instance.
-    /// </summary>
-    /// <returns></returns>
-    public override int GetHashCode()
-    {
-        return Data->GetHashCode();
+        Data[index] = Data[--Count];
+        return true;
     }
 
     /// <summary>

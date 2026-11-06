@@ -2217,7 +2217,7 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
     /// <returns></returns>
     public float DeltaTime()
     {
-        return ecs_get_world_info(Handle)->delta_time;
+        return ecs_get_world_info_fast(Handle)->delta_time;
     }
 
     /// <summary>
@@ -4200,14 +4200,14 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
 
     private PostFrameContext* AllocatePostFrameContext()
     {
-        PostFrameContext* context = Memory.Alloc<PostFrameContext>(1);
+        PostFrameContext* context = Memory.AllocZeroed<PostFrameContext>(1);
         WorldContext.RunPostFrameContexts.Add((nint)context);
         return context;
     }
 
     private WorldFinishContext* AllocateWorldFinishContext()
     {
-        WorldFinishContext* context = Memory.Alloc<WorldFinishContext>(1);
+        WorldFinishContext* context = Memory.AllocZeroed<WorldFinishContext>(1);
         WorldContext.WorldFinishContexts.Add((nint)context);
         return context;
     }

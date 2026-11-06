@@ -19,10 +19,4 @@ internal unsafe struct PostFrameContext : IDisposable
         context->Dispose();
         Memory.Free(context);
     }
-
-    public static void Free(ref PostFrameContext context)
-    {
-        fixed (PostFrameContext* ptr = &context)
-            Free(ptr);
-    }
 }

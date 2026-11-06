@@ -194,6 +194,7 @@ public class Invoker : GeneratorBase
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
                         static void {{iterationTechnique}}(Iter it, int count, {{Generator.GetCallbackType(callback, i)}} callback, {{Generator.FieldDataParameters[i]}})
                         {
+                            {{Generator.GetCallbackLocals(callback)}}
                             for (int i = 0; i < count; i++)
                                 callback({{Generator.GetCallbackArguments(callback, iterationTechnique, i)}});
                         }
@@ -209,10 +210,13 @@ public class Invoker : GeneratorBase
                         [MethodImpl(MethodImplOptions.AggressiveInlining)]
                         static Entity {{iterationTechnique}}(Iter it, int count, {{Generator.GetCallbackType(callback, i)}} callback, {{Generator.FieldDataParameters[i]}})
                         {
+                            ecs_world_t* stage = it.Handle->stage;
+                            ulong* entities = it.Handle->entities;
+
                             for (int i = 0; i < count; i++)
                             {
                                 if (callback({{Generator.GetCallbackArguments(callback, iterationTechnique, i)}}))
-                                    return new Entity(it.Handle->stage, it.Handle->entities[i]);
+                                    return new Entity(stage, entities[i]);
                             }
                                 
                             return default;

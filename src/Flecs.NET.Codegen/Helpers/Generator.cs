@@ -476,11 +476,25 @@ public static class Generator
         {
             CallbackParameters.EachRef => $"{GetEachRefArguments(iterationTechnique, i)}",
             CallbackParameters.EachPointer => $"{GetEachPointerArguments(iterationTechnique, i)}",
-            CallbackParameters.EachEntityRef => $"new Entity(it.Handle->stage, it.Handle->entities[i]), {GetEachRefArguments(iterationTechnique, i)}",
-            CallbackParameters.EachEntityPointer => $"new Entity(it.Handle->stage, it.Handle->entities[i]), {GetEachPointerArguments(iterationTechnique, i)}",
+            CallbackParameters.EachEntityRef => $"new Entity(stage, entities[i]), {GetEachRefArguments(iterationTechnique, i)}",
+            CallbackParameters.EachEntityPointer => $"new Entity(stage, entities[i]), {GetEachPointerArguments(iterationTechnique, i)}",
             CallbackParameters.EachIterRef => $"it, i, {GetEachRefArguments(iterationTechnique, i)}",
             CallbackParameters.EachIterPointer => $"it, i, {GetEachPointerArguments(iterationTechnique, i)}",
             _ => throw new ArgumentOutOfRangeException(nameof(parameters), parameters, null)
+        };
+    }
+
+    /// <summary>
+    ///     Returns the locals that hoist the iter stage and entity array out of the per-entity loop.
+    /// </summary>
+    public static string GetCallbackLocals(Callback callback)
+    {
+        return GetCallbackParameters(callback) switch
+        {
+            CallbackParameters.EachEntityRef or
+            CallbackParameters.EachEntityPointer => "ecs_world_t* stage = it.Handle->stage;\n            ulong* entities = it.Handle->entities;",
+
+            _ => string.Empty
         };
     }
 

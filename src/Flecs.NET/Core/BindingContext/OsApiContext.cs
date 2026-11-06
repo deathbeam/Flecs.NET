@@ -29,10 +29,4 @@ internal unsafe struct OsApiContext : IDisposable
         context->Dispose();
         Memory.Free(context);
     }
-
-    public static void Free(ref OsApiContext context)
-    {
-        fixed (OsApiContext* ptr = &context)
-            Free(ptr);
-    }
 }

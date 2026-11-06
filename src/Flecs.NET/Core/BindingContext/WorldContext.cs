@@ -32,10 +32,12 @@ internal unsafe struct WorldContext : IDisposable
         OpaqueContexts.Dispose();
 
         foreach (nint ptr in RunPostFrameContexts)
-            Memory.Free((PostFrameContext*)ptr);
+            PostFrameContext.Free((PostFrameContext*)ptr);
+        RunPostFrameContexts.Dispose();
 
         foreach (nint ptr in WorldFinishContexts)
-            Memory.Free((WorldFinishContext*)ptr);
+            WorldFinishContext.Free((WorldFinishContext*)ptr);
+        WorldFinishContexts.Dispose();
     }
 
     public static void Free(WorldContext* context)
@@ -44,11 +46,5 @@ internal unsafe struct WorldContext : IDisposable
             return;
         context->Dispose();
         Memory.Free(context);
-    }
-
-    public static void Free(ref WorldContext context)
-    {
-        fixed (WorldContext* ptr = &context)
-            Free(ptr);
     }
 }

@@ -41,10 +41,4 @@ internal unsafe struct TypeHooksContext : IDisposable
         context->Dispose();
         Memory.Free(context);
     }
-
-    public static void Free(ref TypeHooksContext context)
-    {
-        fixed (TypeHooksContext* ptr = &context)
-            Free(ptr);
-    }
 }

@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 using Flecs.NET.Bindings;
-using Flecs.NET.Core;
 
 namespace Flecs.NET.Utilities;
 
@@ -11,12 +10,6 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
     public bool IsFlecs { get; }
 
     public NativeString(byte* str, bool isFlecs)
-    {
-        Data = (IntPtr)str;
-        IsFlecs = isFlecs;
-    }
-
-    public NativeString(sbyte* str, bool isFlecs)
     {
         Data = (IntPtr)str;
         IsFlecs = isFlecs;
@@ -33,19 +26,7 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
         return Marshal.PtrToStringUTF8((IntPtr)data) ?? string.Empty;
     }
 
-    public static string GetString(sbyte* data)
-    {
-        Ecs.Assert(data != null, "Pointer to string is null");
-        return Marshal.PtrToStringUTF8((IntPtr)data) ?? string.Empty;
-    }
-
     public static string GetStringAndFree(byte* data)
-    {
-        using NativeString temp = (NativeString)data;
-        return (string)temp;
-    }
-
-    public static string GetStringAndFree(sbyte* data)
     {
         using NativeString temp = (NativeString)data;
         return (string)temp;
@@ -56,19 +37,9 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
         return From(str);
     }
 
-    public static explicit operator NativeString(sbyte* str)
-    {
-        return From(str);
-    }
-
     public static implicit operator byte*(NativeString nativeString)
     {
         return (byte*)To(nativeString);
-    }
-
-    public static implicit operator sbyte*(NativeString nativeString)
-    {
-        return (sbyte*)To(nativeString);
     }
 
     public static explicit operator NativeString(string? str)
@@ -82,11 +53,6 @@ internal readonly unsafe struct NativeString : IEquatable<NativeString>, IDispos
     }
 
     public static NativeString From(byte* str)
-    {
-        return new NativeString(str, true);
-    }
-
-    public static NativeString From(sbyte* str)
     {
         return new NativeString(str, true);
     }

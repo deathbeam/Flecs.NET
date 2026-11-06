@@ -19,10 +19,4 @@ internal unsafe struct WorldFinishContext : IDisposable
         context->Dispose();
         Memory.Free(context);
     }
-
-    public static void Free(ref WorldFinishContext context)
-    {
-        fixed (WorldFinishContext* ptr = &context)
-            Free(ptr);
-    }
 }

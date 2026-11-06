@@ -131,58 +131,16 @@ internal static unsafe partial class Functions
         Invoker.Observe(iter, (Ecs.ObserveEntityCallback)context->Callback.Delegate.Target!);
     }
 
-    internal static void ObserveEntityCallbackPointer(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (delegate*<Entity, void>)context->Callback.Pointer);
-    }
-
     internal static void ObserveRefCallbackDelegate<T>(ecs_iter_t* iter)
     {
         IteratorContext* context = (IteratorContext*)iter->callback_ctx;
         Invoker.Observe(iter, (Ecs.ObserveRefCallback<T>)context->Callback.Delegate.Target!);
     }
 
-    internal static void ObserveRefCallbackPointer<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (delegate*<ref T, void>)context->Callback.Pointer);
-    }
-
-    internal static void ObservePointerCallbackDelegate<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (Ecs.ObservePointerCallback<T>)context->Callback.Delegate.Target!);
-    }
-
-    internal static void ObservePointerCallbackPointer<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (delegate*<T*, void>)context->Callback.Pointer);
-    }
-
     internal static void ObserveEntityRefCallbackDelegate<T>(ecs_iter_t* iter)
     {
         IteratorContext* context = (IteratorContext*)iter->callback_ctx;
         Invoker.Observe(iter, (Ecs.ObserveEntityRefCallback<T>)context->Callback.Delegate.Target!);
-    }
-
-    internal static void ObserveEntityRefCallbackPointer<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (delegate*<Entity, ref T, void>)context->Callback.Pointer);
-    }
-
-    internal static void ObserveEntityPointerCallbackDelegate<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (Ecs.ObserveEntityPointerCallback<T>)context->Callback.Delegate.Target!);
-    }
-
-    internal static void ObserveEntityPointerCallbackPointer<T>(ecs_iter_t* iter)
-    {
-        IteratorContext* context = (IteratorContext*)iter->callback_ctx;
-        Invoker.Observe(iter, (delegate*<Entity, T*, void>)context->Callback.Pointer);
     }
 
     #endregion
@@ -248,19 +206,9 @@ internal static unsafe partial class Functions
         return ((Ecs.GroupByCallback)context->GroupBy.Delegate.Target!)(world, new Table(world, table), id);
     }
 
-    internal static ulong GroupByCallbackPointer(ecs_world_t* world, ecs_table_t* table, ulong id, GroupByContext* context)
-    {
-        return ((delegate*<World, Table, ulong, ulong>)context->GroupBy.Pointer)(world, new Table(world, table), id);
-    }
-
     internal static ulong GroupByCallbackDelegate<T>(ecs_world_t* world, ecs_table_t* table, ulong id, GroupByContext* context)
     {
         return ((Ecs.GroupByCallback<T>)context->GroupBy.Delegate.Target!)(world, new Table(world, table), id, ref context->GroupByUserContext.Get<T>());
-    }
-
-    internal static ulong GroupByCallbackPointer<T>(ecs_world_t* world, ecs_table_t* table, ulong id, GroupByContext* context)
-    {
-        return ((delegate*<World, Table, ulong, ref T, ulong>)context->GroupBy.Pointer)(world, new Table(world, table), id, ref context->GroupByUserContext.Get<T>());
     }
 
     #endregion
@@ -280,21 +228,9 @@ internal static unsafe partial class Functions
         return null;
     }
 
-    internal static void* GroupCreateCallbackPointer(ecs_world_t* world, ulong id, GroupByContext* context)
-    {
-        ((delegate*<World, ulong, void>)context->GroupCreate.Pointer)(world, id);
-        return null;
-    }
-
     internal static void* GroupCreateCallbackDelegate<T>(ecs_world_t* world, ulong id, GroupByContext* context)
     {
         ((Ecs.GroupCreateCallback<T>)context->GroupCreate.Delegate.Target!)(world, id, out T groupContext);
-        return UserContext.Alloc(ref groupContext);
-    }
-
-    internal static void* GroupCreateCallbackPointer<T>(ecs_world_t* world, ulong id, GroupByContext* context)
-    {
-        ((delegate*<World, ulong, out T, void>)context->GroupCreate.Pointer)(world, id, out T groupContext);
         return UserContext.Alloc(ref groupContext);
     }
 
@@ -320,31 +256,9 @@ internal static unsafe partial class Functions
         Memory.Free(userContext);
     }
 
-    internal static void GroupDeleteCallbackPointer(ecs_world_t* world, ulong id, UserContext* userContext, GroupByContext* context)
-    {
-        ((delegate*<World, ulong, void>)context->GroupDelete.Pointer)(world, id);
-
-        if (userContext == null)
-            return;
-
-        userContext->Dispose();
-        Memory.Free(userContext);
-    }
-
     internal static void GroupDeleteCallbackDelegate<T>(ecs_world_t* world, ulong id, UserContext* userContext, GroupByContext* context)
     {
         ((Ecs.GroupDeleteCallback<T>)context->GroupDelete.Delegate.Target!)(world, id, ref userContext->Get<T>());
-
-        if (userContext == null)
-            return;
-
-        userContext->Dispose();
-        Memory.Free(userContext);
-    }
-
-    internal static void GroupDeleteCallbackPointer<T>(ecs_world_t* world, ulong id, UserContext* userContext, GroupByContext* context)
-    {
-        ((delegate*<World, ulong, ref T, void>)context->GroupDelete.Pointer)(world, id, ref userContext->Get<T>());
 
         if (userContext == null)
             return;
@@ -361,7 +275,13 @@ internal static unsafe partial class Functions
     internal static void PostFrameCallback(ecs_world_t* world, void* ctx)
     {
         PostFrameContext* context = (PostFrameContext*)ctx;
+        WorldContext* worldContext = (WorldContext*)ecs_get_binding_ctx_fast(world);
+
         ((delegate*<ecs_world_t*, void*, void>)context->Callback.Invoker)(world, ctx);
+
+        // Post frame actions run only once, so free the context here instead of at world destroy.
+        worldContext->RunPostFrameContexts.Remove((nint)context);
+        PostFrameContext.Free(context);
     }
 
     internal static void PostFrameCallbackDelegate(ecs_world_t* world, void* ctx)

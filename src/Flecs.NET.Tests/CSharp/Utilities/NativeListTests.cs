@@ -97,60 +97,6 @@ public unsafe class NativeListTests
     }
 
     [Fact]
-    public void AddRangeSpan()
-    {
-        using NativeList<int> list = new NativeList<int> { 1, 2 };
-
-        Assert.Equal(2, list.Capacity);
-        Assert.Equal(2, list.Count);
-
-        Span<int> span = stackalloc int[] { 3, 4, 5, 6, 7 };
-        list.AddRange(span);
-
-        Assert.Equal(8, list.Capacity);
-        Assert.Equal(7, list.Count);
-
-        for (int i = 0; i < list.Count; i++)
-            Assert.Equal(i + 1, list[i]);
-    }
-
-    [Fact]
-    public void AddRangeArray()
-    {
-        using NativeList<int> list = new NativeList<int> { 1, 2 };
-
-        Assert.Equal(2, list.Capacity);
-        Assert.Equal(2, list.Count);
-
-        int[] array = { 3, 4, 5, 6, 7 };
-        list.AddRange(array);
-
-        Assert.Equal(8, list.Capacity);
-        Assert.Equal(7, list.Count);
-
-        for (int i = 0; i < list.Count; i++)
-            Assert.Equal(i + 1, list[i]);
-    }
-
-    [Fact]
-    public void AddRangeEnumerable()
-    {
-        using NativeList<int> list = new NativeList<int> { 1, 2 };
-
-        Assert.Equal(2, list.Capacity);
-        Assert.Equal(2, list.Count);
-
-        IEnumerable<int> enumerable = new[] { 3, 4, 5, 6, 7 };
-        list.AddRange(enumerable);
-
-        Assert.Equal(8, list.Capacity);
-        Assert.Equal(7, list.Count);
-
-        for (int i = 0; i < list.Count; i++)
-            Assert.Equal(i + 1, list[i]);
-    }
-
-    [Fact]
     public void Foreach()
     {
         using NativeList<int> list = new NativeList<int> { 1, 2, 3 };

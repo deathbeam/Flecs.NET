@@ -31,13 +31,6 @@ internal static unsafe class Managed
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static void FreeGcHandle(void* data, int index = 0)
-    {
-        IntPtr handle = ((IntPtr*)data)[index];
-        FreeGcHandle(handle);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static ref T GetTypeRef<T>(void* data)
     {
         if (data == null)
@@ -63,18 +56,6 @@ internal static unsafe class Managed
         GCHandle handle = GCHandle.FromIntPtr(((IntPtr*)data)[index]);
         StrongBox<T> box = (StrongBox<T>)handle.Target!;
         return ref box.Value!;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref T GetTypeRef<T>(IntPtr data)
-    {
-        return ref GetTypeRef<T>((void*)data);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ref T GetTypeRef<T>(IntPtr data, int index)
-    {
-        return ref GetTypeRef<T>((void*)data, index);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

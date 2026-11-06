@@ -8,11 +8,10 @@ public class Entity : GeneratorBase
 {
     public override void Generate()
     {
+        AddSource($"Entity.Id.g.cs", Id.GenerateExtensions(Type.Entity));
+
         for (int i = 0; i < Generator.GenericCount; i++)
-        {
-            AddSource($"Entity.Id.g.cs", Id.GenerateExtensions(Type.Entity));
             AddSource($"Entity.ComponentCallbacks/T{i + 1}.g.cs", GenerateComponentCallbacks(Type.Entity, i));
-        }
     }
 
     public static string GenerateComponentCallbacks(Type type, int i)

@@ -72,7 +72,7 @@ public static unsafe class Type<T>
     /// <summary>
     ///     The cache indexes of all enum members if this type is an enum.
     /// </summary>
-    private static readonly NativeArray<EnumMember> Constants = InitEnumCacheIndexes();
+    private static readonly EnumMember[] Constants = InitEnumCacheIndexes();
 
     /// <summary>
     ///     Returns the id for this type with the provided world. Registers a new component id if it doesn't exist.
@@ -82,10 +82,7 @@ public static unsafe class Type<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong Id(ecs_world_t* world)
     {
-        ref ulong cachedId = ref LookupCacheIndex(world);
-        return Unsafe.IsNullRef(ref cachedId) || !ecs_is_alive(world, cachedId)
-            ? RegisterComponent(world, true, true, 0, "")
-            : cachedId;
+        return Id(world, true, true, 0, "");
     }
 
     /// <summary>
@@ -100,7 +97,7 @@ public static unsafe class Type<T>
     public static ulong Id(ecs_world_t* world, bool ignoreScope, bool isComponent, ulong id)
     {
         ref ulong cachedId = ref LookupCacheIndex(world);
-        return Unsafe.IsNullRef(ref cachedId) || !ecs_is_alive(world, cachedId)
+        return Unsafe.IsNullRef(ref cachedId) || !ecs_is_alive_fast(world, cachedId)
             ? RegisterComponent(world, ignoreScope, isComponent, id, "")
             : cachedId;
     }
@@ -118,7 +115,7 @@ public static unsafe class Type<T>
     public static ulong Id(ecs_world_t* world, bool ignoreScope, bool isComponent, ulong id, string name)
     {
         ref ulong cachedId = ref LookupCacheIndex(world);
-        return Unsafe.IsNullRef(ref cachedId) || !ecs_is_alive(world, cachedId)
+        return Unsafe.IsNullRef(ref cachedId) || !ecs_is_alive_fast(world, cachedId)
             ? RegisterComponent(world, ignoreScope, isComponent, id, name)
             : cachedId;
     }
@@ -201,7 +198,7 @@ public static unsafe class Type<T>
     public static bool IsRegistered(ecs_world_t* world)
     {
         ref ulong cachedId = ref LookupCacheIndex(world);
-        return !Unsafe.IsNullRef(ref cachedId) && cachedId != 0 && ecs_is_alive(world, cachedId);
+        return !Unsafe.IsNullRef(ref cachedId) && cachedId != 0 && ecs_is_alive_fast(world, cachedId);
     }
 
     /// <summary>
@@ -215,7 +212,7 @@ public static unsafe class Type<T>
     {
         ref ulong cachedId = ref LookupCacheIndex(world);
 
-        id = !Unsafe.IsNullRef(ref cachedId) && cachedId != 0 && ecs_is_alive(world, cachedId)
+        id = !Unsafe.IsNullRef(ref cachedId) && cachedId != 0 && ecs_is_alive_fast(world, cachedId)
             ? cachedId
             : 0;
 
@@ -231,13 +228,11 @@ public static unsafe class Type<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsRegistered(ecs_world_t* world, out Entity id)
     {
-        ref ulong cachedId = ref LookupCacheIndex(world);
+        bool registered = IsRegistered(world, out ulong cachedId);
 
-        id = !Unsafe.IsNullRef(ref cachedId) && cachedId != 0 && ecs_is_alive(world, cachedId)
-            ? new Entity(world, cachedId)
-            : default;
+        id = registered ? new Entity(world, cachedId) : default;
 
-        return id != 0;
+        return registered;
     }
 
     /// <summary>
@@ -317,8 +312,9 @@ public static unsafe class Type<T>
 
         // Register type hooks.
         TypeHooksContext hooksContext = TypeHooksContext.Default;
+        bool isManaged = RuntimeHelpers.IsReferenceOrContainsReferences<T>();
 
-        if (RuntimeHelpers.IsReferenceOrContainsReferences<T>())
+        if (isManaged)
         {
             hooksContext.Ctor.Invoker = (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.DefaultManagedCtorCallback<T>;
             hooksContext.Dtor.Invoker = (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.DefaultManagedDtorCallback<T>;
@@ -328,77 +324,56 @@ public static unsafe class Type<T>
 
         if (typeof(ICtorHook<T>).IsAssignableFrom(typeof(T)))
         {
-            hooksContext.Ctor.Invoker = RuntimeHelpers.IsReferenceOrContainsReferences<T>()
+            hooksContext.Ctor.Invoker = isManaged
                 ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCtorCallbackPointer<T>
                 : (delegate*<T*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCtorCallbackPointer<T>;
 
-            hooksContext.Ctor.Pointer = (void*)(nint)typeof(ICtorHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.Ctor.Pointer = HookPointer(typeof(ICtorHook<>.FunctionPointer<>));
         }
 
         if (typeof(IDtorHook<T>).IsAssignableFrom(typeof(T)))
         {
-            hooksContext.Dtor.Invoker = RuntimeHelpers.IsReferenceOrContainsReferences<T>()
+            hooksContext.Dtor.Invoker = isManaged
                 ? (delegate*<GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedDtorCallbackPointer<T>
                 : (delegate*<T*, int, ecs_type_info_t*, void>)&Functions.UnmanagedDtorCallbackPointer<T>;
 
-            hooksContext.Dtor.Pointer = (void*)(nint)typeof(IDtorHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.Dtor.Pointer = HookPointer(typeof(IDtorHook<>.FunctionPointer<>));
         }
 
         if (typeof(ICopyHook<T>).IsAssignableFrom(typeof(T)))
         {
-            hooksContext.Copy.Invoker = RuntimeHelpers.IsReferenceOrContainsReferences<T>()
+            hooksContext.Copy.Invoker = isManaged
                 ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedCopyCallbackPointer<T>
                 : (delegate*<T*, T*, int, ecs_type_info_t*, void>)&Functions.UnmanagedCopyCallbackPointer<T>;
 
-            hooksContext.Copy.Pointer = (void*)(nint)typeof(ICopyHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.Copy.Pointer = HookPointer(typeof(ICopyHook<>.FunctionPointer<>));
         }
 
         if (typeof(IMoveHook<T>).IsAssignableFrom(typeof(T)))
         {
-            hooksContext.Move.Invoker = RuntimeHelpers.IsReferenceOrContainsReferences<T>()
+            hooksContext.Move.Invoker = isManaged
                 ? (delegate*<GCHandle*, GCHandle*, int, ecs_type_info_t*, void>)&Functions.ManagedMoveCallbackPointer<T>
                 : (delegate*<T*, T*, int, ecs_type_info_t*, void>)&Functions.UnmanagedMoveCallbackPointer<T>;
 
-            hooksContext.Move.Pointer = (void*)(nint)typeof(IMoveHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.Move.Pointer = HookPointer(typeof(IMoveHook<>.FunctionPointer<>));
         }
 
         if (typeof(IOnAddHook<T>).IsAssignableFrom(typeof(T)))
         {
             hooksContext.OnAdd.Invoker = (delegate*<ecs_iter_t*, void>)&Functions.OnAddEachIterRefCallbackPointer<T>;
-            hooksContext.OnAdd.Pointer = (void*)(nint)typeof(IOnAddHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.OnAdd.Pointer = HookPointer(typeof(IOnAddHook<>.FunctionPointer<>));
         }
 
         if (typeof(IOnRemoveHook<T>).IsAssignableFrom(typeof(T)))
         {
             hooksContext.OnRemove.Invoker = (delegate*<ecs_iter_t*, void>)&Functions.OnRemoveEachIterRefCallbackPointer<T>;
-            hooksContext.OnRemove.Pointer = (void*)(nint)typeof(IOnRemoveHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.OnRemove.Pointer = HookPointer(typeof(IOnRemoveHook<>.FunctionPointer<>));
         }
 
         if (typeof(IOnSetHook<T>).IsAssignableFrom(typeof(T)))
         {
             hooksContext.OnSet.Invoker = (delegate*<ecs_iter_t*, void>)&Functions.OnSetEachIterRefCallbackPointer<T>;
-            hooksContext.OnSet.Pointer = (void*)(nint)typeof(IOnSetHook<>.FunctionPointer<>)
-                .MakeGenericType(typeof(T), typeof(T))
-                .GetMethod("Get")!
-                .Invoke(null, null)!;
+            hooksContext.OnSet.Pointer = HookPointer(typeof(IOnSetHook<>.FunctionPointer<>));
         }
 
         ecs_type_hooks_t hooks = default;
@@ -424,6 +399,14 @@ public static unsafe class Type<T>
         return component;
     }
 
+    private static void* HookPointer(System.Type openGeneric)
+    {
+        return (void*)(nint)openGeneric
+            .MakeGenericType(typeof(T), typeof(T))
+            .GetMethod("Get")!
+            .Invoke(null, null)!;
+    }
+
     /// <summary>
     ///     Returns a trimmed version of this type's full name with respect to the current scope of the world.
     /// </summary>
@@ -444,13 +427,13 @@ public static unsafe class Type<T>
             : Name;
     }
 
-    private static NativeArray<EnumMember> InitEnumCacheIndexes()
+    private static EnumMember[] InitEnumCacheIndexes()
     {
         if (!IsEnum)
-            return default;
+            return [];
 
         Array values = typeof(T).GetEnumValuesAsUnderlyingType();
-        NativeArray<EnumMember> constants = new NativeArray<EnumMember>(values.Length);
+        EnumMember[] constants = new EnumMember[values.Length];
 
         for (int i = 0; i < values.Length; i++)
         {
@@ -514,7 +497,7 @@ public static unsafe class Type<T>
         {
             int mid = left + (right - left) / 2;
 
-            ref EnumMember data = ref Constants.Data[mid];
+            ref EnumMember data = ref Constants[mid];
 
             if (data.Value == value)
                 return data.CacheIndex;

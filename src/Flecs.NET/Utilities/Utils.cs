@@ -1,6 +1,4 @@
-using System;
 using System.Runtime.CompilerServices;
-using static Flecs.NET.Bindings.flecs;
 
 namespace Flecs.NET.Utilities;
 
@@ -46,27 +44,5 @@ internal static unsafe class Utils
         num++;
 
         return num;
-    }
-
-    /// <summary>
-    ///     Calls the os api free function.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void OsFree(IntPtr data)
-    {
-        ((delegate* unmanaged<IntPtr, void>)ecs_os_api.free_)(data);
-    }
-
-    /// <summary>
-    ///     Calls the os api free function.
-    /// </summary>
-    /// <param name="data"></param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void OsFree(void* data)
-    {
-        OsFree((nint)data);
     }
 }
