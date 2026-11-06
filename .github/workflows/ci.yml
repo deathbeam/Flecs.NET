@@ -15,65 +15,30 @@ on:
         default: false
         type: boolean
 
-      use-auto-generated-version:
-        description: 'Use auto-generated version'
-        required: true
-        default: true
-        type: boolean
-
-
 jobs:
-  windows-natives:
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Build Windows Natives
-        working-directory: src/Flecs.NET.Native
-        run: |
-          dotnet build -c Debug -r win-x64
-          dotnet build -c Debug -r win-arm64
-          dotnet build -c Release -r win-x64
-          dotnet build -c Release -r win-arm64
-
-      - name: Upload Windows Natives
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-natives
-          path: |
-            src/Flecs.NET.Native/bin/Debug/runtimes/win-x64
-            src/Flecs.NET.Native/bin/Debug/runtimes/win-arm64
-            src/Flecs.NET.Native/bin/Release/runtimes/win-x64
-            src/Flecs.NET.Native/bin/Release/runtimes/win-arm64
-          if-no-files-found: error
-
   build:
-    needs: windows-natives
     runs-on: ${{ matrix.os }}
 
-    permissions:
-      contents: write
-      id-token: write
-      packages: write
+    defaults:
+      run:
+        shell: bash
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15, windows-latest]
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+            natives: win-x64 win-arm64
+          - os: macos-15
+            natives: >-
+              linux-x64 linux-arm64 osx-x64 osx-arm64 browser-wasm
+              iossimulator-x64 iossimulator-arm64 ios-arm64 android-arm64 android-x64
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
-          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -82,37 +47,11 @@ jobs:
             9.0.x
             10.0.x
 
-      - name: Validate Tag Version
-        if: github.ref_type == 'tag'
-        shell: bash
-        run: |
-          version="${GITHUB_REF_NAME#v}"
-          prefix=$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' src/Directory.Build.props)
-          if [ "$version" != "$prefix" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match VersionPrefix $prefix in src/Directory.Build.props"
-            exit 1
-          fi
-
-      - name: Set Version Suffix
-        shell: bash
-        run: |
-          if [ '${{ github.ref_type }}' == 'tag' ]; then
-            exit 0
-          fi
-
-          if [ '${{ github.event.inputs.use-auto-generated-version }}' != 'false' ]; then
-            echo "FlecsVersionSuffix=build.$(git rev-list --count HEAD)" >> $GITHUB_ENV
-          fi
-
       - name: Setup IOS SDK
         if: matrix.os == 'macos-15'
-        shell: bash
         run: |
-          IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          IOS_SIMULATOR_SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
-
-          echo "IOS_SDK=$IOS_SDK" >> $GITHUB_ENV
-          echo "IOS_SIMULATOR_SDK=$IOS_SIMULATOR_SDK" >> $GITHUB_ENV
+          echo "IOS_SDK=$(xcrun --sdk iphoneos --show-sdk-path)" >> $GITHUB_ENV
+          echo "IOS_SIMULATOR_SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)" >> $GITHUB_ENV
 
       - name: Setup Emscripten SDK
         if: matrix.os == 'macos-15'
@@ -130,69 +69,95 @@ jobs:
 
       - name: Set Android NDK variables
         if: matrix.os == 'macos-15'
-        shell: bash
-        run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+        run: echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
 
       - name: Restore Dependencies
-        shell: bash
         run: dotnet restore
 
       - name: Generate Bindings
-        shell: bash
         run: dotnet run --project src/Flecs.NET.Bindgen
 
       - name: Build Projects
-        shell: bash
         run: |
           dotnet build -c Debug
           dotnet build -c Release
 
-      - name: Build Natives
-        shell: bash
-        if: matrix.os == 'macos-15'
-        working-directory: src/Flecs.NET.Native
-        run: |
-          dotnet build -c Debug -r linux-x64
-          dotnet build -c Debug -r linux-arm64
-          dotnet build -c Debug -r osx-x64
-          dotnet build -c Debug -r osx-arm64
-          dotnet build -c Debug -r browser-wasm
-          dotnet build -c Debug -r iossimulator-x64
-          dotnet build -c Debug -r iossimulator-arm64
-          dotnet build -c Debug -r ios-arm64
-          dotnet build -c Debug -r android-arm64
-          dotnet build -c Debug -r android-x64
-
-          dotnet build -c Release -r linux-x64
-          dotnet build -c Release -r linux-arm64
-          dotnet build -c Release -r osx-x64
-          dotnet build -c Release -r osx-arm64
-          dotnet build -c Release -r browser-wasm
-          dotnet build -c Release -r iossimulator-x64
-          dotnet build -c Release -r iossimulator-arm64
-          dotnet build -c Release -r ios-arm64
-          dotnet build -c Release -r android-arm64
-          dotnet build -c Release -r android-x64
-
-      - name: Download Windows Natives
-        if: matrix.os == 'macos-15'
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-natives
-          path: src/Flecs.NET.Native/bin
-
       - name: Run Tests
-        shell: bash
         run: dotnet test -p:SkipNatives=true
 
+      - name: Build Natives
+        if: matrix.natives
+        working-directory: src/Flecs.NET.Native
+        run: |
+          for config in Debug Release; do
+            for rid in ${{ matrix.natives }}; do
+              dotnet build -c $config -r $rid
+            done
+          done
+
+      - name: Upload Natives
+        if: matrix.natives
+        uses: actions/upload-artifact@v4
+        with:
+          name: natives-${{ matrix.os }}
+          path: src/Flecs.NET.Native/bin/*/runtimes/**
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+
+    env:
+      PUSH: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') || (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))) }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Validate Tag Version
+        if: github.ref_type == 'tag'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          prefix=$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' src/Directory.Build.props)
+          if [ "$version" != "$prefix" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match VersionPrefix $prefix in src/Directory.Build.props"
+            exit 1
+          fi
+
+      - name: Set Version Suffix
+        if: github.ref_type != 'tag'
+        run: echo "FlecsVersionSuffix=build.$(git rev-list --count HEAD)" >> $GITHUB_ENV
+
+      - name: Generate Bindings
+        run: dotnet run --project src/Flecs.NET.Bindgen
+
+      - name: Download Natives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: natives-*
+          path: src/Flecs.NET.Native/bin
+          merge-multiple: true
+
       - name: Pack Nuget Packages
-        shell: bash
         run: |
           dotnet pack -p:VersionSuffix=$FlecsVersionSuffix -p:FlecsPackPdb=true -p:SkipNatives=true -c Debug -o artifacts/nuget
           dotnet pack -p:VersionSuffix=$FlecsVersionSuffix -p:FlecsPackPdb=true -p:SkipNatives=true -c Release -o artifacts/nuget
+
       - name: Upload Artifacts
-        if: matrix.os == 'macos-15'
         uses: actions/upload-artifact@v4
         with:
           name: Nuget Packages
@@ -201,40 +166,22 @@ jobs:
             artifacts/nuget/*.snupkg
 
       - name: Push GitHub Packages
-        if: >
-          matrix.os == 'macos-15' &&
-          (
-            (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
-          )
-        shell: bash
+        if: env.PUSH == 'true'
         run: dotnet nuget push 'artifacts/nuget/*.nupkg' --skip-duplicate --api-key '${{ secrets.GITHUB_TOKEN }}' --source 'https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json'
 
       - name: NuGet login
-        if: >
-          matrix.os == 'macos-15' &&
-          (
-            (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
-          )
+        if: env.PUSH == 'true'
         uses: NuGet/login@v1
         id: nuget-login
         with:
           user: deathbeam
 
       - name: Push NuGet Packages
-        if: >
-          matrix.os == 'macos-15' &&
-          (
-            (github.event_name == 'workflow_dispatch' && github.event.inputs.push-packages == 'true') ||
-            (github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')))
-          )
-        shell: bash
+        if: env.PUSH == 'true'
         run: dotnet nuget push 'artifacts/nuget/*.nupkg' --skip-duplicate --api-key '${{ steps.nuget-login.outputs.NUGET_API_KEY }}' --source 'https://api.nuget.org/v3/index.json'
 
       - name: Upload Release Assets
-        if: matrix.os == 'macos-15' && github.ref_type == 'tag'
-        shell: bash
+        if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
