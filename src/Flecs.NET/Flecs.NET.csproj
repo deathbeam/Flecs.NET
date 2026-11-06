@@ -27,6 +27,10 @@
         <PackageId Condition="'$(Configuration)' == 'Release'">Deathbeam.Flecs.NET.Release</PackageId>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackStructReflectionSourcegen</TargetsForTfmSpecificContentInPackage>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All"/>
         <ProjectReference Include="..\Flecs.NET.Bindings\Flecs.NET.Bindings.csproj"/>
@@ -34,6 +38,18 @@
                           OutputItemType="Analyzer"
                           ReferenceOutputAssembly="false"
                           PrivateAssets="all"/>
+        <ProjectReference Include="..\Flecs.NET.Sourcegen\Flecs.NET.Sourcegen.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all"/>
     </ItemGroup>
+
+    <Target Name="PackStructReflectionSourcegen">
+        <MSBuild Projects="..\Flecs.NET.Sourcegen\Flecs.NET.Sourcegen.csproj" Targets="GetTargetPath" RemoveProperties="TargetFramework">
+            <Output TaskParameter="TargetOutputs" ItemName="StructReflectionSourcegenPath"/>
+        </MSBuild>
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="@(StructReflectionSourcegenPath)" PackagePath="analyzers/dotnet/cs"/>
+        </ItemGroup>
+    </Target>
 
 </Project>

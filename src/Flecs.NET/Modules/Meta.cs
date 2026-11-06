@@ -17,7 +17,7 @@ public static partial class Ecs
         public readonly void InitModule(World world)
         {
             world.Component<bool>().Set(new EcsPrimitive { kind = EcsBool });
-            world.Component<char>().Set(new EcsPrimitive { kind = EcsChar });
+            world.Component<char>().Set(new EcsPrimitive { kind = EcsU16 });
             world.Component<byte>().Set(new EcsPrimitive { kind = EcsU8 });
             world.Component<ushort>().Set(new EcsPrimitive { kind = EcsU16 });
             world.Component<uint>().Set(new EcsPrimitive { kind = EcsU32 });

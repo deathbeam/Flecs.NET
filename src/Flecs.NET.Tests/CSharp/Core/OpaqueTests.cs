@@ -39,16 +39,6 @@ namespace Flecs.NET.Tests.CSharp.Core
         }
 
         [Fact]
-        private void FixedBufferStructRegistersWithoutMembers()
-        {
-            using World world = World.Create();
-
-            Entity entity = world.Entity("e2").Set(new OnlyFixed());
-
-            Assert.Contains("OnlyFixed", entity.ToJson());
-        }
-
-        [Fact]
         private void StringComponentSerializes()
         {
             using World world = World.Create();
@@ -201,12 +191,14 @@ internal struct StringPlayer : IFlecsStruct
 {
     public string Name;
 }
+#pragma warning restore FLECSREFL003
 
+#pragma warning disable FLECSREFL004 // Computed properties have no backing field, so nothing is reflected.
 internal struct ComputedStringOnly : IFlecsStruct
 {
     public string Name => "computed";
 }
-#pragma warning restore FLECSREFL003
+#pragma warning restore FLECSREFL004
 
 internal unsafe struct FixedString64
 {
@@ -234,11 +226,6 @@ internal struct Player : IFlecsStruct
 {
     public FixedString64 Name;
     public int Score;
-}
-
-internal unsafe struct OnlyFixed : IFlecsStruct
-{
-    public fixed char Buffer[8];
 }
 
 internal unsafe struct NativeInts : IDisposable

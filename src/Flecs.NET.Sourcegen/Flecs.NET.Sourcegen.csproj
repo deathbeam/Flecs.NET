@@ -6,16 +6,10 @@
         <Nullable>enable</Nullable>
         <RootNamespace>Flecs.NET.Sourcegen</RootNamespace>
         <AssemblyName>Flecs.NET.Sourcegen</AssemblyName>
-        <PackageId>Deathbeam.Flecs.NET.Sourcegen</PackageId>
         <IsRoslynComponent>true</IsRoslynComponent>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <GenerateDocumentationFile>false</GenerateDocumentationFile>
-        <Description>IFlecsStruct auto-reflection source generator for Flecs.NET.</Description>
-
-        <IsPackable>true</IsPackable>
-        <BuildOutputTargetFolder>analyzers/dotnet/cs</BuildOutputTargetFolder>
-        <NoPackageAnalysis>true</NoPackageAnalysis>
-        <DevelopmentDependency>true</DevelopmentDependency>
+        <IsPackable>false</IsPackable>
 
         <NoWarn>$(NoWarn);RS1036;RS2008</NoWarn>
     </PropertyGroup>

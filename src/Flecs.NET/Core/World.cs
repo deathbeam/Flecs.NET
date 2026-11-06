@@ -3613,7 +3613,9 @@ public readonly unsafe partial struct World : IDisposable, IEquatable<World>
         {
             case TypeCode.Char:
             {
-                char v = (char)ecs_meta_get_char(&cursor);
+                char v = ecs_meta_get_type(&cursor) == Ecs.Char
+                    ? (char)ecs_meta_get_char(&cursor)
+                    : (char)ecs_meta_get_uint(&cursor);
                 return *(T*)&v;
             }
             case TypeCode.SByte:

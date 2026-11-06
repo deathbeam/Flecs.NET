@@ -166,7 +166,10 @@ public unsafe struct Cursor : IEquatable<Cursor>
     {
         fixed (ecs_meta_cursor_t* cursor = &_cursor)
         {
-            return ecs_meta_set_char(cursor, (byte)value);
+            if (ecs_meta_get_type(cursor) == Ecs.Char)
+                return ecs_meta_set_char(cursor, (byte)value);
+
+            return ecs_meta_set_uint(cursor, value);
         }
     }
 
@@ -295,7 +298,10 @@ public unsafe struct Cursor : IEquatable<Cursor>
     {
         fixed (ecs_meta_cursor_t* cursor = &_cursor)
         {
-            return (char)ecs_meta_get_char(cursor);
+            if (ecs_meta_get_type(cursor) == Ecs.Char)
+                return (char)ecs_meta_get_char(cursor);
+
+            return (char)ecs_meta_get_uint(cursor);
         }
     }
 

@@ -389,8 +389,7 @@ public static unsafe class Type<T>
 
         ecs_set_hooks_id(world, component, &hooks);
 
-        if (typeof(IFlecsStruct).IsAssignableFrom(typeof(T)))
-            StructReflection.Apply<T>(world, world.Entity(component));
+        StructReflection<T>.Apply(world, world.Entity(component));
 
         // Registers opaque reflection for types like FlecsString64 and FlecsArray8<T>
         if (typeof(IFlecsOpaqueType).IsAssignableFrom(typeof(T)))

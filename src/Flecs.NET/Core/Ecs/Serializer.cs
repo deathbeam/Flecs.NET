@@ -34,13 +34,13 @@ public static unsafe partial class Ecs
         }
 
         /// <summary>
-        ///     Serializes a char value.
+        ///     Serializes a char value as a u16 number, matching how <c>char</c> is registered in meta.
         /// </summary>
         /// <param name="value">The value to serialize.</param>
         public int Value(char value)
         {
-            byte @char = (byte)value;
-            return _serializer->value(_serializer, Ecs.Char, &@char);
+            ushort u16 = value;
+            return _serializer->value(_serializer, Ecs.U16, &u16);
         }
 
         /// <summary>
