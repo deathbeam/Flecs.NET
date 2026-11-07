@@ -650,6 +650,11 @@ public static partial class Ecs
     public static ref ulong Entity => ref FLECS_IDecs_entity_tID_;
 
     /// <summary>
+    ///     Reference to <see cref="FLECS_IDecs_id_tID_"/>.
+    /// </summary>
+    public static ref ulong Id => ref FLECS_IDecs_id_tID_;
+
+    /// <summary>
     ///     Reference to <see cref="EcsQuantity"/>.
     /// </summary>
     public static ref ulong Quantity => ref EcsQuantity;

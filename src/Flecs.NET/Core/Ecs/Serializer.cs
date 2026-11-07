@@ -69,6 +69,14 @@ public static unsafe partial class Ecs
         }
 
         /// <summary>
+        ///     Serializes an id value.
+        /// </summary>
+        public int Id(ulong value)
+        {
+            return _serializer->value(_serializer, Ecs.Id, &value);
+        }
+
+        /// <summary>
         ///     Serializes a float value.
         /// </summary>
         /// <param name="value">The value to serialize.</param>

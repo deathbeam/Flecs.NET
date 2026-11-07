@@ -38,6 +38,17 @@ public static partial class Ecs
                 .Serialize(static (ref readonly Ecs.Serializer ser, in string value) => ser.Value(value))
                 .AssignString(static (ref string value, string str) => value = str)
                 .AssignNull(static (ref string value) => value = null!));
+
+            // Register entity and id as opaque types that map to flecs' entity and id types
+            world.Component<Entity>().Opaque(o => o
+                .AsType(Ecs.Entity)
+                .Serialize(static (ref readonly Ecs.Serializer ser, in Entity value) => ser.Entity(value.Id))
+                .AssignEntity(static (ref Entity value, World world, ulong assigned) => value = world.Entity(assigned)));
+
+            world.Component<Id>().Opaque(o => o
+                .AsType(Ecs.Id)
+                .Serialize(static (ref readonly Ecs.Serializer ser, in Id value) => ser.Id(value.Value))
+                .AssignId(static (ref Id value, World world, ulong assigned) => value = world.Id(assigned)));
         }
 
         /// <summary>

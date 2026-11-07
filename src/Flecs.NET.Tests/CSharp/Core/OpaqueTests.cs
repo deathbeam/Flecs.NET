@@ -163,6 +163,31 @@ namespace Flecs.NET.Tests.CSharp.Core
             Assert.DoesNotContain("boom value", entity.ToJson());
         }
 
+        [Fact]
+        private void EntityAndIdMembersSerialize()
+        {
+            using World world = World.Create();
+
+            Entity target = world.Entity("target");
+            EntityRefs value = new EntityRefs { Target = target, TargetId = new Id(world, target) };
+
+            string json = world.ToJson(ref value);
+            Assert.Contains("\"Target\":\"target\"", json.Replace(" ", ""));
+            Assert.Contains("\"TargetId\":[\"target\"]", json.Replace(" ", ""));
+
+            EntityRefs parsed = default;
+            Assert.True(world.FromJson(Type<EntityRefs>.Id(world), &parsed, """
+                {"Target": "target"}
+                """));
+            Assert.Equal(target, parsed.Target);
+
+            // flecs' json parser rejects the array form it writes for ids, so ids assign through the cursor.
+            Id assigned = default;
+            Cursor cursor = world.Cursor(Type<Id>.Id(world), &assigned);
+            Assert.Equal(0, cursor.SetId(target.Id.Value));
+            Assert.Equal(target.Id.Value, assigned.Value);
+        }
+
         private static NativeInts CreateInts(params int[] values)
         {
             NativeInts ints = new NativeInts();
@@ -226,6 +251,12 @@ internal struct Player : IFlecsStruct
 {
     public FixedString64 Name;
     public int Score;
+}
+
+internal struct EntityRefs : IFlecsStruct
+{
+    public Entity Target;
+    public Id TargetId;
 }
 
 internal unsafe struct NativeInts : IDisposable
