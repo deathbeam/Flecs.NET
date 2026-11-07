@@ -4,9 +4,11 @@ using Flecs.NET.Examples.Reflection.AutoDefineNestedStruct;
 // Components
 namespace Flecs.NET.Examples.Reflection.AutoDefineNestedStruct
 {
-    internal record struct Point(int X, int Y) : IFlecsStruct;
+    [FlecsStruct]
+    internal record struct Point(int X, int Y);
 
-    internal record struct Line(Point Start, Point Stop) : IFlecsStruct;
+    [FlecsStruct]
+    internal record struct Line(Point Start, Point Stop);
 }
 
 public static class Reflection_AutoDefineNestedStruct

@@ -65,18 +65,18 @@ internal readonly struct ReflectionResult
 }
 
 /// <summary>
-///     The single source of truth for which <c>IFlecsStruct</c> types are reflected and with which
+///     The single source of truth for which <c>[FlecsStruct]</c> types are reflected and with which
 ///     members. Used by both the generator and the analyzer so they can never disagree.
 /// </summary>
 internal static class StructReflectionRules
 {
-    public const string InterfaceFullyQualifiedName = "Flecs.NET.Core.IFlecsStruct";
+    public const string AttributeFullyQualifiedName = "Flecs.NET.Core.FlecsStructAttribute";
 
     private const string InlineArrayAttributeFullyQualifiedName = "System.Runtime.CompilerServices.InlineArrayAttribute";
 
-    public static ReflectionResult Analyze(INamedTypeSymbol symbol, INamedTypeSymbol iface)
+    public static ReflectionResult Analyze(INamedTypeSymbol symbol)
     {
-        if (!symbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, iface)))
+        if (!HasFlecsStructAttribute(symbol))
             return ReflectionResult.NotReflectable(ReflectionProblem.NotApplicable, string.Empty);
 
         string typeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -148,6 +148,17 @@ internal static class StructReflectionRules
             reflected.Add(new ReflectedMember(name, type, count));
 
         return ReflectionResult.Reflectable(typeName, reflected.MoveToImmutable());
+    }
+
+    private static bool HasFlecsStructAttribute(INamedTypeSymbol symbol)
+    {
+        foreach (AttributeData attribute in symbol.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() == AttributeFullyQualifiedName)
+                return true;
+        }
+
+        return false;
     }
 
     private static bool TryGetInlineArrayCount(INamedTypeSymbol symbol, out int count)

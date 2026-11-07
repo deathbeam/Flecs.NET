@@ -1,13 +1,12 @@
 using System;
 using System.Text;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Flecs.NET.Sourcegen;
 
 /// <summary>
-///     Emits a <c>[ModuleInitializer]</c> registrar per <c>IFlecsStruct</c> struct. Types that cannot
+///     Emits a <c>[ModuleInitializer]</c> registrar per <c>[FlecsStruct]</c> struct. Types that cannot
 ///     be reflected are skipped here; <see cref="StructReflectionAnalyzer"/> reports them.
 /// </summary>
 [Generator]
@@ -16,32 +15,22 @@ public sealed class StructReflectionGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<StructModel> models = context.SyntaxProvider
-            .CreateSyntaxProvider(
-                static (node, _) => node is TypeDeclarationSyntax { BaseList.Types.Count: > 0 },
-                static (syntaxContext, cancellationToken) => Transform(syntaxContext, cancellationToken))
+            .ForAttributeWithMetadataName(
+                StructReflectionRules.AttributeFullyQualifiedName,
+                static (node, _) => node is TypeDeclarationSyntax,
+                static (attributeContext, _) => Transform(attributeContext))
             .Where(static model => model.HasValue)
             .Select(static (model, _) => model!.Value);
 
         context.RegisterSourceOutput(models, static (spc, model) => spc.AddSource(model.GeneratedFileName, model.Source));
     }
 
-    private static StructModel? Transform(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+    private static StructModel? Transform(GeneratorAttributeSyntaxContext context)
     {
-        if (context.Node is not TypeDeclarationSyntax declaration)
+        if (context.TargetSymbol is not INamedTypeSymbol { TypeKind: TypeKind.Struct } symbol)
             return null;
 
-        if (context.SemanticModel.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol { TypeKind: TypeKind.Struct } symbol)
-            return null;
-
-        // Partial types are declared in several places; emit once, from the first declaration.
-        SyntaxReference first = symbol.DeclaringSyntaxReferences[0];
-        if (first.SyntaxTree != declaration.SyntaxTree || first.Span != declaration.Span)
-            return null;
-
-        if (context.SemanticModel.Compilation.GetTypeByMetadataName(StructReflectionRules.InterfaceFullyQualifiedName) is not { } iface)
-            return null;
-
-        ReflectionResult result = StructReflectionRules.Analyze(symbol, iface);
+        ReflectionResult result = StructReflectionRules.Analyze(symbol);
         return result.Problem == ReflectionProblem.None ? BuildModel(result) : null;
     }
 

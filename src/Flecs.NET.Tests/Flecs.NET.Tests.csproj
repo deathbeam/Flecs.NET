@@ -11,7 +11,7 @@
     <ItemGroup>
         <ProjectReference Include="../Flecs.NET/Flecs.NET.csproj"/>
         <ProjectReference Include="../Flecs.NET.Examples/Flecs.NET.Examples.csproj"/>
-        <!-- Source generator that emits compile-time struct reflection registrars for IFlecsStruct types. -->
+        <!-- Source generator that emits compile-time struct reflection registrars for [FlecsStruct] types. -->
         <ProjectReference Include="../Flecs.NET.Sourcegen/Flecs.NET.Sourcegen.csproj"
                           OutputItemType="Analyzer"
                           ReferenceOutputAssembly="false"/>

@@ -614,26 +614,30 @@ internal struct NativeCharStruct
     public int I;
 }
 
-internal unsafe struct FixedBufferStruct : IFlecsStruct
+[FlecsStruct]
+internal unsafe struct FixedBufferStruct
 {
     public fixed int Values[4];
     public int Tail;
 }
 
-internal unsafe struct PointerStruct : IFlecsStruct
+[FlecsStruct]
+internal unsafe struct PointerStruct
 {
     public int* Pointer;
     public int Tail;
 }
 
-internal struct MixedFields : IFlecsStruct
+[FlecsStruct]
+internal struct MixedFields
 {
     public int A;
     public int B { get; set; }
     public int C;
 }
 
-internal struct PrivateFieldBetween : IFlecsStruct
+[FlecsStruct]
+internal struct PrivateFieldBetween
 {
     public int A;
     private int B;
@@ -649,12 +653,14 @@ internal struct PrivateFieldBetween : IFlecsStruct
     public readonly int BValue => B;
 }
 
-internal record struct RecordPosition(int X, int Y) : IFlecsStruct;
+[FlecsStruct]
+internal record struct RecordPosition(int X, int Y);
 
 #pragma warning disable FLECSREFL001 // Nested in a generic type, so no registrar can name it.
 internal class GenericContainer<T>
 {
-    internal struct Nested : IFlecsStruct
+    [FlecsStruct]
+    internal struct Nested
     {
         public int Value { get; set; }
     }
@@ -664,21 +670,24 @@ internal class GenericContainer<T>
 #pragma warning disable FLECSREFL005 // Private nesting, so no registrar can name it.
 internal class PrivateContainer
 {
-    private struct Hidden : IFlecsStruct
+    [FlecsStruct]
+    private struct Hidden
     {
         public int Value { get; set; }
     }
 }
 #pragma warning restore FLECSREFL005
 
-internal struct FixedPlayer : IFlecsStruct
+[FlecsStruct]
+internal struct FixedPlayer
 {
     public FlecsString64 Name;
     public FlecsArray8<int> Items;
     public int Score;
 }
 
-internal struct FixedStrings : IFlecsStruct
+[FlecsStruct]
+internal struct FixedStrings
 {
     public FlecsArray4<FlecsString32> Names;
 }
@@ -698,7 +707,8 @@ internal enum WideAccess : long
     Read = 1
 }
 
-internal struct AccessHolder : IFlecsStruct
+[FlecsStruct]
+internal struct AccessHolder
 {
     public Access Flags;
 }
@@ -712,18 +722,21 @@ internal enum AllAccess
     All = -1
 }
 
-internal struct AllAccessHolder : IFlecsStruct
+[FlecsStruct]
+internal struct AllAccessHolder
 {
     public AllAccess Flags;
 }
 
 [InlineArray(4)]
-internal struct FloatValues : IFlecsStruct
+[FlecsStruct]
+internal struct FloatValues
 {
     private float _element0;
 }
 
-internal struct InlineArrayHolder : IFlecsStruct
+[FlecsStruct]
+internal struct InlineArrayHolder
 {
     public FloatValues Flat;
     public int Tail;
@@ -731,7 +744,8 @@ internal struct InlineArrayHolder : IFlecsStruct
 
 #pragma warning disable CS9184 // A pointer element type is not valid as a type argument.
 [InlineArray(2)]
-internal unsafe struct PointerValues : IFlecsStruct
+[FlecsStruct]
+internal unsafe struct PointerValues
 {
     private int* _element0;
 }

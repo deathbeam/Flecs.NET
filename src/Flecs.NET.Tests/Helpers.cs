@@ -25,13 +25,17 @@ public struct UnionT
     [FieldOffset(0)] public float Type2;
 }
 
-public record struct AutoPosition(float X, float Y) : IFlecsStruct;
+[FlecsStruct]
+public record struct AutoPosition(float X, float Y);
 
-public record struct AutoPoint(int X, int Y) : IFlecsStruct;
+[FlecsStruct]
+public record struct AutoPoint(int X, int Y);
 
-public record struct AutoLine(AutoPoint Start, AutoPoint Stop) : IFlecsStruct;
+[FlecsStruct]
+public record struct AutoLine(AutoPoint Start, AutoPoint Stop);
 
-public struct AutoPlainStruct : IFlecsStruct
+[FlecsStruct]
+public struct AutoPlainStruct
 {
     public int A;
     public int B;

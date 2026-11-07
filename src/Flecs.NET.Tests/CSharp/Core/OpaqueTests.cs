@@ -212,14 +212,16 @@ internal struct OpaqueValue
 }
 
 #pragma warning disable FLECSREFL003 // Intentionally verify the unsupported managed marker stays unreflected.
-internal struct StringPlayer : IFlecsStruct
+[FlecsStruct]
+internal struct StringPlayer
 {
     public string Name;
 }
 #pragma warning restore FLECSREFL003
 
 #pragma warning disable FLECSREFL004 // Computed properties have no backing field, so nothing is reflected.
-internal struct ComputedStringOnly : IFlecsStruct
+[FlecsStruct]
+internal struct ComputedStringOnly
 {
     public string Name => "computed";
 }
@@ -247,13 +249,15 @@ internal unsafe struct FixedString64
     }
 }
 
-internal struct Player : IFlecsStruct
+[FlecsStruct]
+internal struct Player
 {
     public FixedString64 Name;
     public int Score;
 }
 
-internal struct EntityRefs : IFlecsStruct
+[FlecsStruct]
+internal struct EntityRefs
 {
     public Entity Target;
     public Id TargetId;

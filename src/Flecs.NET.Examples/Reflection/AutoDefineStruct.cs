@@ -4,7 +4,8 @@ using Flecs.NET.Examples.Reflection.AutoDefineStruct;
 // Components
 namespace Flecs.NET.Examples.Reflection.AutoDefineStruct
 {
-    internal record struct Position(float X, float Y) : IFlecsStruct;
+    [FlecsStruct]
+    internal record struct Position(float X, float Y);
 }
 
 public static class Reflection_AutoDefineStruct
@@ -13,7 +14,7 @@ public static class Reflection_AutoDefineStruct
     {
         using World world = World.Create();
 
-        // Register component - members are reflected automatically via IFlecsStruct.
+        // Register component - members are reflected automatically via [FlecsStruct].
         world.Component<Position>();
 
         // Create entity with Position as usual.

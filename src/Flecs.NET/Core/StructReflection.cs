@@ -5,7 +5,7 @@ using static Flecs.NET.Bindings.flecs;
 namespace Flecs.NET.Core;
 
 /// <summary>
-///     Populates meta reflection for <see cref="IFlecsStruct"/> types from source-generated
+///     Populates meta reflection for <see cref="FlecsStructAttribute"/> types from source-generated
 ///     registrars. No runtime reflection, so NativeAOT-safe.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
