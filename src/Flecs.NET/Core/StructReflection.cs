@@ -20,12 +20,31 @@ public static unsafe class StructReflection<T>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static void Register(Action<UntypedComponent> registrar)
     {
-        _registrar = registrar;
+        _registrar = component =>
+        {
+            component.Add<EcsStruct>();
+            registrar(component);
+        };
     }
 
     /// <summary>
-    ///     Adds <c>EcsStruct</c> and runs the registered delegate. Called from
-    ///     <c>Type&lt;T&gt;.RegisterComponent</c>; no-op without a registration.
+    ///     Stores the array registration for <typeparamref name="T"/>, an <c>[InlineArray]</c> type.
+    ///     Called from generated <c>[ModuleInitializer]</c> methods.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void RegisterArray<TElement>(int count)
+    {
+        // Same as ecs_array_init, but on the existing component entity instead of a new one.
+        _registrar = component => component.Set(new EcsArray
+        {
+            type = Type<TElement>.Id(component.WorldPtr),
+            count = count
+        });
+    }
+
+    /// <summary>
+    ///     Runs the registered delegate. Called from <c>Type&lt;T&gt;.RegisterComponent</c>; no-op
+    ///     without a registration.
     /// </summary>
     internal static void Apply(World world, Entity type)
     {
@@ -38,7 +57,6 @@ public static unsafe class StructReflection<T>
         try
         {
             UntypedComponent component = new UntypedComponent(type.WorldPtr, type.Id);
-            component.Add<EcsStruct>();
             _registrar(component);
         }
         finally

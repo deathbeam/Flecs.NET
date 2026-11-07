@@ -65,14 +65,19 @@ public static unsafe class Type<T>
     public static readonly IntegerType UnderlyingType = GetUnderlyingType();
 
     /// <summary>
-    ///     The underlying integer type id if this type is an enum.
-    /// </summary>
-    public static readonly ulong UnderlyingTypeId = GetUnderlyingTypeId();
-
-    /// <summary>
     ///     The cache indexes of all enum members if this type is an enum.
     /// </summary>
     private static readonly EnumMember[] Constants = InitEnumCacheIndexes();
+
+    /// <summary>
+    ///     Whether the type is a bitmask.
+    /// </summary>
+    private static readonly bool IsBitmask = GetIsBitmask();
+
+    /// <summary>
+    ///     The underlying integer type id if this type is an enum.
+    /// </summary>
+    public static readonly ulong UnderlyingTypeId = GetUnderlyingTypeId();
 
     /// <summary>
     ///     Returns the id for this type with the provided world. Registers a new component id if it doesn't exist.
@@ -131,7 +136,8 @@ public static unsafe class Type<T>
     public static ulong Id<TEnum>(ecs_world_t* world, TEnum constant) where TEnum : Enum, T
     {
         Id(world); // Ensures that component ids are registered for enum members.
-        return LookupCacheIndex(world, GetEnumCacheIndex(constant));
+        ref ulong id = ref LookupCacheIndex(world, GetEnumCacheIndex(constant));
+        return Unsafe.IsNullRef(ref id) ? 0 : id;
     }
 
     /// <summary>
@@ -454,6 +460,26 @@ public static unsafe class Type<T>
         return constants;
     }
 
+    // flecs bitmasks are u32 and fail to serialize bits that no single-bit constant covers, so only
+    // int/uint [Flags] enums whose constants are all made of single-bit constants become bitmasks.
+    private static bool GetIsBitmask()
+    {
+        if (UnderlyingType is not (IntegerType.Int32 or IntegerType.UInt32) || !typeof(T).IsDefined(typeof(FlagsAttribute), false))
+            return false;
+
+        uint allBits = 0, singleBits = 0;
+
+        foreach (EnumMember member in Constants)
+        {
+            uint bits = (uint)member.Value;
+            allBits |= bits;
+            if ((bits & (bits - 1)) == 0)
+                singleBits |= bits;
+        }
+
+        return singleBits != 0 && allBits == singleBits;
+    }
+
     private static void RegisterDotnetType(World world, Entity type)
     {
         ecs_suspend_readonly_state_t state = default;
@@ -467,13 +493,21 @@ public static unsafe class Type<T>
         ecs_suspend_readonly_state_t state = default;
         world = flecs_suspend_readonly(world, &state);
 
-        type.Set(new EcsEnum { underlying_type = UnderlyingTypeId });
+        if (IsBitmask)
+            type.Add(Type<EcsBitmask>.Id(world));
+        else
+            type.Set(new EcsEnum { underlying_type = UnderlyingTypeId });
 
         Entity prevScope = world.SetScope(type);
 
         for (int i = 0; i < Constants.Length; i++)
         {
             long value = Constants[i].Value;
+
+            // shortcut: flecs serializes a zero bitmask constant into every value
+            if (IsBitmask && value == 0)
+                continue;
+
             string name = Unsafe.As<long, T>(ref value)!.ToString()!;
             EnsureCacheIndex(world, Constants[i].CacheIndex) =
                 world.Entity(name).SetUntyped(EcsConstant, UnderlyingTypeId, sizeof(T), &value);
@@ -569,7 +603,7 @@ public static unsafe class Type<T>
             IntegerType.Byte => FLECS_IDecs_u8_tID_,
             IntegerType.Int16 => FLECS_IDecs_i16_tID_,
             IntegerType.UInt16 => FLECS_IDecs_u16_tID_,
-            IntegerType.Int32 => FLECS_IDecs_i32_tID_,
+            IntegerType.Int32 => IsBitmask ? FLECS_IDecs_u32_tID_ : FLECS_IDecs_i32_tID_,
             IntegerType.UInt32 => FLECS_IDecs_u32_tID_,
             IntegerType.Int64 => FLECS_IDecs_i64_tID_,
             IntegerType.UInt64 => FLECS_IDecs_u64_tID_,

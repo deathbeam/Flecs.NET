@@ -39,17 +39,26 @@ internal readonly struct ReflectionResult
     public readonly string? Member;
 
     public readonly ImmutableArray<ReflectedMember> Members;
+    public readonly string? ElementType;
 
-    private ReflectionResult(ReflectionProblem problem, string typeName, string? member, ImmutableArray<ReflectedMember> members)
+    public readonly int ElementCount;
+
+    private ReflectionResult(ReflectionProblem problem, string typeName, string? member,
+        ImmutableArray<ReflectedMember> members, string? elementType = null, int elementCount = 0)
     {
         Problem = problem;
         TypeName = typeName;
         Member = member;
         Members = members;
+        ElementType = elementType;
+        ElementCount = elementCount;
     }
 
     public static ReflectionResult Reflectable(string typeName, ImmutableArray<ReflectedMember> members)
         => new(ReflectionProblem.None, typeName, null, members);
+
+    public static ReflectionResult ReflectableArray(string typeName, string elementType, int elementCount)
+        => new(ReflectionProblem.None, typeName, null, ImmutableArray<ReflectedMember>.Empty, elementType, elementCount);
 
     public static ReflectionResult NotReflectable(ReflectionProblem problem, string typeName, string? member = null)
         => new(problem, typeName, member, ImmutableArray<ReflectedMember>.Empty);
@@ -63,6 +72,8 @@ internal static class StructReflectionRules
 {
     public const string InterfaceFullyQualifiedName = "Flecs.NET.Core.IFlecsStruct";
 
+    private const string InlineArrayAttributeFullyQualifiedName = "System.Runtime.CompilerServices.InlineArrayAttribute";
+
     public static ReflectionResult Analyze(INamedTypeSymbol symbol, INamedTypeSymbol iface)
     {
         if (!symbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, iface)))
@@ -71,16 +82,31 @@ internal static class StructReflectionRules
         string typeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         // The registrar is emitted into another file, so it can only name closed, accessible types.
-        for (INamedTypeSymbol? type = symbol; type is not null; type = type.ContainingType)
+        ReflectionProblem problem = GetAccessibilityProblem(symbol);
+        if (problem != ReflectionProblem.None)
+            return ReflectionResult.NotReflectable(problem, typeName);
+
+        // An [InlineArray] type exposes one field but stores N values, so flecs reflects it as an array type.
+        if (TryGetInlineArrayCount(symbol, out int elementCount))
         {
-            if (type.TypeParameters.Length > 0)
-                return ReflectionResult.NotReflectable(ReflectionProblem.OpenGeneric, typeName);
+            if (symbol.GetMembers().OfType<IFieldSymbol>()
+                    .FirstOrDefault(static field => !field.IsStatic && !field.IsConst) is not { } element)
+                return ReflectionResult.NotReflectable(ReflectionProblem.NoMembers, typeName);
 
-            if (type.IsFileLocal)
-                return ReflectionResult.NotReflectable(ReflectionProblem.FileScoped, typeName);
+            if (!element.Type.IsUnmanagedType)
+                return ReflectionResult.NotReflectable(ReflectionProblem.Managed, typeName, element.Name);
 
-            if (type.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal))
-                return ReflectionResult.NotReflectable(ReflectionProblem.Inaccessible, typeName);
+            // The element type is named by the registrar too, so it must be accessible as well.
+            problem = element.Type is INamedTypeSymbol named ? GetAccessibilityProblem(named) : ReflectionProblem.None;
+            if (problem != ReflectionProblem.None)
+                return ReflectionResult.NotReflectable(problem, typeName);
+
+            // A pointer can't be a generic type argument, and flecs maps a pointer element to uptr (c_utils.c).
+            string elementType = element.Type is IPointerTypeSymbol or IFunctionPointerTypeSymbol
+                ? "nuint"
+                : element.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+            return ReflectionResult.ReflectableArray(typeName, elementType, elementCount);
         }
 
         var members = new List<(string Name, string Type, int Count)>();
@@ -122,5 +148,38 @@ internal static class StructReflectionRules
             reflected.Add(new ReflectedMember(name, type, count));
 
         return ReflectionResult.Reflectable(typeName, reflected.MoveToImmutable());
+    }
+
+    private static bool TryGetInlineArrayCount(INamedTypeSymbol symbol, out int count)
+    {
+        foreach (AttributeData attribute in symbol.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() == InlineArrayAttributeFullyQualifiedName
+                && attribute.ConstructorArguments.Length == 1 && attribute.ConstructorArguments[0].Value is int value)
+            {
+                count = value;
+                return true;
+            }
+        }
+
+        count = 0;
+        return false;
+    }
+
+    private static ReflectionProblem GetAccessibilityProblem(INamedTypeSymbol symbol)
+    {
+        for (INamedTypeSymbol? type = symbol; type is not null; type = type.ContainingType)
+        {
+            if (type.TypeParameters.Length > 0)
+                return ReflectionProblem.OpenGeneric;
+
+            if (type.IsFileLocal)
+                return ReflectionProblem.FileScoped;
+
+            if (type.DeclaredAccessibility is not (Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal))
+                return ReflectionProblem.Inaccessible;
+        }
+
+        return ReflectionProblem.None;
     }
 }

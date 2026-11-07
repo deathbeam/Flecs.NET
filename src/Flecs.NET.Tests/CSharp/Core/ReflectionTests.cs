@@ -1,3 +1,5 @@
+using System;
+using System.Runtime.CompilerServices;
 using Flecs.NET.Core;
 using Xunit;
 using static Flecs.NET.Bindings.flecs;
@@ -476,6 +478,110 @@ namespace Flecs.NET.Tests.CSharp.Core
             Assert.Equal(7, items.Get<FlecsArray8<int>>()[0]);
         }
 
+        [Fact]
+        private void FlagsEnums()
+        {
+            using World world = World.Create();
+
+            Entity access = world.Component<Access>();
+            Assert.True(access.Has<EcsBitmask>());
+            Assert.False(access.Has<EcsEnum>());
+
+            // Zero constants are not registered for bitmasks, because flecs matches constants by value.
+            Assert.Equal(0ul, access.Lookup("None").Id.Value);
+            Assert.Equal(0ul, world.Entity(Access.None).Id.Value);
+            Assert.Throws<Ecs.AssertionException>(() => world.Entity().Add(Access.None));
+
+            AccessHolder value = new AccessHolder { Flags = Access.Read | Access.Write };
+            string json = world.ToJson(ref value);
+            Assert.Contains("Read", json);
+            Assert.Contains("Write", json);
+            Assert.DoesNotContain("None", json);
+
+            AccessHolder zero = default;
+            Assert.Equal("{\"Flags\":0}", world.ToJson(ref zero));
+
+            AccessHolder parsed = default;
+            Assert.True(world.FromJson(Type<AccessHolder>.Id(world), &parsed, """{"Flags":"Read|Write"}"""));
+            Assert.Equal(Access.Read | Access.Write, parsed.Flags);
+
+            // Only u32 sized flags enums become bitmasks.
+            Entity wide = world.Component<WideAccess>();
+            Assert.True(wide.Has<EcsEnum>());
+            Assert.False(wide.Has<EcsBitmask>());
+
+            // A constant with bits that no single-bit constant covers keeps the enum path.
+            Entity all = world.Component<AllAccess>();
+            Assert.True(all.Has<EcsEnum>());
+            Assert.False(all.Has<EcsBitmask>());
+
+            AllAccessHolder allValue = new AllAccessHolder { Flags = AllAccess.All };
+            Assert.Equal("{\"Flags\":\"All\"}", world.ToJson(ref allValue));
+        }
+
+        [Fact]
+        private void InlineArrayReflectsAsFlecsArray()
+        {
+            using World world = World.Create();
+
+            Entity type = world.Component<FloatValues>();
+            Assert.False(type.Has<EcsStruct>());
+            Assert.True(type.Has<EcsArray>());
+
+            EcsArray array = type.Get<EcsArray>();
+            Assert.Equal(Type<float>.Id(world), array.type);
+            Assert.Equal(4, array.count);
+            Assert.Equal(16, type.Get<EcsComponent>().size);
+
+            FloatValues value = default;
+            value[0] = 1;
+            value[1] = 2;
+            value[2] = 3;
+            value[3] = 4;
+            Assert.Equal("[1, 2, 3, 4]", world.ToJson(ref value));
+
+            FloatValues parsed = default;
+            Assert.True(world.FromJson(Type<FloatValues>.Id(world), &parsed, "[5, 6, 7, 8]"));
+            Assert.Equal(5, parsed[0]);
+            Assert.Equal(8, parsed[3]);
+        }
+
+        [Fact]
+        private void InlineArrayMemberReflectsAsArray()
+        {
+            using World world = World.Create();
+
+            Assert.True(world.Component<InlineArrayHolder>().Has<EcsStruct>());
+
+            InlineArrayHolder value = default;
+            value.Flat[0] = 1;
+            value.Flat[1] = 2;
+            value.Flat[2] = 3;
+            value.Flat[3] = 4;
+            value.Tail = 5;
+            Assert.Equal("{Flat: [1, 2, 3, 4], Tail: 5}", world.ToExpr(ref value));
+
+            InlineArrayHolder parsed = default;
+            Assert.True(world.FromJson(Type<InlineArrayHolder>.Id(world), &parsed,
+                """{"Flat":[5, 6, 7, 8], "Tail":9}"""));
+            Assert.Equal(5, parsed.Flat[0]);
+            Assert.Equal(8, parsed.Flat[3]);
+            Assert.Equal(9, parsed.Tail);
+        }
+
+        [Fact]
+        private void InlineArrayOfPointersReflectsAsUPtrArray()
+        {
+            using World world = World.Create();
+
+            // A pointer can't be a generic type argument, so the element is reflected as uptr.
+            Entity type = world.Component<PointerValues>();
+            EcsArray array = type.Get<EcsArray>();
+            Assert.Equal(Type<nuint>.Id(world), array.type);
+            Assert.Equal(2, array.count);
+            Assert.Equal(16, type.Get<EcsComponent>().size);
+        }
+
         private static FixedPlayer CreatePlayer(string name, int score, params int[] items)
         {
             FixedPlayer player = default;
@@ -576,3 +682,57 @@ internal struct FixedStrings : IFlecsStruct
 {
     public FlecsArray4<FlecsString32> Names;
 }
+
+[Flags]
+internal enum Access
+{
+    None = 0,
+    Read = 1,
+    Write = 2
+}
+
+[Flags]
+internal enum WideAccess : long
+{
+    None = 0,
+    Read = 1
+}
+
+internal struct AccessHolder : IFlecsStruct
+{
+    public Access Flags;
+}
+
+[Flags]
+internal enum AllAccess
+{
+    None = 0,
+    Read = 1,
+    Write = 2,
+    All = -1
+}
+
+internal struct AllAccessHolder : IFlecsStruct
+{
+    public AllAccess Flags;
+}
+
+[InlineArray(4)]
+internal struct FloatValues : IFlecsStruct
+{
+    private float _element0;
+}
+
+internal struct InlineArrayHolder : IFlecsStruct
+{
+    public FloatValues Flat;
+    public int Tail;
+}
+
+#pragma warning disable CS9184 // A pointer element type is not valid as a type argument.
+[InlineArray(2)]
+internal unsafe struct PointerValues : IFlecsStruct
+{
+    private int* _element0;
+}
+#pragma warning restore CS9184
